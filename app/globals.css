@@ -1,0 +1,206 @@
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Figma "База моделей" UI-kit tokenlari.
+   Manba: Figma variables — white / gold / black / light white / grey.
+   Tailwind v4 @theme orqali `bg-gold`, `text-black`, `border-grey` kabi
+   utility'lar avtomatik yasaladi.
+   ───────────────────────────────────────────────────────────────────────────── */
+@theme {
+  --color-black: #222222;
+  --color-grey: #666666;
+  --color-white: #ffffff;
+  --color-light-white: #f8f8f8;
+  --color-gold: #c8a46b;
+
+  /* Holat ranglari (статусы: активен / на модерации / отклонён) */
+  --color-success: #3ba55d;
+  --color-warning: #d8a13a;
+  --color-danger: #d92727;
+
+  /* Figma'da ikki shrift ishlatilgan:
+     — Helvetica Neue → sarlavhalar (uppercase, katta kegl)
+     — Montserrat     → matn, tugmalar, menyu
+     Montserrat next/font orqali yuklanadi, Helvetica Neue — tizim shrifti. */
+  --font-sans: var(--font-montserrat), "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Helvetica Neue", "HelveticaNeue", Helvetica, Arial, sans-serif;
+
+  /* Figma'dagi asosiy konteyner: 1920 dizayn → 1340 kontent.
+     Container komponenti bunga 2×24 padding qo'shadi (max-w-[1388px]). */
+  --spacing-content: 83.75rem; /* 1340px */
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background: var(--color-white);
+    color: var(--color-black);
+    font-family: var(--font-sans);
+  }
+
+  /* Figma'da barcha sarlavhalar Helvetica Neue, uppercase */
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+  }
+
+  /* Figma'da inputlarda number spinner yo'q */
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+}
+
+/* Gold scrollbar — filtr ro'yxatlari va dropdown'lar uchun */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #c8a46b;
+  border-radius: 2px;
+}
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #c8a46b transparent;
+}
+
+/* Scrollbar'ni yashiradi, lekin scroll ishlaydi (tab qatorlari, chip ro'yxatlari) */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Matnni N qatordan keyin kesish (kartochka tavsiflari) */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Uzluksiz marquee (brendlar / hamkorlar qatori) */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+  will-change: transform;
+}
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* ── Hero slayder ────────────────────────────────────────────────────────────
+   Figma: «animate» 81:1781 / 353:20607. Slayd rasmi tayyor kompozitsiya
+   (blur + qoraytirish allaqachon rasmga singdirilgan), shuning uchun bu yerda
+   faqat sekin yaqinlashish (Ken Burns) qoladi — u faqat aktiv slaydda ishlaydi,
+   autoplay davri bilan (7s) mos keladi. */
+@keyframes hero-kenburns {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.07);
+  }
+}
+.hero-kenburns {
+  transform: scale(1);
+  will-change: transform;
+}
+.swiper-slide-active .hero-kenburns {
+  animation: hero-kenburns 7000ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+
+/* Sahifa ochilganda sarlavha, matn va tugmalar pastdan ko'tarilib chiqadi.
+   Kechikish `--rise-delay` orqali beriladi (0 / 120 / 240 ms). */
+@keyframes hero-rise {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.hero-rise {
+  opacity: 0;
+  animation: hero-rise 600ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+  animation-delay: var(--rise-delay, 100ms);
+}
+
+/* Yo'nalish nomi va havolasi slayd almashganda qayta chiziladi (React `key`),
+   shu sababli animatsiya har safar boshidan ijro etiladi. */
+@keyframes hero-swap {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.hero-swap {
+  animation: hero-swap 450ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  animation-delay: var(--swap-delay, 0ms);
+}
+
+/* Ochiladigan ro'yxatlar (qidiruv paneli tanlovlari, filtrlar) — tepadan
+   yoyilib chiqadi. Element shartli render qilingani uchun animatsiya
+   har ochilganda boshidan ijro etiladi. */
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scaleY(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+}
+.menu-in {
+  transform-origin: top center;
+  animation: menu-in 220ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .swiper-slide-active .hero-kenburns,
+  .hero-swap,
+  .menu-in {
+    animation: none;
+  }
+  .hero-rise {
+    opacity: 1;
+    animation: none;
+  }
+  .animate-marquee {
+    animation: none;
+  }
+}

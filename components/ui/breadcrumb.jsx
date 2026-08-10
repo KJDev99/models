@@ -19,7 +19,8 @@ export default function Breadcrumb({ items = [] }) {
                         ) : (
                             <span className={isLast ? 'text-black' : ''}>{item.name}</span>
                         )}
-                        {!isLast && <span className="text-grey/60">/</span>}
+                        {/* Figma 93:8226 — ajratkich «>» */}
+                        {!isLast && <span className="text-grey/60">&gt;</span>}
                     </React.Fragment>
                 )
             })}

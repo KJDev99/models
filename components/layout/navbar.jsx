@@ -8,6 +8,7 @@ import { Menu, X } from 'lucide-react'
 import { PUBLIC_NAV } from '@/lib/nav'
 import { homeForRole } from '@/lib/roles'
 import { useAuth } from '@/lib/use-auth'
+import { useAuthModalStore } from '@/store/useAuthModalStore'
 import Button from '@/components/ui/button'
 import Container from '@/components/ui/container'
 import { LOGO } from '@/lib/assets'
@@ -23,6 +24,9 @@ export default function Navbar() {
     const pathname = usePathname()
     const { authed, role, ready } = useAuth()
     const [open, setOpen] = useState(false)
+
+    // «Войти» sahifaga o'tmaydi — Авторизация oynasini ochadi (Figma 75:171).
+    const openAuth = useAuthModalStore((s) => s.openAuth)
 
     // Menyu ochiq bo'lganda sahifa aylanmaydi va Esc bosilsa yopiladi.
     useEffect(() => {
@@ -105,7 +109,12 @@ export default function Navbar() {
                             Кабинет
                         </Button>
                     ) : (
-                        <Button href="/auth/login" variant="gold" size="md" className="lg:px-[24px] lg:py-[16px] lg:text-[18px]">
+                        <Button
+                            onClick={() => openAuth()}
+                            variant="gold"
+                            size="md"
+                            className="lg:px-[24px] lg:py-[16px] lg:text-[18px]"
+                        >
                             Войти
                         </Button>
                     )}

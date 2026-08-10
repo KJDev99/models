@@ -1,8 +1,9 @@
 'use client'
 
 import React from 'react'
-import RegisterForm from '@/components/auth/register/register-form'
+import AuthRedirect from '@/components/auth/auth-redirect'
 
+// Ro'yxatdan o'tish alohida sahifa emas — modal (Figma 85:3512).
 export default function RegisterPage() {
-    return <RegisterForm />
+    return <AuthRedirect step="register" />
 }

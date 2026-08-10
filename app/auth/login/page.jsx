@@ -1,8 +1,9 @@
 'use client'
 
 import React from 'react'
-import LoginForm from '@/components/auth/login/login-form'
+import AuthRedirect from '@/components/auth/auth-redirect'
 
+// Kirish alohida sahifa emas — modal (Figma 75:171).
 export default function LoginPage() {
-    return <LoginForm />
+    return <AuthRedirect step="role" />
 }

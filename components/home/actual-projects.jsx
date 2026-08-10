@@ -6,7 +6,7 @@ import { FreeMode } from 'swiper/modules'
 import { ArrowUpRight } from 'lucide-react'
 import Button from '@/components/ui/button'
 import Container from '@/components/ui/container'
-import ProjectCard from '@/components/home/project-card'
+import ProjectCard from '@/components/projects/project-card'
 import { PROJECTS } from '@/components/home/home-data'
 
 import 'swiper/css'

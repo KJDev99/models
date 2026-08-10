@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s -o /dev/null http://localhost:3000/)",
+      "Bash(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/)",
+      "Bash(echo \"HTTP: $\\(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/\\)\")",
+      "Bash(mkdir -p C:/Users/behru/AppData/Local/Temp/claude/c--Users-behru-Desktop-model/c08aaa48-fb4e-4e27-8e28-4f91cdbc5241/scratchpad/models)",
+      "Bash(curl -sL -o mob_full.png \"https://www.figma.com/api/mcp/asset/b041dadc-8609-49db-b563-7bfad9788bc0.png\")",
+      "Bash(curl -sL -o mob_list.png \"https://www.figma.com/api/mcp/asset/af7f2da3-e43b-4315-8ea2-11b36c4278b3.png\")",
+      "Bash(python -c ' *)",
+      "Bash(mkdir -p C:/Users/behru/AppData/Local/Temp/claude/c--Users-behru-Desktop-model/c08aaa48-fb4e-4e27-8e28-4f91cdbc5241/scratchpad/detail)",
+      "Bash(curl -sL -o dt.png \"https://www.figma.com/api/mcp/asset/1bb11cd3-740c-4531-b7c8-cfbf63c4f62d.png\")",
+      "Bash(curl -sL -o mob.png \"https://www.figma.com/api/mcp/asset/4ad365c6-c71c-4d3b-b643-edbeb5231363.png\")",
+      "Bash(curl -sL -o modal1.png \"https://www.figma.com/api/mcp/asset/9ec27711-1a91-46a2-bd9c-3aef638b92ff.png\")"
+    ]
+  }
+}

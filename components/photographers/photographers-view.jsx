@@ -1,22 +1,68 @@
 'use client'
 
 import React from 'react'
-import CatalogPage from '@/components/shared/catalog-page'
-import ExecutorCard from '@/components/shared/executor-card'
-import ExecutorTypeTabs from '@/components/shared/executor-type-tabs'
+import CatalogView from '@/components/shared/catalog/catalog-view'
+import PhotographerCard from '@/components/photographers/photographer-card'
+import PhotographerRowCard from '@/components/photographers/photographer-row-card'
+import {
+    EMPTY_PHOTOGRAPHER_FILTERS,
+    FILTER_FIELDS,
+    GRID_PAGE_SIZE,
+    LIST_PAGE_SIZE,
+    PHOTOGRAPHERS,
+    PHOTOGRAPHERS_FAQ,
+    SORT_OPTIONS,
+} from '@/components/photographers/photographers-data'
 
-// Figma: Фотографы katalogi.
+// ─────────────────────────────────────────────────────────────────────────────
+// Фотографы katalogi.
+// Figma: setka 93:6605 · ro'yxat 102:2652 · mobil 364:14179 / 364:14752.
+//
+// Umumiy qolip — `components/shared/catalog/catalog-view.jsx`; bu yerda faqat
+// Фотографыga xos ma'lumot, filtr mantiqi va kartochkalar.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const BREADCRUMB = [{ name: 'Главная', href: '/' }, { name: 'Фотографы' }]
+
+// Statik ma'lumotda barcha anketalar bir xil, shuning uchun filtrlar faqat
+// tanlangan kategoriya bo'yicha tekshiriladi — backend ulanganda bu funksiya
+// server javobi bilan almashtiriladi.
+function matchFilters(photographer, filters) {
+    if (!filters.category) return true
+    const option = FILTER_FIELDS.find((f) => f.key === 'category').options.find(
+        (o) => o.value === filters.category,
+    )
+    return option ? photographer.tags.includes(option.label) : true
+}
+
+function sortItems(list, sort) {
+    if (sort === 'experience-asc') {
+        return [...list].sort((a, b) => a.experienceYears - b.experienceYears)
+    }
+    if (sort === 'experience-desc') {
+        return [...list].sort((a, b) => b.experienceYears - a.experienceYears)
+    }
+    if (sort === 'new') return [...list].reverse()
+    return list
+}
+
 export default function PhotographersView() {
     return (
-        <CatalogPage
-            resource="photographers"
+        <CatalogView
             title="Фотографы"
-            description="Фотографы с портфолио, жанрами съёмки и стоимостью смены."
-            breadcrumb={[{ name: 'Главная', href: '/' }, { name: 'Фотографы' }]}
-            columns={'grid-cols-2 lg:grid-cols-4'}
-            filterFields={['city', 'price', 'categories']}
-            tabs={<ExecutorTypeTabs />}
-            renderItem={(item) => <ExecutorCard key={item.id} executor={item} basePath="/photographers" />}
+            breadcrumb={BREADCRUMB}
+            items={PHOTOGRAPHERS}
+            fields={FILTER_FIELDS}
+            emptyFilters={EMPTY_PHOTOGRAPHER_FILTERS}
+            sortOptions={SORT_OPTIONS}
+            searchPlaceholder="Имя фотографа / ключевые слова"
+            faq={PHOTOGRAPHERS_FAQ}
+            gridPageSize={GRID_PAGE_SIZE}
+            listPageSize={LIST_PAGE_SIZE}
+            matchFilters={matchFilters}
+            sortItems={sortItems}
+            renderCard={(item) => <PhotographerCard key={item.id} photographer={item} />}
+            renderRow={(item) => <PhotographerRowCard key={item.id} photographer={item} />}
         />
     )
 }

@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation'
 import { PUBLIC_NAV } from '@/lib/nav'
 import { homeForRole } from '@/lib/roles'
 import { useAuth } from '@/lib/use-auth'
+import { useAuthModalStore } from '@/store/useAuthModalStore'
 import Button from '@/components/ui/button'
 import Container from '@/components/ui/container'
 import { LOGO } from '@/lib/assets'
@@ -27,6 +28,9 @@ const LEGAL_RIGHT = [
 export default function Footer() {
     const pathname = usePathname()
     const { authed, role, ready } = useAuth()
+
+    // «Войти» — Авторизация oynasini ochadi, sahifaga o'tmaydi.
+    const openAuth = useAuthModalStore((s) => s.openAuth)
 
     if (
         ['/admin', '/auth', '/client', '/company', '/executor', '/agency'].some((p) =>
@@ -73,7 +77,12 @@ export default function Footer() {
                                 Кабинет
                             </Button>
                         ) : (
-                            <Button href="/auth/login" variant="gold" full className="lg:w-auto">
+                            <Button
+                                onClick={() => openAuth()}
+                                variant="gold"
+                                full
+                                className="lg:w-auto"
+                            >
                                 Войти
                             </Button>
                         )}

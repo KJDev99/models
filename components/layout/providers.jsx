@@ -4,6 +4,7 @@ import React, { useEffect } from 'react'
 import { Toaster } from 'react-hot-toast'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useFavoritesStore } from '@/store/useFavoritesStore'
+import AuthModal from '@/components/auth/auth-modal/auth-modal'
 
 // Ilova ochilganda sessiya va избранное localStorage'dan ko'tariladi.
 export default function Providers({ children }) {
@@ -31,6 +32,9 @@ export default function Providers({ children }) {
                 }}
             />
             {children}
+
+            {/* Авторизация oynasi — butun sayt uchun bitta (Figma 75:171 …) */}
+            <AuthModal />
         </>
     )
 }

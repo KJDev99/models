@@ -1,90 +1,99 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
-import Link from 'next/link'
-import Card from '@/components/ui/card'
-import StatTile from '@/components/ui/stat-tile'
-import Spinner from '@/components/ui/spinner'
-import { formatDateTime } from '@/lib/format'
-import { useApiStore } from '@/store/useApiStore'
+import React, { useState } from 'react'
+import { CheckCircle, Eye, MinusCircle } from 'lucide-react'
+import { AdminCard, AdminGoldLink, AdminStats, AdminStatus, AdminTitle } from '@/components/admin/ui/admin-ui'
+import AdminTable from '@/components/admin/ui/admin-table'
+import { ModerationDecisionModals } from '@/components/admin/moderation/moderation-modals'
+import {
+    DASHBOARD_STATS,
+    LATEST_USERS,
+    MODERATION_REQUESTS,
+} from '@/components/admin/dashboard/dashboard-data'
 
-// Figma: Дашборд (321:12629).
-const TILES = [
-    { key: 'executors', label: 'Исполнителей', href: '/admin/executors' },
-    { key: 'clients', label: 'Заказчиков', href: '/admin/clients' },
-    { key: 'agencies', label: 'Агентств', href: '/admin/agencies' },
-    { key: 'projects', label: 'Проектов', href: '/admin/projects' },
-    { key: 'venues', label: 'Площадок', href: '/admin/venues' },
-    { key: 'moderation', label: 'На модерации', href: '/admin/moderation' },
-    { key: 'complaints', label: 'Жалоб', href: '/admin/complaints' },
-    { key: 'reviews', label: 'Отзывов', href: '/admin/reviews' },
-]
-
+// Figma: Дашборд (321:12629 / 438:18788)
 export default function AdminDashboard() {
-    const getDataToken = useApiStore((s) => s.getDataToken)
-    const [stats, setStats] = useState(null)
-    const [activity, setActivity] = useState([])
-    const [loading, setLoading] = useState(true)
+    const [requests, setRequests] = useState(MODERATION_REQUESTS)
+    const [decision, setDecision] = useState(null)
 
-    useEffect(() => {
-        let alive = true
-        Promise.all([
-            getDataToken('/admin/stats/'),
-            getDataToken('/admin/activity/', { limit: 10 }),
-        ]).then(([s, a]) => {
-            if (!alive) return
-            setStats(s.success ? s.data : {})
-            const raw = a.data
-            setActivity(raw?.results || raw?.data || raw || [])
-            setLoading(false)
-        })
-        return () => {
-            alive = false
-        }
-    }, [getDataToken])
-
-    if (loading) {
-        return (
-            <div className="flex min-h-[40vh] items-center justify-center">
-                <Spinner size={32} />
-            </div>
-        )
+    // Qaror qabul qilingan qator ro'yxatdan chiqadi.
+    function resolve(row) {
+        setRequests((list) => list.filter((item) => item.id !== row.id))
     }
 
     return (
-        <div className="flex flex-col gap-6">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {TILES.map((t) => (
-                    <Link key={t.key} href={t.href}>
-                        <StatTile
-                            label={t.label}
-                            value={stats?.[t.key] ?? 0}
-                            hint={stats?.[`${t.key}New`] ? `+${stats[`${t.key}New`]} за неделю` : undefined}
-                        />
-                    </Link>
-                ))}
-            </div>
+        <>
+            <AdminTitle>Дашборд</AdminTitle>
 
-            <Card title="Последние действия">
-                {activity.length === 0 ? (
-                    <p className="text-base text-grey">Активности пока нет.</p>
-                ) : (
-                    <ul className="flex flex-col gap-4">
-                        {activity.map((a) => (
-                            <li
-                                key={a.id}
-                                className="flex flex-wrap items-center justify-between gap-3 border-b border-black/8 pb-4 last:border-0 last:pb-0"
-                            >
-                                <div>
-                                    <p className="text-base text-black">{a.title}</p>
-                                    {a.text && <p className="text-sm text-grey">{a.text}</p>}
-                                </div>
-                                <span className="text-sm text-grey">{formatDateTime(a.createdAt)}</span>
-                            </li>
-                        ))}
-                    </ul>
-                )}
-            </Card>
-        </div>
+            <AdminStats items={DASHBOARD_STATS} />
+
+            <AdminCard
+                title="Последние заявки на модерацию"
+                action={<AdminGoldLink href="/admin/moderation">Посмотреть все</AdminGoldLink>}
+            >
+                <AdminTable
+                    rows={requests}
+                    columns={[
+                        { key: 'name', label: 'Пользователь' },
+                        { key: 'type', label: 'Тип' },
+                        { key: 'email', label: 'Email' },
+                        { key: 'date', label: 'Дата создания' },
+                        {
+                            key: 'status',
+                            label: 'Статус',
+                            width: 'lg:w-[133px]',
+                            render: (row) => <AdminStatus tone="pending">{row.status}</AdminStatus>,
+                        },
+                    ]}
+                    actions={(row) => [
+                        {
+                            key: 'view',
+                            icon: Eye,
+                            label: 'Открыть',
+                            href: `/admin/moderation/${row.id}`,
+                        },
+                        {
+                            key: 'approve',
+                            icon: CheckCircle,
+                            label: 'Одобрить',
+                            tone: 'success',
+                            onClick: () => setDecision({ type: 'approve', row }),
+                        },
+                        {
+                            key: 'reject',
+                            icon: MinusCircle,
+                            label: 'Отклонить',
+                            tone: 'danger',
+                            onClick: () => setDecision({ type: 'reject', row }),
+                        },
+                    ]}
+                    empty="Новых заявок нет"
+                />
+            </AdminCard>
+
+            <AdminCard title="Последние зарегистрированные пользователи">
+                <AdminTable
+                    rows={LATEST_USERS}
+                    actionsWidth="lg:w-[24px]"
+                    actionsHeader={<Eye size={24} strokeWidth={2} className="text-black" />}
+                    columns={[
+                        { key: 'name', label: 'Пользователь' },
+                        { key: 'type', label: 'Тип' },
+                        { key: 'email', label: 'Email' },
+                        { key: 'date', label: 'Дата регистрации' },
+                    ]}
+                    actions={(row) => [
+                        { key: 'view', icon: Eye, label: 'Открыть', href: row.href },
+                    ]}
+                />
+            </AdminCard>
+
+            <ModerationDecisionModals
+                decision={decision}
+                onClose={() => setDecision(null)}
+                onApprove={resolve}
+                onReject={resolve}
+            />
+        </>
     )
 }

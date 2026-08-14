@@ -1,51 +1,108 @@
 'use client'
 
-import React from 'react'
+import React, { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Card from '@/components/ui/card'
-import DataTable from '@/components/ui/data-table'
-import StatusBadge from '@/components/ui/status-badge'
-import Avatar from '@/components/ui/avatar'
-import ResourceList from '@/components/cabinet/resource-list'
-import { formatDate, formatPrice } from '@/lib/format'
+import { AdminListCard, AdminPagination, AdminSearch, AdminSelect } from '@/components/admin/ui/admin-ui'
+import Button from '@/components/ui/button'
+import AdminVenueRow from '@/components/admin/venues/venue-row-card'
+import { publicationMenu } from '@/components/admin/ui/admin-menu-items'
+import { DeleteModal } from '@/components/admin/ui/admin-modals'
+import {
+    ADMIN_VENUES,
+    VENUES_PAGE_SIZE,
+    VENUE_STATUS_FILTER,
+} from '@/components/admin/venues/venues-data'
 
-const TABS = [
-    { label: 'Все', value: '' },
-    { label: 'На модерации', value: 'moderation' },
-    { label: 'Активные', value: 'active' },
-    { label: 'Отклонённые', value: 'rejected' },
-]
-
-const COLUMNS = [
-    { key: 'name', title: 'Площадка' },
-    { key: 'owner', title: 'Владелец', render: (row) => row.owner?.name || '—' },
-    { key: 'city', title: 'Город' },
-    { key: 'pricePerHour', title: 'Цена/час', render: (row) => formatPrice(row.pricePerHour) },
-    { key: 'status', title: 'Статус', render: (row) => <StatusBadge status={row.status} /> },
-    { key: 'createdAt', title: 'Добавлена', render: (row) => formatDate(row.createdAt) },
-]
-
+// Figma: Площадки (342:10467 / 456:21759)
 export default function AdminVenues() {
     const router = useRouter()
+    const [list, setList] = useState(ADMIN_VENUES)
+    const [query, setQuery] = useState('')
+    const [status, setStatus] = useState('')
+    const [page, setPage] = useState(1)
+    const [removing, setRemoving] = useState(null)
+
+    const filtered = useMemo(() => {
+        const q = query.trim().toLowerCase()
+        return list.filter((row) => {
+            if (status && row.status !== status) return false
+            if (!q) return true
+            return `${row.name} ${row.city}`.toLowerCase().includes(q)
+        })
+    }, [list, query, status])
+
+    const pages = Math.max(1, Math.ceil(filtered.length / VENUES_PAGE_SIZE))
+    const current = Math.min(page, pages)
+    const rows = filtered.slice((current - 1) * VENUES_PAGE_SIZE, current * VENUES_PAGE_SIZE)
+
+    function patch(row, changes) {
+        setList((all) => all.map((item) => (item.id === row.id ? { ...item, ...changes } : item)))
+    }
 
     return (
-        <Card title="Площадки" padded={false} className="border-0 bg-transparent">
-            <ResourceList
-                endpoint="/admin/venues/"
-                tabs={TABS}
-                limit={20}
-                createText="Добавить площадку"
-                createHref="/admin/venues/new"
-                emptyTitle="Ничего не найдено"
-                emptyDescription="Попробуйте другой фильтр."
-                renderTable={(rows) => (
-                    <DataTable
-                        columns={COLUMNS}
-                        rows={rows}
-                        onRowClick={(row) => router.push(`/admin/venues/${row.id}`)}
-                    />
-                )}
+        <>
+            <AdminListCard
+                title="Площадки"
+                action={
+                    <Button
+                        href="/admin/venues/new"
+                        variant="gold"
+                        size="md"
+                        className="lg:text-[16px]"
+                    >
+                        Создать площадку
+                    </Button>
+                }
+                toolbar={
+                    <>
+                        <AdminSearch
+                            value={query}
+                            onChange={(e) => {
+                                setQuery(e.target.value)
+                                setPage(1)
+                            }}
+                            placeholder="Поиск по названию площадки..."
+                        />
+                        <AdminSelect
+                            value={status}
+                            onChange={(e) => {
+                                setStatus(e.target.value)
+                                setPage(1)
+                            }}
+                            options={VENUE_STATUS_FILTER}
+                            className="lg:w-[227px] lg:shrink-0"
+                        />
+                    </>
+                }
+            >
+                <div className="flex flex-col gap-[12px] lg:gap-[16px]">
+                    {rows.map((venue) => (
+                        <AdminVenueRow
+                            key={venue.id}
+                            venue={venue}
+                            menuItems={(item) =>
+                                publicationMenu({
+                                    status: item.status,
+                                    onEdit: () => router.push(`/admin/venues/${item.id}/edit`),
+                                    onPause: () => patch(item, { status: 'paused' }),
+                                    onResume: () => patch(item, { status: 'active' }),
+                                    onFinish: () => patch(item, { status: 'archive' }),
+                                    onDelete: () => setRemoving(item),
+                                })
+                            }
+                        />
+                    ))}
+                </div>
+
+                <AdminPagination page={current} pages={pages} onChange={setPage} />
+            </AdminListCard>
+
+            <DeleteModal
+                open={Boolean(removing)}
+                onClose={() => setRemoving(null)}
+                name={removing?.name}
+                onConfirm={() => setList((all) => all.filter((item) => item.id !== removing.id))}
             />
-        </Card>
+        </>
     )
 }

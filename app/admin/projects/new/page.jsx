@@ -1,8 +1,8 @@
 'use client'
 
 import React from 'react'
-import AdminNewProject from '@/components/admin/projects/new/new-project-form'
+import AdminProjectForm from '@/components/admin/projects/project-form'
 
 export default function AdminNewProjectPage() {
-    return <AdminNewProject />
+    return <AdminProjectForm mode="create" />
 }

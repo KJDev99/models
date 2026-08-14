@@ -1,8 +1,8 @@
 'use client'
 
 import React from 'react'
-import AdminNewVenue from '@/components/admin/venues/new/new-venue-form'
+import AdminVenueForm from '@/components/admin/venues/venue-form'
 
 export default function AdminNewVenuePage() {
-    return <AdminNewVenue />
+    return <AdminVenueForm mode="create" />
 }

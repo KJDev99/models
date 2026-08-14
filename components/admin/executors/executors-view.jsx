@@ -1,61 +1,147 @@
 'use client'
 
-import React from 'react'
+import React, { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Card from '@/components/ui/card'
-import DataTable from '@/components/ui/data-table'
-import StatusBadge from '@/components/ui/status-badge'
-import Avatar from '@/components/ui/avatar'
-import ResourceList from '@/components/cabinet/resource-list'
-import { formatDate, formatPrice } from '@/lib/format'
+import { Eye } from 'lucide-react'
+import {
+    AdminListCard,
+    AdminPagination,
+    AdminRowMenu,
+    AdminSearch,
+    AdminSelect,
+    AdminStatus,
+} from '@/components/admin/ui/admin-ui'
+import Button from '@/components/ui/button'
+import AdminTable from '@/components/admin/ui/admin-table'
+import { rowMenu } from '@/components/admin/ui/admin-menu-items'
+import { RowActionModals } from '@/components/admin/ui/admin-modals'
+import { USER_STATUS } from '@/components/admin/ui/admin-statuses'
+import {
+    EXECUTORS,
+    EXECUTORS_PAGE_SIZE,
+    STATUS_FILTER,
+} from '@/components/admin/executors/executors-data'
 
-const TABS = [
-    { label: 'Все', value: '' },
-    { label: 'На модерации', value: 'moderation' },
-    { label: 'Активные', value: 'active' },
-    { label: 'Отклонённые', value: 'rejected' },
-    { label: 'Заблокированные', value: 'blocked' },
-]
-
-const COLUMNS = [
-    {
-        key: 'name',
-        title: 'Исполнитель',
-        render: (row) => (
-            <span className="flex items-center gap-3">
-                <Avatar src={row.avatar} name={row.name} size="sm" />
-                {row.name}
-            </span>
-        ),
-    },
-    { key: 'type', title: 'Тип' },
-    { key: 'city', title: 'Город' },
-    { key: 'agency', title: 'Агентство', render: (row) => row.agency?.name || '—' },
-    { key: 'status', title: 'Статус', render: (row) => <StatusBadge status={row.status} /> },
-    { key: 'createdAt', title: 'Создан', render: (row) => formatDate(row.createdAt) },
-]
-
+// Figma: Исполнители (321:13149 / 440:19416)
 export default function AdminExecutors() {
     const router = useRouter()
+    const [list, setList] = useState(EXECUTORS)
+    const [query, setQuery] = useState('')
+    const [status, setStatus] = useState('')
+    const [page, setPage] = useState(1)
+    const [action, setAction] = useState(null)
+
+    const filtered = useMemo(() => {
+        const q = query.trim().toLowerCase()
+        return list.filter((row) => {
+            if (status && row.status !== status) return false
+            if (!q) return true
+            return `${row.name} ${row.email}`.toLowerCase().includes(q)
+        })
+    }, [list, query, status])
+
+    const pages = Math.max(1, Math.ceil(filtered.length / EXECUTORS_PAGE_SIZE))
+    const current = Math.min(page, pages)
+    const rows = filtered.slice((current - 1) * EXECUTORS_PAGE_SIZE, current * EXECUTORS_PAGE_SIZE)
+
+    // Ro'yxatdagi holatni yangilash — bloklash, ko'rsatish/yashirish, o'chirish.
+    function patch(row, changes) {
+        setList((all) => all.map((item) => (item.id === row.id ? { ...item, ...changes } : item)))
+    }
 
     return (
-        <Card title="Исполнители" padded={false} className="border-0 bg-transparent">
-            <ResourceList
-                endpoint="/admin/executors/"
-                tabs={TABS}
-                limit={20}
-                createText="Создать исполнителя"
-                createHref="/admin/executors/new"
-                emptyTitle="Ничего не найдено"
-                emptyDescription="Попробуйте другой фильтр."
-                renderTable={(rows) => (
-                    <DataTable
-                        columns={COLUMNS}
-                        rows={rows}
-                        onRowClick={(row) => router.push(`/admin/executors/${row.id}`)}
-                    />
-                )}
+        <>
+            <AdminListCard
+                title="Исполнители"
+                action={
+                    <Button
+                        href="/admin/executors/new"
+                        variant="gold"
+                        size="md"
+                        className="lg:text-[16px]"
+                    >
+                        Создать исполнителя
+                    </Button>
+                }
+                toolbar={
+                    <>
+                        <AdminSearch
+                            value={query}
+                            onChange={(e) => {
+                                setQuery(e.target.value)
+                                setPage(1)
+                            }}
+                            placeholder="Поиск по имени или электронной почте"
+                        />
+                        <AdminSelect
+                            value={status}
+                            onChange={(e) => {
+                                setStatus(e.target.value)
+                                setPage(1)
+                            }}
+                            options={STATUS_FILTER}
+                            className="lg:w-[227px] lg:shrink-0"
+                        />
+                    </>
+                }
+            >
+                <AdminTable
+                    rows={rows}
+                    actionsWidth="lg:w-[64px]"
+                    columns={[
+                        { key: 'name', label: 'Пользователь' },
+                        { key: 'type', label: 'Тип', width: 'lg:w-[150px]' },
+                        { key: 'email', label: 'Email' },
+                        { key: 'date', label: 'Дата регистрации' },
+                        {
+                            key: 'status',
+                            label: 'Статус',
+                            width: 'lg:w-[133px]',
+                            render: (row) => (
+                                <AdminStatus tone={USER_STATUS[row.status].tone}>
+                                    {USER_STATUS[row.status].label}
+                                </AdminStatus>
+                            ),
+                        },
+                    ]}
+                    actions={(row) => [
+                        {
+                            key: 'view',
+                            icon: Eye,
+                            label: 'Открыть',
+                            href: `/admin/executors/${row.id}`,
+                        },
+                        {
+                            key: 'menu',
+                            render: (
+                                <AdminRowMenu
+                                    items={rowMenu({
+                                        status: row.status,
+                                        onEdit: () => router.push(`/admin/executors/${row.id}/edit`),
+                                        onToggle: () =>
+                                            patch(row, {
+                                                status: row.status === 'paused' ? 'active' : 'paused',
+                                            }),
+                                        onBlock: () => setAction({ type: 'block', row }),
+                                        onUnblock: () => setAction({ type: 'unblock', row }),
+                                        onDelete: () => setAction({ type: 'delete', row }),
+                                    })}
+                                />
+                            ),
+                        },
+                    ]}
+                />
+
+                <AdminPagination page={current} pages={pages} onChange={setPage} />
+            </AdminListCard>
+
+            <RowActionModals
+                action={action}
+                onClose={() => setAction(null)}
+                onBlock={(row) => patch(row, { status: 'blocked' })}
+                onUnblock={(row) => patch(row, { status: 'active' })}
+                onDelete={(row) => setList((all) => all.filter((item) => item.id !== row.id))}
             />
-        </Card>
+        </>
     )
 }

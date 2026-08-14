@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/use-auth'
 import { setReturnUrl } from '@/lib/auth'
 import { homeForRole } from '@/lib/roles'
+import { SKIP_GUARDS } from '@/lib/dev-preview'
 import Spinner from '@/components/ui/spinner'
 
 // Rolga bog'langan bo'limlar uchun: /client, /company, /executor, /agency, /admin.
@@ -14,10 +15,10 @@ export default function RoleGuard({ allow = [], children }) {
     const router = useRouter()
     const pathname = usePathname()
 
-    const permitted = authed && allow.includes(role)
+    const permitted = SKIP_GUARDS || (authed && allow.includes(role))
 
     useEffect(() => {
-        if (!ready) return
+        if (SKIP_GUARDS || !ready) return
         if (!authed) {
             setReturnUrl(pathname)
             router.replace('/auth/login')
@@ -28,7 +29,7 @@ export default function RoleGuard({ allow = [], children }) {
         }
     }, [ready, authed, role, allow, pathname, router])
 
-    if (!ready || !permitted) {
+    if (!SKIP_GUARDS && (!ready || !permitted)) {
         return (
             <div className="flex min-h-[50vh] items-center justify-center">
                 <Spinner size={32} />

@@ -1,10 +1,8 @@
 'use client'
 
 import React from 'react'
-import { useParams } from 'next/navigation'
-import AdminExecutorDetail from '@/components/admin/executors/[id]/executor-detail-view'
+import AdminExecutorProfile from '@/components/admin/executors/executor-profile'
 
 export default function AdminExecutorDetailPage() {
-    const { id } = useParams()
-    return <AdminExecutorDetail id={id} />
+    return <AdminExecutorProfile />
 }

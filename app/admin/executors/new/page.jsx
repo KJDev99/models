@@ -1,8 +1,8 @@
 'use client'
 
 import React from 'react'
-import AdminNewExecutor from '@/components/admin/executors/new/new-executor-form'
+import AdminExecutorForm from '@/components/admin/executors/executor-form'
 
 export default function AdminNewExecutorPage() {
-    return <AdminNewExecutor />
+    return <AdminExecutorForm mode="create" />
 }

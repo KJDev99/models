@@ -21,7 +21,8 @@ export const PROJECT_COMPANY = {
     note: 'Российский бренд одежды',
     projects: '11 проектов компании',
     more: 'Еще 11 проектов',
-    logo: PROJECT_IMAGE,
+    // Kompaniya yo'lakchasida LIME so'z-belgisi turadi (Figma 151:11963).
+    logo: '/img/companies/lime.svg',
     href: '/companies/lime',
 }
 

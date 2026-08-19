@@ -1,124 +1,158 @@
 'use client'
 
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useState } from 'react'
+import Image from 'next/image'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { SquarePen } from 'lucide-react'
 import toast from 'react-hot-toast'
-import Card from '@/components/ui/card'
-import Button from '@/components/ui/button'
-import Avatar from '@/components/ui/avatar'
-import Spinner from '@/components/ui/spinner'
-import EmptyState from '@/components/ui/empty-state'
-import StatusBadge from '@/components/ui/status-badge'
-import Gallery from '@/components/shared/gallery'
-import ConfirmModal from '@/components/ui/confirm-modal'
-import ModerationNotice from '@/components/shared/moderation-notice'
-import { formatAge, formatPrice } from '@/lib/format'
-import { useApiStore } from '@/store/useApiStore'
+import Container from '@/components/ui/container'
+import { CabinetBreadcrumb } from '@/components/shared/cabinet/cabinet-ui'
+import { AdminRowMenu, AdminStatus } from '@/components/admin/ui/admin-ui'
+import { USER_STATUS } from '@/components/admin/ui/admin-statuses'
+import { rowMenu } from '@/components/admin/ui/admin-menu-items'
+import { DeleteModal } from '@/components/admin/ui/admin-modals'
+import DetailGallery from '@/components/shared/detail/detail-gallery'
+import DetailPortfolio from '@/components/shared/detail/detail-portfolio'
+import DetailReviews from '@/components/shared/detail/detail-reviews'
+import ModelSummary from '@/components/models/[slug]/model-summary'
+import {
+    DetailInfoCard,
+    DetailInfoCards,
+    DetailProjects,
+} from '@/components/shared/detail/detail-info-cards'
+import {
+    MODEL,
+    PORTFOLIO_ITEMS,
+    PORTFOLIO_STEP,
+    PORTFOLIO_TABS,
+    REVIEWS,
+    REVIEWS_STEP,
+} from '@/components/models/[slug]/model-detail-data'
+import { ReviewModal } from '@/components/shared/detail/detail-modals'
+import { AGENCY } from '@/components/agency/dashboard/dashboard-data'
 
-// Figma: "Модели - Катерина Журавлева" agentlik kabinetida (345:19306).
-export default function AgencyExecutorDetail({ id }) {
-    const getDataToken = useApiStore((s) => s.getDataToken)
-    const deleteDataToken = useApiStore((s) => s.deleteDataToken)
+// ─────────────────────────────────────────────────────────────────────────────
+// «Агентство» kabinetidagi ijrochi anketasi — Figma 345:19306,
+// mobil 437:18308.
+//
+// Sahifa ochiq saytdagi anketa bilan bir xil komponentlardan yig'iladi,
+// farqi — yurakcha o'rnida holat + qalam + «⋮» (345:19901) va pastdagi
+// «Пригласить в проект» o'rnida agentlik yorlig'i (345:19391).
+// ─────────────────────────────────────────────────────────────────────────────
+export default function AgencyExecutorDetail({ id = 'e-1', initialStatus = 'active' }) {
+    const router = useRouter()
+    const [status, setStatus] = useState(initialStatus)
+    const [removing, setRemoving] = useState(false)
+    const [reviewModal, setReviewModal] = useState(false)
 
-    const [executor, setExecutor] = useState(null)
-    const [loading, setLoading] = useState(true)
-    const [removeOpen, setRemoveOpen] = useState(false)
+    const state = USER_STATUS[status]
+    const editHref = `/agency/executors/${id}/edit`
 
-    // setState `.then()` ichida chaqiriladi — effekt tanasida sinxron
-    // holat o'zgartirish React Compiler qoidalarini buzadi.
-    const load = useCallback(() => {
-        getDataToken(`/agencies/mine/executors/${id}/`).then((res) => {
-            setExecutor(res.success ? res.data : null)
-            setLoading(false)
-        })
-    }, [id, getDataToken])
+    const actions = (
+        <div className="flex shrink-0 items-center gap-[12px] lg:gap-[16px]">
+            <AdminStatus tone={state.tone} className="lg:w-[130px]">
+                {state.label}
+            </AdminStatus>
+            <Link
+                href={editHref}
+                aria-label="Редактировать"
+                className="ui-icon-btn flex size-[32px] items-center justify-center rounded-[6px] p-[4px]"
+            >
+                <SquarePen size={24} strokeWidth={2} />
+            </Link>
+            <span className="ui-icon-btn flex size-[32px] items-center justify-center rounded-[6px] p-[4px]">
+                <AdminRowMenu compact
+                    items={rowMenu({
+                        status,
+                        onEdit: () => router.push(editHref),
+                        onToggle: () => setStatus(status === 'paused' ? 'active' : 'paused'),
+                        onBlock: () => setStatus('blocked'),
+                        onUnblock: () => setStatus('active'),
+                        onDelete: () => setRemoving(true),
+                    })}
+                />
+            </span>
+        </div>
+    )
 
-    useEffect(() => {
-        if (id) load()
-    }, [id, load])
-
-    async function remove() {
-        const res = await deleteDataToken(`/agencies/mine/executors/${id}/`)
-        if (res.success) {
-            toast.success('Исполнитель откреплён от агентства')
-            window.location.href = '/agency/executors'
-        } else {
-            toast.error('Не удалось открепить')
-        }
-    }
-
-    if (loading) {
-        return (
-            <div className="flex min-h-[40vh] items-center justify-center">
-                <Spinner size={32} />
-            </div>
-        )
-    }
-
-    if (!executor) {
-        return (
-            <EmptyState
-                title="Анкета не найдена"
-                actionText="К исполнителям"
-                actionHref="/agency/executors"
-            />
-        )
-    }
-
-    const params = [
-        { label: 'Возраст', value: executor.age != null ? formatAge(executor.age) : null },
-        { label: 'Рост', value: executor.height ? `${executor.height} см` : null },
-        { label: 'Параметры', value: executor.measurements },
-        { label: 'Город', value: executor.city },
-        { label: 'Стоимость смены', value: executor.price != null ? formatPrice(executor.price) : null },
-    ].filter((p) => p.value)
+    // Agentlik yorlig'i — gold ramkali kartochka (Figma 345:19391).
+    const agencyBadge = (
+        <Link
+            href="/agency/dashboard"
+            className="flex w-full items-center gap-[12px] rounded-[6px] border border-gold p-[16px] transition-colors hover:bg-gold/10 lg:w-fit lg:self-end"
+        >
+            <span className="relative block size-[37px] shrink-0 overflow-hidden rounded-[6px] bg-light-white">
+                <Image src={AGENCY.logo} alt="" fill sizes="37px" className="object-contain" />
+            </span>
+            <span className="flex min-w-0 flex-col gap-[2px]">
+                <span className="truncate text-[14px] font-medium text-black lg:text-[16px]">
+                    {AGENCY.name}
+                </span>
+                <span className="truncate text-[12px] text-grey">Еще 67 исполнителей</span>
+            </span>
+        </Link>
+    )
 
     return (
-        <div className="flex flex-col gap-6">
-            <ModerationNotice status={executor.status} reason={executor.rejectReason} />
+        <div className="flex flex-col gap-[24px] bg-light-white pt-[16px] pb-[40px] lg:gap-[50px] lg:pt-[24px] lg:pb-[100px]">
+            <Container className="flex flex-col gap-[16px] lg:gap-[24px]">
+                <CabinetBreadcrumb
+                    items={[
+                        { label: 'Главная', href: '/' },
+                        { label: 'Личный кабинет', href: '/agency/dashboard' },
+                        { label: MODEL.name },
+                    ]}
+                />
 
-            <Card
-                title={executor.name}
-                action={
-                    <div className="flex flex-wrap items-center gap-2">
-                        <StatusBadge status={executor.status} />
-                        <Button href={`/agency/executors/${id}/edit`} variant="whiteStroke" size="sm">
-                            Редактировать
-                        </Button>
-                        <Button variant="danger" size="sm" onClick={() => setRemoveOpen(true)}>
-                            Открепить
-                        </Button>
-                    </div>
-                }
-            >
-                <div className="flex flex-wrap items-start gap-5">
-                    <Avatar src={executor.avatar} name={executor.name} size="xl" />
-                    <dl className="flex min-w-[240px] flex-1 flex-col gap-3">
-                        {params.map((p) => (
-                            <div key={p.label} className="flex items-center justify-between gap-4">
-                                <dt className="text-sm text-grey">{p.label}</dt>
-                                <dd className="text-base text-black">{p.value}</dd>
-                            </div>
-                        ))}
-                    </dl>
+                <div className="flex flex-col gap-[16px] lg:flex-row lg:gap-[16px]">
+                    <DetailGallery photos={MODEL.photos} alt={MODEL.name} />
+                    <ModelSummary model={MODEL} actions={actions} footer={agencyBadge} />
                 </div>
+            </Container>
 
-                {executor.about && (
-                    <p className="mt-6 whitespace-pre-line text-base text-black">{executor.about}</p>
-                )}
-            </Card>
+            <Container>
+                <DetailInfoCards>
+                    <DetailInfoCard
+                        title="Параметры"
+                        columns={[MODEL.params.slice(0, 6), MODEL.params.slice(6)]}
+                    />
+                    <DetailInfoCard title="Стоимость" columns={[MODEL.prices]} />
+                </DetailInfoCards>
+            </Container>
 
-            <Card title="Портфолио">
-                <Gallery photos={executor.photos || []} />
-            </Card>
+            <Container>
+                <DetailProjects title="Опыт участия в проектах" projects={MODEL.projects} />
+            </Container>
 
-            <ConfirmModal
-                open={removeOpen}
-                onClose={() => setRemoveOpen(false)}
-                onConfirm={remove}
-                title="Открепить исполнителя?"
-                description="Анкета останется на платформе, но перестанет относиться к вашему агентству."
-                confirmText="Открепить"
-                danger
+            <Container>
+                <DetailPortfolio
+                    tabs={PORTFOLIO_TABS}
+                    items={PORTFOLIO_ITEMS}
+                    step={PORTFOLIO_STEP}
+                />
+            </Container>
+
+            <Container>
+                <DetailReviews
+                    rating={MODEL.rating}
+                    reviews={REVIEWS}
+                    step={REVIEWS_STEP}
+                    onLeaveReview={() => setReviewModal(true)}
+                />
+            </Container>
+
+            <ReviewModal open={reviewModal} onClose={() => setReviewModal(false)} />
+
+            <DeleteModal
+                open={removing}
+                onClose={() => setRemoving(false)}
+                name={MODEL.name}
+                onConfirm={() => {
+                    setRemoving(false)
+                    toast.success('Исполнитель удалён')
+                    router.push('/agency/dashboard')
+                }}
             />
         </div>
     )

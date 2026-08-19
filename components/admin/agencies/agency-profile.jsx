@@ -83,12 +83,12 @@ export default function AdminAgencyProfile({ profile = AGENCY_PROFILE }) {
                                         type="button"
                                         onClick={() => setEditing(true)}
                                         aria-label="Редактировать профиль"
-                                        className="flex size-[32px] cursor-pointer items-center justify-center rounded-[6px] bg-gold/25 p-[4px] text-black transition-colors hover:bg-gold/40"
+                                        className="flex size-[32px] cursor-pointer items-center justify-center rounded-[6px] ui-icon-btn p-[4px]"
                                     >
                                         <SquarePen size={24} strokeWidth={2} />
                                     </button>
-                                    <span className="flex size-[32px] items-center justify-center rounded-[6px] bg-gold/25 p-[4px] text-black">
-                                        <AdminRowMenu
+                                    <span className="flex size-[32px] items-center justify-center rounded-[6px] ui-icon-btn p-[4px]">
+                                        <AdminRowMenu compact
                                             items={profileMenu({
                                                 status,
                                                 onSettings: () => setEditing(true),
@@ -429,12 +429,12 @@ function ExecutorCard({ item, view, onEdit, onAction }) {
                     type="button"
                     onClick={onEdit}
                     aria-label="Редактировать"
-                    className="flex size-[32px] cursor-pointer items-center justify-center rounded-[6px] bg-gold/25 p-[4px] text-black transition-colors hover:bg-gold/40"
+                    className="flex size-[32px] cursor-pointer items-center justify-center rounded-[6px] ui-icon-btn p-[4px]"
                 >
                     <SquarePen size={24} strokeWidth={2} />
                 </button>
-                <span className="flex size-[32px] items-center justify-center rounded-[6px] bg-gold/25 p-[4px] text-black">
-                    <AdminRowMenu items={menu} />
+                <span className="flex size-[32px] items-center justify-center rounded-[6px] ui-icon-btn p-[4px]">
+                    <AdminRowMenu compact items={menu} />
                 </span>
             </article>
         )
@@ -465,7 +465,7 @@ function ExecutorCard({ item, view, onEdit, onAction }) {
                         <SquarePen size={24} strokeWidth={2} />
                     </button>
                     <span className="flex size-[32px] items-center justify-center rounded-[6px] bg-black/30 p-[4px] text-white">
-                        <AdminRowMenu items={menu} />
+                        <AdminRowMenu compact items={menu} />
                     </span>
                 </span>
             </div>

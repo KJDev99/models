@@ -40,7 +40,8 @@ const TEMPLATES = {
     models: {
         type: 'Модель',
         base: '/models',
-        image: '/img/models/model.jpg',
+        // Figma'da ikkala model o'z suratiga ega (270:20518).
+        images: ['/img/models/model.jpg', '/img/models/model-2.jpg'],
         names: ['Катерина Журавлева', 'София Лебедева'],
         slugs: ['katerina-zhuravleva', 'sofia-lebedeva'],
         chips: ['24 лет', '170 см'],
@@ -48,7 +49,7 @@ const TEMPLATES = {
     photographers: {
         type: 'Фотограф',
         base: '/photographers',
-        image: '/img/photographers/photographer.jpg',
+        images: ['/img/photographers/photographer.jpg'],
         names: ['Алексей Миронов'],
         slugs: ['aleksey-mironov'],
         chips: ['5 лет опыта', '120 съёмок'],
@@ -56,7 +57,7 @@ const TEMPLATES = {
     videographers: {
         type: 'Видеограф',
         base: '/videographers',
-        image: '/img/videographers/videographer.jpg',
+        images: ['/img/videographers/videographer.jpg'],
         names: ['Илья Воронов'],
         slugs: ['ilya-voronov'],
         chips: ['4 года опыта', '45 кейсов'],
@@ -73,7 +74,7 @@ function makeExecutors(kind, count, offset) {
             type: t.type,
             name: t.names[n],
             href: `${t.base}/${t.slugs[n]}-${i + 1}`,
-            image: t.image,
+            image: t.images[n % t.images.length],
             chips: t.chips,
         }
     })

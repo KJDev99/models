@@ -25,7 +25,7 @@ function Arrow({ direction, onClick, disabled, label }) {
             onClick={onClick}
             disabled={disabled}
             aria-label={label}
-            className="flex size-[24px] shrink-0 cursor-pointer items-center justify-center rounded-[6px] bg-gold/20 text-gold transition-colors hover:bg-gold/35 disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex size-[24px] shrink-0 cursor-pointer items-center justify-center rounded-[6px] ui-icon-btn disabled:cursor-not-allowed disabled:opacity-50"
         >
             <Icon size={16} strokeWidth={2} />
         </button>
@@ -65,7 +65,7 @@ export default function CatalogPagination({ page, total, onChange }) {
                             className={`flex size-[32px] cursor-pointer items-center justify-center rounded-[6px] text-[14px] transition-colors lg:size-[40px] lg:text-[16px] ${
                                 p === page
                                     ? 'bg-gold font-medium text-white'
-                                    : 'text-grey hover:bg-gold/15 hover:text-gold'
+                                    : 'text-grey hover:bg-gold hover:text-white'
                             }`}
                         >
                             {p}

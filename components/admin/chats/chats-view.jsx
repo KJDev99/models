@@ -98,7 +98,7 @@ export default function AdminChats() {
                             type="button"
                             onClick={() => setOpenOnMobile(false)}
                             aria-label="Назад"
-                            className="flex size-[32px] shrink-0 cursor-pointer items-center justify-center rounded-[6px] bg-gold/20 text-black lg:hidden"
+                            className="flex size-[32px] shrink-0 cursor-pointer items-center justify-center rounded-[6px] ui-icon-btn lg:hidden"
                         >
                             <ChevronLeft size={24} strokeWidth={2} />
                         </button>
@@ -129,8 +129,8 @@ export default function AdminChats() {
                             Посмотреть профиль
                         </Link>
 
-                        <span className="flex size-[32px] items-center justify-center rounded-[6px] bg-gold/25 p-[4px] text-black">
-                            <AdminRowMenu
+                        <span className="flex size-[32px] items-center justify-center rounded-[6px] ui-icon-btn p-[4px]">
+                            <AdminRowMenu compact
                                 items={[
                                     {
                                         key: 'block',
@@ -191,7 +191,7 @@ export default function AdminChats() {
                             type="button"
                             onClick={send}
                             aria-label="Отправить"
-                            className="flex size-[32px] shrink-0 cursor-pointer items-center justify-center rounded-full bg-gold text-white transition-colors hover:bg-gold/90 lg:size-[40px]"
+                            className="flex size-[32px] shrink-0 cursor-pointer items-center justify-center rounded-full bg-gold text-white transition-colors hover:bg-[#c19754] lg:size-[40px]"
                         >
                             <ArrowUp size={24} strokeWidth={2} />
                         </button>

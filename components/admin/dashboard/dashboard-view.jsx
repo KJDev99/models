@@ -75,7 +75,6 @@ export default function AdminDashboard() {
                 <AdminTable
                     rows={LATEST_USERS}
                     actionsWidth="lg:w-[24px]"
-                    actionsHeader={<Eye size={24} strokeWidth={2} className="text-black" />}
                     columns={[
                         { key: 'name', label: 'Пользователь' },
                         { key: 'type', label: 'Тип' },

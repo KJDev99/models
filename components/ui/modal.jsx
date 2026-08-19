@@ -92,7 +92,7 @@ export default function Modal({
 export function ModalButton({ children, onClick, variant = 'primary', type = 'button', disabled }) {
     const styles =
         variant === 'primary'
-            ? 'bg-gold text-white hover:bg-gold/90'
+            ? 'bg-gold text-white hover:bg-[#c19754]'
             : 'bg-gold/15 text-gold hover:bg-gold/25'
 
     return (

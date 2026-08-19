@@ -56,6 +56,10 @@ export function AuthRequiredModal({ open, onClose }) {
     )
 }
 
+// Foydalanuvchining faol loyihalari (Figma 216:5064). Backend ulanganda
+// «Мои проекты» ro'yxati bilan almashtiriladi.
+const MY_PROJECTS = ['Съёмка для fashion-бренда', 'Съёмка для рекламы']
+
 // 2. Пригласить в проект
 export function InviteModal({ open, onClose, onSent }) {
     const [project, setProject] = useState('')
@@ -84,12 +88,28 @@ export function InviteModal({ open, onClose, onSent }) {
                 </>
             }
         >
+            {/* Figma «Пригласить в проект» 216:5064 — «Съёмка» yorlig'i ostida
+                foydalanuvchining faol loyihalari ro'yxati; bittasi tanlanadi. */}
             <div className="flex flex-col gap-[12px] lg:gap-[16px]">
-                <Field
-                    value={project}
-                    onChange={(e) => setProject(e.target.value)}
-                    placeholder="Названия проекта"
-                />
+                <span className="text-[14px] text-grey lg:text-[16px]">Съёмка</span>
+
+                <div className="flex flex-col overflow-hidden rounded-[6px] bg-white">
+                    {MY_PROJECTS.map((item) => (
+                        <button
+                            key={item}
+                            type="button"
+                            onClick={() => setProject(item)}
+                            className={`cursor-pointer p-[12px] text-left text-[14px] transition-colors lg:p-[16px] lg:text-[16px] ${
+                                project === item
+                                    ? 'bg-gold/15 text-black'
+                                    : 'text-grey hover:bg-light-white hover:text-black'
+                            }`}
+                        >
+                            {item}
+                        </button>
+                    ))}
+                </div>
+
                 <Field
                     as="textarea"
                     value={message}

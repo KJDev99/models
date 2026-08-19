@@ -9,7 +9,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Barcha kartochkalarda bitta logotip ishlatiladi (dizaynda ham shunday).
-export const AGENCY_IMAGE = '/img/agencies/agency.svg'
+export const AGENCY_IMAGE = '/img/agencies/agency.png'
 
 // Figma'da setkada bir sahifada 24 ta (6 qator × 4 ustun).
 export const GRID_PAGE_SIZE = 24

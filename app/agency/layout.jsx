@@ -2,15 +2,16 @@
 
 import React from 'react'
 import RoleGuard from '@/components/guards/role-guard'
-import CabinetLayout from '@/components/cabinet/cabinet-layout'
 import { ROLES } from '@/lib/roles'
+import LegacyPageFrame from '@/components/shared/cabinet/legacy-page-frame'
 
-// Агентство kabinetining karkasi: rol tekshiruvi + chap menyu.
-// Har bir ichki sahifaning o'z layout.jsx'i metadata beradi.
+// «Агентство» kabineti — Figma'da (270:19921 bandi) alohida karkas yo'q:
+// ochiq saytning hederi va futeri ishlatiladi, sahifa ichida esa
+// «Главная > Личный кабинет» yo'lakchasi turadi.
 export default function AgencyLayout({ children }) {
     return (
         <RoleGuard allow={[ROLES.AGENCY]}>
-            <CabinetLayout role={ROLES.AGENCY}>{children}</CabinetLayout>
+            <LegacyPageFrame>{children}</LegacyPageFrame>
         </RoleGuard>
     )
 }

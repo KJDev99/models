@@ -82,9 +82,9 @@ export default function ContactsView() {
                                     <Image
                                         src={social.icon}
                                         alt=""
-                                        width={42}
-                                        height={42}
-                                        className="size-[42px]"
+                                        width={40}
+                                        height={40}
+                                        className="size-[40px] shrink-0"
                                     />
                                 </a>
                             ))}

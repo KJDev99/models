@@ -11,7 +11,14 @@ import { MODEL_IMAGE } from '@/components/models/models-data'
 export { MODEL_IMAGE }
 
 // Galereya — Figma'da 6 ta eskiz, oxirgisining ostida «yana» strelkasi.
-const PHOTOS = Array.from({ length: 6 }, () => MODEL_IMAGE)
+// Suratlar Figma 265:13865 dan olingan (to'rt xil kadr navbat bilan takrorlanadi).
+const GALLERY = [
+    MODEL_IMAGE,
+    '/img/models/[slug]/model-2.jpg',
+    '/img/models/[slug]/model-3.jpg',
+    '/img/models/[slug]/model-4.jpg',
+]
+const PHOTOS = Array.from({ length: 6 }, (_, i) => GALLERY[i % GALLERY.length])
 
 export const MODEL = {
     slug: 'katerina-zhuravleva',
@@ -101,11 +108,11 @@ export const PORTFOLIO_TABS = [
     { key: 'cinema', label: 'Кино', count: 7 },
 ]
 
-// Har bir tab uchun rasmlar — hammasida bitta fayl ishlatiladi.
+// Har bir tab uchun rasmlar — galereyadagi to'rt kadr navbat bilan takrorlanadi.
 export const PORTFOLIO_ITEMS = PORTFOLIO_TABS.reduce((acc, tab) => {
     acc[tab.key] = Array.from({ length: tab.count }, (_, i) => ({
         id: `${tab.key}-${i}`,
-        image: MODEL_IMAGE,
+        image: GALLERY[i % GALLERY.length],
     }))
     return acc
 }, {})

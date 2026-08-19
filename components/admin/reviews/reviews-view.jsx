@@ -119,14 +119,41 @@ function ReviewCard({ review, onToggle, onDelete }) {
 
     return (
         <article className="flex flex-col gap-[12px] rounded-[6px] border border-black/8 p-[12px] lg:gap-[16px] lg:p-[16px]">
-            <div className="flex flex-wrap items-center justify-between gap-[12px]">
-                <div className="flex items-center gap-[12px]">
-                    <span className="block size-[40px] shrink-0 rounded-full bg-[#d9d9d9]" />
-                    <span className="text-[14px] font-medium text-black lg:text-[16px]">
-                        {review.author}
-                    </span>
-                    <span className="rounded-[6px] bg-light-white px-[12px] py-[4px] text-[12px] text-grey lg:text-[14px]">
-                        {review.authorType}
+            <div className="flex flex-wrap items-start justify-between gap-[12px]">
+                {/* Figma 343:13149: 65px avatar, o'ng ustunda ism qatori va
+                    ostida yulduzlar + sana. */}
+                <div className="flex items-center gap-[12px] lg:gap-[16px]">
+                    <span className="block size-[40px] shrink-0 rounded-full bg-[#d9d9d9] lg:size-[65px]" />
+
+                    <span className="flex flex-col gap-[6px] lg:gap-[8px]">
+                        <span className="flex flex-wrap items-center gap-[12px]">
+                            <span className="text-[14px] font-medium text-black lg:text-[16px]">
+                                {review.author}
+                            </span>
+                            <span className="rounded-[6px] bg-light-white px-[12px] py-[4px] text-[12px] text-grey lg:text-[14px]">
+                                {review.authorType}
+                            </span>
+                        </span>
+
+                        <span className="flex items-center gap-[8px]">
+                            <span className="flex items-center gap-[8px]">
+                                {Array.from({ length: 5 }, (_, i) => (
+                                    <Star
+                                        key={i}
+                                        size={24}
+                                        strokeWidth={2}
+                                        className={`size-[20px] lg:size-[24px] ${
+                                            i < review.rating
+                                                ? 'fill-gold text-gold'
+                                                : 'fill-[#d9d9d9] text-[#d9d9d9]'
+                                        }`}
+                                    />
+                                ))}
+                            </span>
+                            <span className="text-[12px] text-grey lg:text-[14px]">
+                                {review.date}
+                            </span>
+                        </span>
                     </span>
                 </div>
 
@@ -134,8 +161,8 @@ function ReviewCard({ review, onToggle, onDelete }) {
                     <AdminStatus tone={state.tone} className="lg:w-[133px]">
                         {state.label}
                     </AdminStatus>
-                    <span className="flex size-[32px] items-center justify-center rounded-[6px] bg-gold/25 p-[4px] text-black">
-                        <AdminRowMenu
+                    <span className="flex size-[32px] items-center justify-center rounded-[6px] ui-icon-btn p-[4px]">
+                        <AdminRowMenu compact
                             items={[
                                 hidden
                                     ? {
@@ -161,22 +188,6 @@ function ReviewCard({ review, onToggle, onDelete }) {
                         />
                     </span>
                 </div>
-            </div>
-
-            <div className="flex items-center gap-[12px]">
-                <span className="flex items-center gap-[2px]">
-                    {Array.from({ length: 5 }, (_, i) => (
-                        <Star
-                            key={i}
-                            size={20}
-                            strokeWidth={2}
-                            className={
-                                i < review.rating ? 'fill-gold text-gold' : 'fill-[#d9d9d9] text-[#d9d9d9]'
-                            }
-                        />
-                    ))}
-                </span>
-                <span className="text-[12px] text-grey lg:text-[14px]">{review.date}</span>
             </div>
 
             <p className="text-[14px] leading-[20px] text-grey lg:text-[16px] lg:leading-[22px]">

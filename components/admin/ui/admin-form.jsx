@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
-import { ChevronDown, X } from 'lucide-react'
+import { ChevronDown, Plus, X } from 'lucide-react'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Adminka formalarining umumiy qismlari — Figma «Создать исполнителя» 335:14800.
@@ -175,7 +175,8 @@ export function AdminTagInput({ tags, onChange, placeholder, max = 5, addLabel =
 
     return (
         <div className="flex flex-col gap-[16px]">
-            <div className="flex flex-col gap-[12px] lg:flex-row lg:items-start lg:gap-[16px]">
+            {/* Mobilda tugma matnsiz kvadratga aylanadi (Figma 415:18018). */}
+            <div className="flex items-start gap-[12px] lg:gap-[16px]">
                 <AdminInput
                     value={draft}
                     onChange={(e) => setDraft(e.target.value)}
@@ -190,9 +191,11 @@ export function AdminTagInput({ tags, onChange, placeholder, max = 5, addLabel =
                 <button
                     type="button"
                     onClick={add}
-                    className="cursor-pointer rounded-[6px] bg-gold p-[12px] text-[14px] font-medium text-white transition-colors hover:bg-gold/90 lg:w-[172px] lg:shrink-0 lg:p-[16px] lg:text-[16px]"
+                    aria-label={addLabel}
+                    className="ui-shine relative flex size-[44px] shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-[6px] bg-gold text-[16px] font-medium text-white transition-colors hover:bg-[#c19754] lg:size-auto lg:w-[172px] lg:p-[16px]"
                 >
-                    {addLabel}
+                    <Plus size={24} strokeWidth={2} aria-hidden className="relative lg:hidden" />
+                    <span className="relative hidden lg:inline">{addLabel}</span>
                 </button>
             </div>
 
@@ -226,7 +229,7 @@ export function AdminAddButton({ children, onClick }) {
         <button
             type="button"
             onClick={onClick}
-            className="cursor-pointer self-start rounded-[6px] bg-gold p-[12px] text-[14px] font-medium text-white transition-colors hover:bg-gold/90 lg:p-[16px] lg:text-[16px]"
+            className="cursor-pointer self-start rounded-[6px] bg-gold p-[12px] text-[14px] font-medium text-white transition-colors hover:bg-[#c19754] lg:p-[16px] lg:text-[16px]"
         >
             {children}
         </button>
@@ -234,7 +237,17 @@ export function AdminAddButton({ children, onClick }) {
 }
 
 // O'ng ustundagi qadamlar ro'yxati va «Далее» tugmasi (Figma 335:14978).
-export function AdminFormSteps({ title, steps, current, onSubmit, submitLabel = 'Далее' }) {
+// `secondary` — «Далее» ostidagi qo'shimcha tugma (Figma «Новый проект» 208:8790
+// — «В черновик»). Berilmasa, chiqmaydi.
+export function AdminFormSteps({
+    title,
+    steps,
+    current,
+    onSubmit,
+    submitLabel = 'Далее',
+    secondary,
+    tertiary,
+}) {
     return (
         <aside className="flex w-full flex-col gap-[24px] rounded-[6px] bg-white p-[12px] lg:w-[412px] lg:shrink-0 lg:p-[24px]">
             <p className="text-[14px] leading-[20px] text-grey lg:text-[18px] lg:leading-[24px]">
@@ -249,9 +262,11 @@ export function AdminFormSteps({ title, steps, current, onSubmit, submitLabel = 
                 />
                 {steps.map((step, i) => (
                     <div key={step} className="relative flex items-center gap-[12px]">
+                        {/* O'tilgan qadamlar ham oltin rangda qoladi
+                            (Figma 264:13381 — birinchi ikkitasi gold). */}
                         <span
                             className={`size-[20px] shrink-0 rounded-full border-[1.5px] bg-white ${
-                                i === current ? 'border-gold' : 'border-[#d9d9d9]'
+                                i <= current ? 'border-gold' : 'border-[#d9d9d9]'
                             }`}
                         />
                         <span className="text-[14px] font-medium text-black lg:text-[16px]">
@@ -264,14 +279,30 @@ export function AdminFormSteps({ title, steps, current, onSubmit, submitLabel = 
             <button
                 type="button"
                 onClick={onSubmit}
-                className="group relative w-full cursor-pointer overflow-hidden rounded-[6px] bg-gold px-[24px] py-[12px] text-[14px] font-medium text-white transition-colors hover:bg-gold/90 lg:py-[16px] lg:text-[18px]"
+                className="ui-shine relative w-full cursor-pointer overflow-hidden rounded-[6px] bg-gold px-[24px] py-[12px] text-[14px] font-medium text-white transition-colors hover:bg-[#c19754] lg:py-[16px] lg:text-[18px]"
             >
-                <span
-                    aria-hidden
-                    className="pointer-events-none absolute top-1/2 left-0 h-[216px] w-[34px] -translate-x-[200%] -translate-y-1/2 rotate-[50.56deg] bg-white/25 blur-[6.25px] transition-transform duration-700 ease-out group-hover:translate-x-[600%]"
-                />
                 <span className="relative">{submitLabel}</span>
             </button>
+
+            {secondary && (
+                <button
+                    type="button"
+                    onClick={secondary.onClick}
+                    className="w-full cursor-pointer rounded-[6px] bg-[#f7f2e9] px-[24px] py-[12px] text-[14px] font-medium text-gold transition-colors hover:bg-[#f1e8d8] lg:py-[16px] lg:text-[18px]"
+                >
+                    {secondary.label}
+                </button>
+            )}
+
+            {tertiary && (
+                <button
+                    type="button"
+                    onClick={tertiary.onClick}
+                    className="w-full cursor-pointer rounded-[6px] bg-light-white px-[24px] py-[12px] text-[14px] font-medium text-black transition-colors hover:bg-black/8 lg:py-[16px] lg:text-[18px]"
+                >
+                    {tertiary.label}
+                </button>
+            )}
         </aside>
     )
 }

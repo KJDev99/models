@@ -15,9 +15,19 @@ import { PHOTO_ITEMS, PHOTO_TABS, VENUE } from '@/components/venues/[slug]/venue
 // Maydon sahifasi — Figma «Studio Loft 21» 343:12110 / mobil 456:23609.
 // Ochiq saytdagi sahifa, «Забронировать» o'rniga holat, tahrirlash va «⋮».
 // ─────────────────────────────────────────────────────────────────────────────
-export default function AdminVenueDetail({ venue = VENUE }) {
+// `breadcrumb`, `editHref`, `backHref` va `banner` — komponent «Заказчик»
+// kabinetida ham ishlatiladi (Figma 230:7018 / 230:7420), o'sha yerda boshqa
+// yo'lakcha, boshqa manzillar va rad etilgan holat uchun banner beriladi.
+export default function AdminVenueDetail({
+    venue = VENUE,
+    breadcrumb,
+    editHref = '/admin/venues/v-1/edit',
+    backHref = '/admin/venues',
+    banner,
+    initialStatus = 'active',
+}) {
     const router = useRouter()
-    const [status, setStatus] = useState('active')
+    const [status, setStatus] = useState(initialStatus)
     const [removing, setRemoving] = useState(false)
     const [tab, setTab] = useState('all')
     const [shown, setShown] = useState(8)
@@ -28,13 +38,16 @@ export default function AdminVenueDetail({ venue = VENUE }) {
     return (
         <>
             <AdminBreadcrumb
-                items={[
-                    { label: 'Административная панель', href: '/admin/dashboard' },
-                    { label: venue.name },
-                ]}
+                items={
+                    breadcrumb || [
+                        { label: 'Административная панель', href: '/admin/dashboard' },
+                        { label: venue.name },
+                    ]
+                }
             />
 
             <div className="flex flex-col gap-[16px] lg:gap-[24px]">
+                {banner}
                 <div className="flex flex-col gap-[16px] lg:flex-row lg:items-stretch">
                     <div className="relative h-[280px] shrink-0 overflow-hidden rounded-[6px] bg-[#d9d9d9] lg:h-[600px] lg:w-[554px]">
                         <Image
@@ -58,17 +71,17 @@ export default function AdminVenueDetail({ venue = VENUE }) {
                                 </AdminStatus>
                                 <button
                                     type="button"
-                                    onClick={() => router.push('/admin/venues/v-1/edit')}
+                                    onClick={() => router.push(editHref)}
                                     aria-label="Редактировать"
-                                    className="flex size-[32px] cursor-pointer items-center justify-center rounded-[6px] bg-gold/25 p-[4px] text-black transition-colors hover:bg-gold/40"
+                                    className="flex size-[32px] cursor-pointer items-center justify-center rounded-[6px] ui-icon-btn p-[4px]"
                                 >
                                     <SquarePen size={24} strokeWidth={2} />
                                 </button>
-                                <span className="flex size-[32px] items-center justify-center rounded-[6px] bg-gold/25 p-[4px] text-black">
-                                    <AdminRowMenu
+                                <span className="flex size-[32px] items-center justify-center rounded-[6px] ui-icon-btn p-[4px]">
+                                    <AdminRowMenu compact
                                         items={publicationMenu({
                                             status,
-                                            onEdit: () => router.push('/admin/venues/v-1/edit'),
+                                            onEdit: () => router.push(editHref),
                                             onPause: () => setStatus('paused'),
                                             onResume: () => setStatus('active'),
                                             onFinish: () => setStatus('archive'),
@@ -203,13 +216,14 @@ export default function AdminVenueDetail({ venue = VENUE }) {
                     </div>
 
                     <div className="grid grid-cols-2 gap-[12px] lg:grid-cols-4 lg:gap-[16px]">
-                        {photos.slice(0, shown).map((src, i) => (
+                        {/* `PHOTO_ITEMS` elementlari — {id, image} obyektlari. */}
+                        {photos.slice(0, shown).map((photo) => (
                             <span
-                                key={i}
+                                key={photo.id}
                                 className="relative block h-[140px] overflow-hidden rounded-[6px] bg-[#d9d9d9] lg:h-[250px]"
                             >
                                 <Image
-                                    src={src}
+                                    src={photo.image}
                                     alt=""
                                     fill
                                     sizes="(max-width: 1024px) 50vw, 323px"
@@ -243,7 +257,7 @@ export default function AdminVenueDetail({ venue = VENUE }) {
                 open={removing}
                 onClose={() => setRemoving(false)}
                 name={venue.name}
-                onConfirm={() => router.push('/admin/venues')}
+                onConfirm={() => router.push(backHref)}
             />
         </>
     )

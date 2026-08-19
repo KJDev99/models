@@ -162,12 +162,8 @@ export default function CatalogToolbar({
                         type="button"
                         onClick={onSearchSubmit}
                         aria-label="Найти"
-                        className="group absolute top-1/2 right-0 flex size-[39px] -translate-y-1/2 cursor-pointer items-center justify-center overflow-hidden rounded-r-[6px] bg-gold text-white lg:size-[52px]"
+                        className="ui-shine absolute top-1/2 right-0 flex size-[39px] -translate-y-1/2 cursor-pointer items-center justify-center overflow-hidden rounded-r-[6px] bg-gold text-white transition-colors hover:bg-[#c19754] lg:size-[52px]"
                     >
-                        <span
-                            aria-hidden
-                            className="pointer-events-none absolute top-1/2 left-0 h-[216px] w-[34px] -translate-x-[200%] -translate-y-1/2 rotate-[50.56deg] bg-white/25 blur-[6.25px] transition-transform duration-700 ease-out group-hover:translate-x-[600%]"
-                        />
                         <Search
                             size={20}
                             strokeWidth={2}

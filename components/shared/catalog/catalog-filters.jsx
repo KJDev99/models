@@ -176,12 +176,8 @@ export function FilterActions({ onSubmit, onReset, className = '' }) {
             <button
                 type="button"
                 onClick={onSubmit}
-                className={`group relative flex w-full cursor-pointer items-center justify-center gap-[12px] overflow-hidden rounded-[6px] bg-gold px-[24px] py-[16px] text-[18px] font-medium text-white ${className}`}
+                className={`ui-shine relative flex w-full cursor-pointer items-center justify-center gap-[12px] overflow-hidden rounded-[6px] bg-gold px-[24px] py-[16px] text-[18px] font-medium text-white transition-colors hover:bg-[#c19754] ${className}`}
             >
-                <span
-                    aria-hidden
-                    className="pointer-events-none absolute top-1/2 left-0 h-[216px] w-[34px] -translate-x-[200%] -translate-y-1/2 rotate-[50.56deg] bg-white/25 blur-[6.25px] transition-transform duration-700 ease-out group-hover:translate-x-[600%]"
-                />
                 <span className="relative">Найти</span>
                 <ArrowUpRight size={24} strokeWidth={2} className="relative" />
             </button>

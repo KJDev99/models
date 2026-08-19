@@ -5,10 +5,12 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { PUBLIC_NAV } from '@/lib/nav'
-import { homeForRole } from '@/lib/roles'
+import { roleFromPathname } from '@/lib/roles'
 import { useAuth } from '@/lib/use-auth'
+import { SKIP_GUARDS } from '@/lib/dev-preview'
 import { useAuthModalStore } from '@/store/useAuthModalStore'
 import Button from '@/components/ui/button'
+import { primaryCta } from '@/components/layout/navbar'
 import Container from '@/components/ui/container'
 import { LOGO } from '@/lib/assets'
 
@@ -27,16 +29,21 @@ const LEGAL_RIGHT = [
 
 export default function Footer() {
     const pathname = usePathname()
-    const { authed, role, ready } = useAuth()
+    const { authed: signedIn, role, ready } = useAuth()
+
+    // Kabinetni tokensiz ko'rish rejimida (lib/dev-preview.js) futer ham
+    // avtorizatsiyalangan ko'rinishda bo'ladi — heder bilan bir xil.
+    const cabinetRole = roleFromPathname(pathname)
+    const authed = (ready && signedIn) || (SKIP_GUARDS && Boolean(cabinetRole))
+    const cta = primaryCta(role || cabinetRole)
 
     // «Войти» — Авторизация oynasini ochadi, sahifaga o'tmaydi.
     const openAuth = useAuthModalStore((s) => s.openAuth)
 
-    if (
-        ['/admin', '/auth', '/client', '/company', '/executor', '/agency'].some((p) =>
-            pathname.startsWith(p)
-        )
-    ) {
+    // Заказчик (/client), Исполнитель (/executor) va Агентство (/agency)
+    // kabinetlari ochiq saytning heder va futerida turadi
+    // (Figma 260:12521 / 270:22815 / 270:20517), shuning uchun ular yo'q.
+    if (['/admin', '/auth', '/company'].some((p) => pathname.startsWith(p))) {
         return null
     }
 
@@ -72,11 +79,9 @@ export default function Footer() {
                     </div>
 
                     <div className="flex flex-col gap-[12px] lg:flex-row lg:items-center lg:gap-[16px]">
-                        {ready && authed ? (
-                            <Button href={homeForRole(role)} variant="gold" full className="lg:w-auto">
-                                Кабинет
-                            </Button>
-                        ) : (
+                        {/* Figma 270:21696: kirgan foydalanuvchida futerda faqat bitta
+                            tugma qoladi — «Войти» ko'rsatilmaydi. */}
+                        {!authed && (
                             <Button
                                 onClick={() => openAuth()}
                                 variant="gold"
@@ -87,14 +92,11 @@ export default function Footer() {
                             </Button>
                         )}
 
-                        <Button
-                            href="/company/projects/new"
-                            variant="whiteStroke"
-                            full
-                            className="lg:w-auto"
-                        >
-                            Разместить проект
-                        </Button>
+                        {cta && (
+                            <Button href={cta.href} variant="whiteStroke" full className="lg:w-auto">
+                                {cta.label}
+                            </Button>
+                        )}
                     </div>
                 </div>
 

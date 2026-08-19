@@ -2,15 +2,17 @@
 
 import React from 'react'
 import RoleGuard from '@/components/guards/role-guard'
-import CabinetLayout from '@/components/cabinet/cabinet-layout'
 import { ROLES } from '@/lib/roles'
+import LegacyPageFrame from '@/components/shared/cabinet/legacy-page-frame'
 
-// Заказчик kabinetining karkasi: rol tekshiruvi + chap menyu.
-// Har bir ichki sahifaning o'z layout.jsx'i metadata beradi.
+// «Заказчик» kabineti — Figma'da (206:3248 bandi) alohida karkas yo'q:
+// ochiq saytning hederi va futeri ishlatiladi, sahifa ichida esa
+// «Главная > Личный кабинет» yo'lakchasi turadi. Shu sababli bu yerda
+// faqat rol tekshiruvi qoladi.
 export default function ClientLayout({ children }) {
     return (
         <RoleGuard allow={[ROLES.CLIENT]}>
-            <CabinetLayout role={ROLES.CLIENT}>{children}</CabinetLayout>
+            <LegacyPageFrame>{children}</LegacyPageFrame>
         </RoleGuard>
     )
 }

@@ -1,10 +1,8 @@
 'use client'
 
 import React from 'react'
-import { useParams } from 'next/navigation'
-import AgencyEditExecutor from '@/components/agency/executors/[id]/edit/edit-executor-form'
+import AgencyNewExecutorForm from '@/components/agency/executors/new/new-executor-form'
 
 export default function AgencyEditExecutorPage() {
-    const { id } = useParams()
-    return <AgencyEditExecutor id={id} />
+    return <AgencyNewExecutorForm mode="edit" />
 }

@@ -319,7 +319,7 @@ function Counter({ value, onChange }) {
                 type="button"
                 onClick={() => onChange(value + 1)}
                 aria-label="Больше"
-                className="flex size-[32px] cursor-pointer items-center justify-center rounded-[6px] bg-gold/15 text-gold transition-colors hover:bg-gold/25"
+                className="flex size-[32px] cursor-pointer items-center justify-center rounded-[6px] ui-icon-btn"
             >
                 <Plus size={20} strokeWidth={2} />
             </button>
@@ -330,7 +330,7 @@ function Counter({ value, onChange }) {
                 type="button"
                 onClick={() => onChange(Math.max(1, value - 1))}
                 aria-label="Меньше"
-                className="flex size-[32px] cursor-pointer items-center justify-center rounded-[6px] bg-gold/15 text-gold transition-colors hover:bg-gold/25"
+                className="flex size-[32px] cursor-pointer items-center justify-center rounded-[6px] ui-icon-btn"
             >
                 <Minus size={20} strokeWidth={2} />
             </button>

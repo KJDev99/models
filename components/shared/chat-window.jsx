@@ -85,7 +85,7 @@ export default function ChatWindow({
                     <button
                         type="submit"
                         disabled={sending || !text.trim()}
-                        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[12px] bg-gold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+                        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[12px] bg-gold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
                         aria-label="Отправить"
                     >
                         <FiSend size={20} />

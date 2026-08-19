@@ -151,7 +151,7 @@ function PublicationCard({ item, menuItems }) {
                         <SquarePen size={24} strokeWidth={2} />
                     </Link>
                     <span className="flex size-[32px] items-center justify-center rounded-[6px] bg-black/30 p-[4px] text-white">
-                        <AdminRowMenu items={menuItems(item)} />
+                        <AdminRowMenu compact items={menuItems(item)} />
                     </span>
                 </div>
 
@@ -173,7 +173,7 @@ function PublicationCard({ item, menuItems }) {
                     {item.city}
                 </p>
                 <div className="flex items-center gap-[10px]">
-                    <AdminStatus tone={state.tone} className="min-w-0 flex-1">
+                    <AdminStatus tone={state.tone} solid className="min-w-0 flex-1">
                         {state.label}
                     </AdminStatus>
                     <Counters item={item} />
@@ -212,12 +212,12 @@ function PublicationRow({ item, menuItems }) {
                 <Link
                     href={item.editHref}
                     aria-label="Редактировать"
-                    className="flex size-[32px] items-center justify-center rounded-[6px] bg-gold/25 p-[4px] text-black transition-colors hover:bg-gold/40"
+                    className="flex size-[32px] items-center justify-center rounded-[6px] ui-icon-btn p-[4px]"
                 >
                     <SquarePen size={24} strokeWidth={2} />
                 </Link>
-                <span className="flex size-[32px] items-center justify-center rounded-[6px] bg-gold/25 p-[4px] text-black">
-                    <AdminRowMenu items={menuItems(item)} />
+                <span className="flex size-[32px] items-center justify-center rounded-[6px] ui-icon-btn p-[4px]">
+                    <AdminRowMenu compact items={menuItems(item)} />
                 </span>
             </div>
         </article>

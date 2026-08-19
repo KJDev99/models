@@ -1,129 +1,188 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
-import Card from '@/components/ui/card'
+import React, { useState } from 'react'
+import Image from 'next/image'
+import { useRouter } from 'next/navigation'
+import { Image as ImageIcon, Mail, Phone, SquarePen } from 'lucide-react'
+import toast from 'react-hot-toast'
+import Container from '@/components/ui/container'
 import Button from '@/components/ui/button'
-import Avatar from '@/components/ui/avatar'
-import Spinner from '@/components/ui/spinner'
-import EmptyState from '@/components/ui/empty-state'
-import StatusBadge from '@/components/ui/status-badge'
-import ExecutorCard from '@/components/shared/executor-card'
-import ModerationNotice from '@/components/shared/moderation-notice'
-import { formatPhone } from '@/lib/format'
-import { useApiStore } from '@/store/useApiStore'
+import { CabinetBreadcrumb } from '@/components/shared/cabinet/cabinet-ui'
+import { rowMenu } from '@/components/admin/ui/admin-menu-items'
+import { DeleteModal } from '@/components/admin/ui/admin-modals'
+import AgencyExecutorsBlock from '@/components/agency/dashboard/executors-block'
+import AgencyProfileModal from '@/components/agency/dashboard/profile-modal'
+import {
+    AGENCY,
+    AGENCY_EXECUTORS,
+    EMPTY_AGENCY,
+    EXECUTORS_STEP,
+    EXECUTOR_TABS,
+} from '@/components/agency/dashboard/dashboard-data'
 
-// Figma: LUMEN AGENCY (270:20518) va "Пустой профиль" (270:19929).
-export default function AgencyDashboard() {
-    const getDataToken = useApiStore((s) => s.getDataToken)
-    const [agency, setAgency] = useState(null)
-    const [loading, setLoading] = useState(true)
+// ─────────────────────────────────────────────────────────────────────────────
+// «Агентство» kabinetining bosh sahifasi.
+// Figma: to'ldirilgan 270:20518 (mobil 437:17337), bo'sh 270:19929
+// (mobil 435:15962), «Редактировать профиль» oynasi 270:21182 / 270:20938.
+//
+// Chapda 554px logotip, o'ngda oq kartochka: nom, izoh, «О агентстве»,
+// «Контакты», to'rtta plitka va «Добавить исполнителя». Ostida «Исполнители».
+// ─────────────────────────────────────────────────────────────────────────────
 
-    useEffect(() => {
-        let alive = true
-        getDataToken('/agencies/mine/').then((res) => {
-            if (!alive) return
-            setAgency(res.success ? res.data : null)
-            setLoading(false)
-        })
-        return () => {
-            alive = false
-        }
-    }, [getDataToken])
+const BREADCRUMB = [{ label: 'Главная', href: '/' }, { label: 'Личный кабинет' }]
 
-    if (loading) {
-        return (
-            <div className="flex min-h-[40vh] items-center justify-center">
-                <Spinner size={32} />
-            </div>
-        )
-    }
+export default function AgencyDashboard({ filled = true, openSettings = false }) {
+    const router = useRouter()
+    const [editing, setEditing] = useState(openSettings)
+    const [removing, setRemoving] = useState(null)
 
-    if (!agency) {
-        return (
-            <EmptyState
-                title="Профиль агентства не заполнен"
-                description="Добавьте название, город и описание — после модерации агентство появится в каталоге."
-                actionText="Заполнить профиль"
-                actionHref="/agency/settings"
-            />
-        )
-    }
-
-    const rows = [
-        { label: 'Название', value: agency.name },
-        { label: 'Город', value: agency.city },
-        { label: 'ИНН', value: agency.inn },
-        { label: 'Телефон', value: formatPhone(agency.phone) },
-        { label: 'Почта', value: agency.email },
-        { label: 'Сайт', value: agency.site },
-    ].filter((r) => r.value)
-
-    const stats = [
-        { label: 'Исполнителей', value: agency.executorsCount ?? 0 },
-        { label: 'Активных проектов', value: agency.activeProjects ?? 0 },
-        { label: 'Приглашений', value: agency.invitesCount ?? 0 },
-        { label: 'Отзывов', value: agency.reviewsCount ?? 0 },
-    ]
+    const executors = filled ? AGENCY_EXECUTORS : []
 
     return (
-        <div className="flex flex-col gap-6">
-            <ModerationNotice status={agency.status} reason={agency.rejectReason} />
+        <div className="flex flex-col gap-[24px] bg-light-white pt-[16px] pb-[40px] lg:gap-[50px] lg:pt-[24px] lg:pb-[100px]">
+            <Container className="flex flex-col gap-[16px] lg:gap-[24px]">
+                <CabinetBreadcrumb items={BREADCRUMB} />
 
-            <Card
-                title="Профиль агентства"
-                action={
-                    <div className="flex flex-wrap items-center gap-2">
-                        {agency.status && <StatusBadge status={agency.status} />}
-                        <Button href="/agency/settings" variant="whiteStroke" size="sm">
-                            Редактировать
+                <div className="flex flex-col gap-[16px] lg:flex-row lg:items-stretch lg:gap-[16px]">
+                    {/* Logotip — Figma 270:20531: 554×554 kvadrat, rasm to'liq to'ldiradi. */}
+                    <div className="relative flex h-[280px] shrink-0 items-center justify-center overflow-hidden rounded-[6px] bg-white lg:h-auto lg:min-h-[400px] lg:w-[554px]">
+                        {filled ? (
+                            <Image
+                                src={AGENCY.logo}
+                                alt={AGENCY.name}
+                                fill
+                                sizes="(max-width: 1024px) 100vw, 554px"
+                                className="object-cover"
+                            />
+                        ) : (
+                            <span className="flex size-full items-center justify-center bg-[#d9d9d9]">
+                                <ImageIcon
+                                    size={200}
+                                    strokeWidth={1}
+                                    aria-hidden
+                                    className="text-[#c4c4c4]"
+                                />
+                            </span>
+                        )}
+                    </div>
+
+                    <div className="flex min-w-0 flex-1 flex-col gap-[16px] rounded-[6px] bg-white p-[12px] lg:gap-[24px] lg:p-[24px]">
+                        <div className="flex items-start justify-between gap-[16px]">
+                            <h1 className="font-display text-[24px] tracking-[0.48px] text-black uppercase lg:text-[32px] lg:tracking-[0.64px]">
+                                {AGENCY.name}
+                            </h1>
+                            <button
+                                type="button"
+                                onClick={() => setEditing(true)}
+                                aria-label="Редактировать профиль"
+                                className="ui-icon-btn flex size-[32px] shrink-0 cursor-pointer items-center justify-center rounded-[6px] p-[4px]"
+                            >
+                                <SquarePen size={24} strokeWidth={2} />
+                            </button>
+                        </div>
+
+                        <p className="flex flex-wrap items-center gap-[12px] text-[14px] text-grey lg:text-[16px]">
+                            {filled && <span>{AGENCY.kind}</span>}
+                            {filled && <span aria-hidden className="size-[3px] rounded-full bg-grey" />}
+                            <span>{AGENCY.city}</span>
+                        </p>
+
+                        <Block title="О агентстве">
+                            <p className="text-[14px] leading-[20px] text-grey lg:text-[16px] lg:leading-[22px]">
+                                {filled ? AGENCY.about : EMPTY_AGENCY.about}
+                            </p>
+                        </Block>
+
+                        <Block title="Контакты">
+                            {filled ? (
+                                <div className="flex flex-wrap items-center gap-[16px] lg:gap-[24px]">
+                                    <Contact icon={Phone}>{AGENCY.phone}</Contact>
+                                    <Contact icon={Mail}>{AGENCY.email}</Contact>
+                                </div>
+                            ) : (
+                                <p className="text-[14px] text-grey lg:text-[16px]">
+                                    {EMPTY_AGENCY.contacts}
+                                </p>
+                            )}
+                        </Block>
+
+                        <div className="grid grid-cols-2 gap-[12px] lg:grid-cols-4 lg:gap-[16px]">
+                            {(filled ? AGENCY.stats : EMPTY_AGENCY.stats).map((stat) => (
+                                <div
+                                    key={stat.label}
+                                    className="flex flex-col gap-[12px] rounded-[6px] bg-light-white p-[16px]"
+                                >
+                                    <p className="text-[20px] font-medium text-black lg:text-[24px]">
+                                        {stat.value}
+                                    </p>
+                                    <p className="text-[12px] text-grey lg:text-[14px]">
+                                        {stat.label}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+
+                        <Button
+                            href="/agency/executors/new"
+                            variant="gold"
+                            full
+                            className="mt-auto lg:w-[353px]"
+                        >
+                            Добавить исполнителя
                         </Button>
                     </div>
-                }
-            >
-                <div className="flex flex-wrap items-start gap-5">
-                    <Avatar src={agency.logo} name={agency.name} size="xl" />
-                    <dl className="flex min-w-[240px] flex-1 flex-col gap-3">
-                        {rows.map((r) => (
-                            <div key={r.label} className="flex items-center justify-between gap-4">
-                                <dt className="text-sm text-grey">{r.label}</dt>
-                                <dd className="text-base text-black">{r.value}</dd>
-                            </div>
-                        ))}
-                    </dl>
                 </div>
+            </Container>
 
-                {agency.about && (
-                    <p className="mt-6 whitespace-pre-line text-base text-black">{agency.about}</p>
-                )}
-            </Card>
+            <Container>
+                <AgencyExecutorsBlock
+                    executors={executors}
+                    tabs={EXECUTOR_TABS}
+                    step={EXECUTORS_STEP}
+                    emptyTitle={EMPTY_AGENCY.emptyTitle}
+                    emptyText={EMPTY_AGENCY.emptyText}
+                    menuItems={(item) =>
+                        rowMenu({
+                            status: item.status,
+                            onEdit: () => router.push(item.editHref),
+                            onToggle: () => toast.success('Видимость анкеты изменена'),
+                            onBlock: () => toast.success('Исполнитель заблокирован'),
+                            onUnblock: () => toast.success('Исполнитель разблокирован'),
+                            onDelete: () => setRemoving(item),
+                        })
+                    }
+                />
+            </Container>
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {stats.map((s) => (
-                    <Card key={s.label}>
-                        <p className="text-sm text-grey">{s.label}</p>
-                        <p className="mt-2 text-[28px] leading-none text-black">{s.value}</p>
-                    </Card>
-                ))}
-            </div>
+            <AgencyProfileModal open={editing} onClose={() => setEditing(false)} />
 
-            <Card
-                title="Наши исполнители"
-                action={
-                    <Button href="/agency/executors" variant="whiteStroke" size="sm">
-                        Все исполнители
-                    </Button>
-                }
-            >
-                {agency.executors?.length ? (
-                    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-6">
-                        {agency.executors.slice(0, 8).map((e) => (
-                            <ExecutorCard key={e.id} executor={e} basePath="/agency/executors" />
-                        ))}
-                    </div>
-                ) : (
-                    <p className="text-base text-grey">Исполнителей пока нет.</p>
-                )}
-            </Card>
+            <DeleteModal
+                open={Boolean(removing)}
+                onClose={() => setRemoving(null)}
+                name={removing?.name}
+                onConfirm={() => {
+                    setRemoving(null)
+                    toast.success('Исполнитель удалён')
+                }}
+            />
         </div>
+    )
+}
+
+function Block({ title, children }) {
+    return (
+        <div className="flex flex-col gap-[12px] lg:gap-[16px]">
+            <h2 className="text-[16px] font-bold text-black lg:text-[18px]">{title}</h2>
+            {children}
+        </div>
+    )
+}
+
+function Contact({ icon: Icon, children }) {
+    return (
+        <span className="flex items-center gap-[8px] text-[14px] text-grey lg:text-[16px]">
+            <Icon size={24} strokeWidth={1.75} className="size-[20px] shrink-0 text-gold lg:size-[24px]" />
+            {children}
+        </span>
     )
 }

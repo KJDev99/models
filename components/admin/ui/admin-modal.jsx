@@ -66,7 +66,7 @@ export default function AdminModal({ open, title, onClose, children }) {
 // Modal ichidagi katta tugma (Figma 344:15573 / 344:15878).
 export function AdminModalButton({ children, onClick, variant = 'primary', type = 'button' }) {
     const styles = {
-        primary: 'bg-gold text-white hover:bg-gold/90',
+        primary: 'bg-gold text-white hover:bg-[#c19754]',
         secondary: 'bg-[#f7f2e9] text-gold hover:bg-[#f1e8d8]',
         success: 'bg-[#44a400] text-white hover:bg-[#3b8f00]',
         danger: 'bg-[#e53b35] text-white hover:bg-[#cf332e]',
@@ -76,14 +76,10 @@ export function AdminModalButton({ children, onClick, variant = 'primary', type 
         <button
             type={type}
             onClick={onClick}
-            className={`group relative flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-[6px] px-[24px] py-[12px] text-[14px] font-medium transition-colors lg:py-[16px] lg:text-[18px] ${styles}`}
+            className={`relative flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-[6px] px-[24px] py-[12px] text-[14px] font-medium transition-colors lg:py-[16px] lg:text-[18px] ${
+                variant === 'secondary' ? '' : 'ui-shine'
+            } ${styles}`}
         >
-            {variant !== 'secondary' && (
-                <span
-                    aria-hidden
-                    className="pointer-events-none absolute top-1/2 left-0 h-[216px] w-[34px] -translate-x-[200%] -translate-y-1/2 rotate-[50.56deg] bg-white/25 blur-[6.25px] transition-transform duration-700 ease-out group-hover:translate-x-[600%]"
-                />
-            )}
             <span className="relative">{children}</span>
         </button>
     )

@@ -4,13 +4,15 @@ import React, { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Menu, X } from 'lucide-react'
+import { Bell, Heart, Mail, Menu, X } from 'lucide-react'
 import { PUBLIC_NAV } from '@/lib/nav'
-import { homeForRole } from '@/lib/roles'
+import { ROLES, roleFromPathname } from '@/lib/roles'
 import { useAuth } from '@/lib/use-auth'
+import { SKIP_GUARDS } from '@/lib/dev-preview'
 import { useAuthModalStore } from '@/store/useAuthModalStore'
 import Button from '@/components/ui/button'
 import Container from '@/components/ui/container'
+import UserMenu from '@/components/layout/user-menu'
 import { LOGO } from '@/lib/assets'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -20,9 +22,40 @@ import { LOGO } from '@/lib/assets'
 // Bosh sahifada heder hero ustida (absolute), qolgan sahifalarda —
 // oq fonli yopishqoq heder.
 // ─────────────────────────────────────────────────────────────────────────────
+// Avtorizatsiyadan keyingi ikonkalar (Figma 164:16185 / 164:16186 / 164:16187).
+const AUTHED_ICONS = [
+    { href: '/chat', label: 'Сообщения', icon: Mail },
+    { href: '/favorites', label: 'Избранное', icon: Heart },
+    { href: '/notifications', label: 'Уведомления', icon: Bell },
+]
+
+// Figma'da avatar bo'sh kulrang doira (164:16136) — rasm backenddan keladi.
+const AVATAR = null
+
+// Ochiq sayt hederi ostida turadigan kabinetlar
+// (Figma 260:12525 / 260:11721 / 270:20520).
+const CABINETS = ['/client', '/executor', '/agency']
+
+// O'ng tomondagi asosiy tugma rolga qarab o'zgaradi: agentlik anketa qo'shadi
+// (Figma 270:20523 — «Добавить анкету»), zakazchik loyiha joylashtiradi.
+// Ijrochida bunday tugma yo'q — heder ham, futer ham tugmasiz (Figma 260:11717).
+export function primaryCta(role) {
+    if (role === ROLES.EXECUTOR) return null
+    return role === ROLES.AGENCY
+        ? { label: 'Добавить анкету', href: '/agency/executors/new' }
+        : { label: 'Разместить проект', href: '/client/projects/new' }
+}
+
 export default function Navbar() {
     const pathname = usePathname()
-    const { authed, role, ready } = useAuth()
+    const { authed: signedIn, role, ready } = useAuth()
+
+    // Kabinet sahifalarini tokensiz ko'rish rejimida (lib/dev-preview.js)
+    // heder ham avtorizatsiyalangan ko'rinishda bo'lishi kerak.
+    const inCabinet = CABINETS.some((p) => pathname.startsWith(p))
+    const authed = (ready && signedIn) || (SKIP_GUARDS && inCabinet)
+    const currentRole = role || roleFromPathname(pathname)
+    const cta = primaryCta(currentRole)
     const [open, setOpen] = useState(false)
 
     // «Войти» sahifaga o'tmaydi — Авторизация oynasini ochadi (Figma 75:171).
@@ -47,11 +80,10 @@ export default function Navbar() {
     }, [open])
 
     // Kabinet va auth bo'limlarida ochiq sayt hederи ko'rsatilmaydi.
-    if (
-        ['/admin', '/auth', '/client', '/company', '/executor', '/agency'].some((p) =>
-            pathname.startsWith(p)
-        )
-    ) {
+    // Istisno — `CABINETS` ro'yxatidagi kabinetlar: Figma'da (260:12525 /
+    // 260:11721 / 270:20520) ular aynan shu heder ostida turadi, faqat o'ng
+    // tomoni avtorizatsiya holatiga o'tadi.
+    if (['/admin', '/auth', '/company'].some((p) => pathname.startsWith(p))) {
         return null
     }
 
@@ -102,12 +134,35 @@ export default function Navbar() {
                     })}
                 </nav>
 
-                {/* O'ng tomon */}
+                {/* O'ng tomon.
+                    Kirmagan holat (Figma 164:16136): «Войти» + «Разместить проект».
+                    Kirgan holat (Figma 260:12525): xat / sevimlilar / bildirishnoma
+                    ikonkalari, gold konturli «Разместить проект» va 54px avatar. */}
                 <div className="flex items-center gap-[16px]">
-                    {ready && authed ? (
-                        <Button href={homeForRole(role)} variant="gold" size="md" className="lg:px-[24px] lg:py-[16px] lg:text-[18px]">
-                            Кабинет
-                        </Button>
+                    {/* Mobilda ham xuddi shu ikonkalar turadi
+                        (Figma 415:17509 / 434:17271 — ✉ ♡ 🔔 avatar ☰). */}
+                    {authed ? (
+                        <div className="flex items-center gap-[12px] lg:gap-[16px]">
+                            {AUTHED_ICONS.map((item) => {
+                                const Icon = item.icon
+                                return (
+                                    <Link
+                                        key={item.href}
+                                        href={item.href}
+                                        aria-label={item.label}
+                                        className={`transition-opacity hover:opacity-70 ${
+                                            overlay ? 'text-white' : 'text-black'
+                                        }`}
+                                    >
+                                        <Icon
+                                            size={24}
+                                            strokeWidth={2}
+                                            className="size-[20px] lg:size-[24px]"
+                                        />
+                                    </Link>
+                                )
+                            })}
+                        </div>
                     ) : (
                         <Button
                             onClick={() => openAuth()}
@@ -122,15 +177,25 @@ export default function Navbar() {
                     {/* Button'ning bazaviy `inline-flex` klassi CSS'da `hidden`dan
                         keyin turadi va uni yengib qo'yadi, shuning uchun ko'rinishni
                         tashqi o'ram boshqaradi (Figma mobil 353:20611 — bu tugma yo'q). */}
-                    <span className="hidden lg:inline-flex">
-                        <Button
-                            href="/company/projects/new"
-                            variant={overlay ? 'whiteStroke' : 'darkStroke'}
-                            size="xl"
-                        >
-                            Разместить проект
-                        </Button>
-                    </span>
+                    {cta && (
+                        <span className="hidden lg:inline-flex">
+                            <Button
+                                href={cta.href}
+                                variant={
+                                    authed ? 'goldStroke' : overlay ? 'whiteStroke' : 'darkStroke'
+                                }
+                                size="xl"
+                            >
+                                {cta.label}
+                            </Button>
+                        </span>
+                    )}
+
+                    {/* Avatar bosilganda menyu ochiladi (Figma 270:18052).
+                        Tokensiz ko'rish rejimida rol manzildan aniqlanadi. */}
+                    {authed && (
+                        <UserMenu role={currentRole} avatar={AVATAR} />
+                    )}
 
                     <button
                         type="button"
@@ -210,15 +275,17 @@ export default function Navbar() {
                             ))}
                         </nav>
 
-                        <Button
-                            href="/company/projects/new"
-                            variant="goldStroke"
-                            size="md"
-                            full
-                            onClick={() => setOpen(false)}
-                        >
-                            Разместить проект
-                        </Button>
+                        {cta && (
+                            <Button
+                                href={cta.href}
+                                variant="goldStroke"
+                                size="md"
+                                full
+                                onClick={() => setOpen(false)}
+                            >
+                                {cta.label}
+                            </Button>
+                        )}
                 </div>
             </div>
         </header>

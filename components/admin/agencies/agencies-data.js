@@ -54,7 +54,7 @@ const EXECUTOR_TEMPLATES = [
 export const AGENCY_PROFILE = {
     id: 'a-1',
     name: 'LUMEN AGENCY',
-    logo: '/img/agencies/agency.svg',
+    logo: '/img/agencies/agency.png',
     status: 'active',
     field: 'Модельное и креативное агентство',
     city: 'Санкт-Петербург',

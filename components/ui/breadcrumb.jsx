@@ -4,7 +4,8 @@ import React from 'react'
 // items: [{ name, href? }] — oxirgi element havolasiz.
 export default function Breadcrumb({ items = [] }) {
     return (
-        <nav className="flex flex-wrap items-center gap-x-2 text-sm text-grey">
+        // Figma 120:1151: 16px, barcha elementlar grey (#666), oralig'i 12px.
+        <nav className="flex flex-wrap items-center gap-x-[12px] gap-y-[4px] text-[14px] text-grey lg:text-[16px]">
             {items.map((item, idx) => {
                 const isLast = idx === items.length - 1
                 return (
@@ -17,10 +18,10 @@ export default function Breadcrumb({ items = [] }) {
                                 {item.name}
                             </Link>
                         ) : (
-                            <span className={isLast ? 'text-black' : ''}>{item.name}</span>
+                            <span>{item.name}</span>
                         )}
                         {/* Figma 93:8226 — ajratkich «>» */}
-                        {!isLast && <span className="text-grey/60">&gt;</span>}
+                        {!isLast && <span aria-hidden>&gt;</span>}
                     </React.Fragment>
                 )
             })}

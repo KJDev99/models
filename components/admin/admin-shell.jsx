@@ -28,7 +28,10 @@ export default function AdminShell({ children }) {
         <div className="flex min-h-screen flex-col bg-light-white pb-[16px] lg:pb-[100px]">
             <AdminHeader />
 
-            <div className="flex flex-col gap-[16px] lg:gap-[24px]">
+            {/* Heder bilan kontent orasida 24px (Figma 321:12633 — gap-[24px]).
+                Mobil menyu `lg:hidden` bo'lgani uchun flex gap desktopda ishlamaydi,
+                shu sababli oraliq `pt` bilan beriladi. */}
+            <div className="flex flex-col gap-[16px] pt-[16px] lg:gap-[24px] lg:pt-[24px]">
                 {withNav && <AdminMobileNav />}
 
                 <Container className="flex items-start gap-[24px]">
@@ -97,7 +100,9 @@ function AdminSidebar() {
                         key={item.href}
                         href={item.href}
                         className={`flex w-full items-center gap-[12px] rounded-[6px] p-[16px] text-[18px] font-medium transition-colors ${
-                            on ? 'bg-white text-black' : 'text-grey hover:text-black'
+                            on
+                                ? 'bg-white text-black'
+                                : 'text-grey hover:bg-white/60 hover:text-black'
                         }`}
                     >
                         <Icon size={24} strokeWidth={2} className="shrink-0" />

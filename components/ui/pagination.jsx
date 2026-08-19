@@ -23,7 +23,7 @@ export default function Pagination({ page, totalPages, onChange }) {
                 type="button"
                 onClick={() => onChange(Math.max(1, page - 1))}
                 disabled={page === 1}
-                className={`${btn} border border-black/10 text-black hover:bg-light-white disabled:opacity-40`}
+                className={`${btn} border border-black/10 text-black hover:bg-light-white disabled:opacity-50`}
                 aria-label="Предыдущая страница"
             >
                 <FiChevronLeft />
@@ -70,7 +70,7 @@ export default function Pagination({ page, totalPages, onChange }) {
                 type="button"
                 onClick={() => onChange(Math.min(totalPages, page + 1))}
                 disabled={page === totalPages}
-                className={`${btn} border border-black/10 text-black hover:bg-light-white disabled:opacity-40`}
+                className={`${btn} border border-black/10 text-black hover:bg-light-white disabled:opacity-50`}
                 aria-label="Следующая страница"
             >
                 <FiChevronRight />

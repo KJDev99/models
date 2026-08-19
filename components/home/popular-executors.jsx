@@ -99,7 +99,7 @@ function Arrow({ direction, onClick, label }) {
             type="button"
             onClick={onClick}
             aria-label={label}
-            className="flex size-[42px] shrink-0 cursor-pointer items-center justify-center rounded-[6px] bg-gold/20 text-gold transition-colors hover:bg-gold/35"
+            className="flex size-[42px] shrink-0 cursor-pointer items-center justify-center rounded-[6px] ui-icon-btn"
         >
             <Icon size={24} strokeWidth={2} />
         </button>

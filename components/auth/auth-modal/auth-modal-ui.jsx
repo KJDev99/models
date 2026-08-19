@@ -51,7 +51,7 @@ export function AuthShell({ title, onBack, onClose, children }) {
                                 type="button"
                                 onClick={onBack}
                                 aria-label="Назад"
-                                className="flex size-[24px] cursor-pointer items-center justify-center rounded-[6px] bg-gold/20 text-black transition-colors hover:bg-gold/35 lg:size-[32px]"
+                                className="flex size-[24px] cursor-pointer items-center justify-center rounded-[6px] ui-icon-btn lg:size-[32px]"
                             >
                                 <ChevronLeft
                                     size={24}
@@ -197,7 +197,7 @@ export function AuthPhoneField({ value, onChange }) {
 export function AuthButton({ children, onClick, variant = 'primary', disabled, type = 'button' }) {
     const styles =
         variant === 'primary'
-            ? 'bg-gold text-white hover:bg-gold/90'
+            ? 'bg-gold text-white hover:bg-[#c19754]'
             : 'bg-gold/15 text-gold hover:bg-gold/25'
 
     return (
@@ -205,14 +205,10 @@ export function AuthButton({ children, onClick, variant = 'primary', disabled, t
             type={type}
             onClick={onClick}
             disabled={disabled}
-            className={`group relative flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-[6px] px-[24px] py-[12px] text-[14px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 lg:py-[16px] lg:text-[18px] ${styles}`}
+            className={`relative flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-[6px] px-[24px] py-[12px] text-[14px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 lg:py-[16px] lg:text-[18px] ${
+                variant === 'primary' ? 'ui-shine' : ''
+            } ${styles}`}
         >
-            {variant === 'primary' && (
-                <span
-                    aria-hidden
-                    className="pointer-events-none absolute top-1/2 left-0 h-[216px] w-[34px] -translate-x-[200%] -translate-y-1/2 rotate-[50.56deg] bg-white/25 blur-[6.25px] transition-transform duration-700 ease-out group-hover:translate-x-[600%]"
-                />
-            )}
             <span className="relative">{children}</span>
         </button>
     )

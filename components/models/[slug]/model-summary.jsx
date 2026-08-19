@@ -42,7 +42,12 @@ function SectionTitle({ children }) {
     )
 }
 
-export default function ModelSummary({ model, onInvite }) {
+// `actions` — yurakcha o'rniga qo'yiladigan boshqaruv (Figma «Исполнитель»
+// kabineti 265:14965 — holat, qalam va shesternya). `onInvite` berilmasa
+// pastdagi tugma chiqmaydi — kabinetda o'z anketasiga taklif yuborilmaydi.
+// `footer` — «Пригласить в проект» o'rniga qo'yiladigan blok («Агентство»
+// kabinetida agentlik yorlig'i, Figma 345:19391).
+export default function ModelSummary({ model, onInvite, actions, footer }) {
     const toggle = useFavoritesStore((s) => s.toggle)
     const items = useFavoritesStore((s) => s.items)
     const liked = items.some((i) => i.type === FAVORITE_TYPES.EXECUTOR && i.id === model.slug)
@@ -66,18 +71,20 @@ export default function ModelSummary({ model, onInvite }) {
                         {model.name}
                     </h1>
 
-                    <button
-                        type="button"
-                        onClick={onLike}
-                        aria-label={liked ? 'Убрать из избранного' : 'В избранное'}
-                        className="flex size-[32px] shrink-0 cursor-pointer items-center justify-center rounded-[6px] bg-gold/25 backdrop-blur-[2.5px] transition-colors hover:bg-gold/40"
-                    >
-                        <Heart
-                            size={24}
-                            strokeWidth={2}
-                            className={liked ? 'fill-gold text-gold' : 'text-gold'}
-                        />
-                    </button>
+                    {actions || (
+                        <button
+                            type="button"
+                            onClick={onLike}
+                            aria-label={liked ? 'Убрать из избранного' : 'В избранное'}
+                            className="flex size-[32px] shrink-0 cursor-pointer items-center justify-center rounded-[6px] ui-icon-btn backdrop-blur-[2.5px]"
+                        >
+                            <Heart
+                                size={24}
+                                strokeWidth={2}
+                                className={liked ? 'fill-current' : ''}
+                            />
+                        </button>
+                    )}
                 </div>
 
                 <div className="flex flex-col gap-[12px]">
@@ -129,13 +136,17 @@ export default function ModelSummary({ model, onInvite }) {
                 </div>
             </div>
 
-            <button
-                type="button"
-                onClick={onInvite}
-                className="flex w-full cursor-pointer items-center justify-center rounded-[6px] border border-gold px-[24px] py-[12px] text-[14px] font-medium whitespace-nowrap text-gold transition-colors hover:bg-gold hover:text-white lg:w-fit lg:py-[16px] lg:text-[18px]"
-            >
-                Пригласить в проект
-            </button>
+            {footer}
+
+            {onInvite && (
+                <button
+                    type="button"
+                    onClick={onInvite}
+                    className="ui-shine relative flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-[6px] border border-gold px-[24px] py-[12px] text-[14px] font-medium whitespace-nowrap text-gold transition-colors hover:bg-gold hover:text-white lg:w-fit lg:py-[16px] lg:text-[18px]"
+                >
+                    <span className="relative">Пригласить в проект</span>
+                </button>
+            )}
         </div>
     )
 }

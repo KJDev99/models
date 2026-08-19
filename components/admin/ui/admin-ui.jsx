@@ -72,7 +72,7 @@ export function AdminGoldLink({ href, children }) {
     return (
         <Link
             href={href}
-            className="flex size-[32px] shrink-0 cursor-pointer items-center justify-center gap-[12px] rounded-[6px] bg-gold p-[8px] text-[16px] font-medium text-white transition-colors hover:bg-gold/90 lg:size-auto lg:px-[16px] lg:py-[12px]"
+            className="ui-shine flex size-[32px] shrink-0 cursor-pointer items-center justify-center gap-[12px] rounded-[6px] bg-gold p-[8px] text-[16px] font-medium text-white transition-colors hover:bg-[#c19754] lg:size-auto lg:px-[16px] lg:py-[12px]"
         >
             <span className="hidden lg:inline">{children}</span>
             <ArrowUpRight size={24} strokeWidth={2} className="size-[16px] lg:size-[24px]" />
@@ -83,7 +83,7 @@ export function AdminGoldLink({ href, children }) {
 // Oltin tugma — bosiladigan (modal ochadi). Figma'da bir xil ko'rinish.
 export function AdminButton({ children, onClick, variant = 'gold', icon: Icon, type = 'button' }) {
     const styles = {
-        gold: 'bg-gold text-white hover:bg-gold/90',
+        gold: 'bg-gold text-white hover:bg-[#c19754]',
         light: 'bg-light-white text-black hover:bg-black/8',
         danger: 'bg-[#fdecec] text-[#e53b35] hover:bg-[#fbdcdc]',
         stroke: 'border border-black/15 text-black hover:bg-black/5',
@@ -93,7 +93,9 @@ export function AdminButton({ children, onClick, variant = 'gold', icon: Icon, t
         <button
             type={type}
             onClick={onClick}
-            className={`flex cursor-pointer items-center justify-center gap-[8px] rounded-[6px] px-[12px] py-[8px] text-[14px] font-medium transition-colors lg:gap-[12px] lg:px-[16px] lg:py-[12px] lg:text-[16px] ${styles}`}
+            className={`flex cursor-pointer items-center justify-center gap-[8px] rounded-[6px] px-[12px] py-[8px] text-[14px] font-medium transition-colors lg:gap-[12px] lg:px-[16px] lg:py-[12px] lg:text-[16px] ${
+                variant === 'gold' ? 'ui-shine' : ''
+            } ${styles}`}
         >
             {Icon && <Icon size={20} strokeWidth={2} className="shrink-0" />}
             {children}
@@ -134,10 +136,17 @@ export const STATUS_TONES = {
     muted: 'bg-light-white text-grey',
 }
 
-export function AdminStatus({ tone = 'pending', children, className = '' }) {
+// Rasm ustida turgan yorliqlar uchun shaffofsiz variant: `success` tonida fon
+// 15% shaffof bo'lgani uchun qorong'i suratda qorayib ketadi (Figma 270:20599 —
+// kartochkadagi yorliq oq fondagidek och yashil).
+const STATUS_TONES_SOLID = { ...STATUS_TONES, success: 'bg-[#e9f4e0] text-[#44a400]' }
+
+export function AdminStatus({ tone = 'pending', solid = false, children, className = '' }) {
+    const tones = solid ? STATUS_TONES_SOLID : STATUS_TONES
+
     return (
         <span
-            className={`flex items-center justify-center rounded-[6px] p-[4px] text-center text-[10px] font-medium whitespace-nowrap lg:px-[12px] lg:py-[8px] lg:text-[14px] ${STATUS_TONES[tone]} ${className}`}
+            className={`flex items-center justify-center rounded-[6px] p-[4px] text-center text-[10px] font-medium whitespace-nowrap lg:px-[12px] lg:py-[8px] lg:text-[14px] ${tones[tone]} ${className}`}
         >
             {children}
         </span>
@@ -228,7 +237,7 @@ export function AdminPagination({ page, pages, onChange }) {
                 onClick={() => onChange(Math.max(1, page - 1))}
                 disabled={page === 1}
                 aria-label="Назад"
-                className="flex size-[24px] cursor-pointer items-center justify-center rounded-[6px] bg-gold/20 text-black transition-colors hover:bg-gold/35 disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex size-[24px] cursor-pointer items-center justify-center rounded-[6px] ui-icon-btn disabled:cursor-not-allowed disabled:opacity-50"
             >
                 <ChevronLeft size={24} strokeWidth={2} />
             </button>
@@ -250,7 +259,7 @@ export function AdminPagination({ page, pages, onChange }) {
                             className={`flex size-[32px] cursor-pointer items-center justify-center rounded-[6px] text-[14px] transition-colors lg:size-[40px] lg:text-[16px] ${
                                 n === page
                                     ? 'bg-gold font-medium text-white'
-                                    : 'text-grey hover:bg-gold/15'
+                                    : 'text-grey hover:bg-gold hover:text-white'
                             }`}
                         >
                             {n}
@@ -264,7 +273,7 @@ export function AdminPagination({ page, pages, onChange }) {
                 onClick={() => onChange(Math.min(pages, page + 1))}
                 disabled={page === pages}
                 aria-label="Вперёд"
-                className="flex size-[24px] cursor-pointer items-center justify-center rounded-[6px] bg-gold/20 text-black transition-colors hover:bg-gold/35 disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex size-[24px] cursor-pointer items-center justify-center rounded-[6px] ui-icon-btn disabled:cursor-not-allowed disabled:opacity-50"
             >
                 <ChevronRight size={24} strokeWidth={2} />
             </button>
@@ -273,7 +282,10 @@ export function AdminPagination({ page, pages, onChange }) {
 }
 
 // Qator menyusi — «⋮» tugmasi ostidagi oq ro'yxat (Figma 334:14381 / 345:18863).
-export function AdminRowMenu({ items }) {
+// `compact` — menyu 32px'lik ikonka qutisi ichida turganda. Jadval qatorlarida
+// mobil ko'rinishda tugma to'liq kenglikdagi light-white tugmaga aylanadi,
+// kartochka ustida esa u faqat ikonka bo'lib qolishi kerak.
+export function AdminRowMenu({ items, compact = false }) {
     const [open, setOpen] = useState(false)
     const box = useRef(null)
 
@@ -288,13 +300,20 @@ export function AdminRowMenu({ items }) {
     }, [open])
 
     return (
-        <div ref={box} className="relative flex min-w-0 flex-1 lg:flex-none">
+        <div
+            ref={box}
+            className={`relative flex ${compact ? '' : 'min-w-0 flex-1 lg:flex-none'}`}
+        >
             <button
                 type="button"
                 onClick={() => setOpen((v) => !v)}
                 aria-label="Действия"
                 aria-expanded={open}
-                className="flex min-w-0 flex-1 cursor-pointer items-center justify-center rounded-[6px] bg-light-white p-[8px] text-inherit transition-opacity hover:opacity-70 lg:flex-none lg:bg-transparent lg:p-0"
+                className={`flex cursor-pointer items-center justify-center text-inherit transition-opacity hover:opacity-70 ${
+                    compact
+                        ? ''
+                        : 'min-w-0 flex-1 rounded-[6px] bg-light-white p-[8px] lg:flex-none lg:bg-transparent lg:p-0'
+                }`}
             >
                 <MoreVertical size={24} strokeWidth={2} />
             </button>

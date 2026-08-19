@@ -80,12 +80,12 @@ export default function VenueRowCard({ venue }) {
                         type="button"
                         onClick={onLike}
                         aria-label={liked ? 'Убрать из избранного' : 'В избранное'}
-                        className="flex size-[32px] shrink-0 cursor-pointer items-center justify-center rounded-[6px] bg-gold/15 transition-colors hover:bg-gold/30 lg:hidden"
+                        className="flex size-[32px] shrink-0 cursor-pointer items-center justify-center rounded-[6px] ui-icon-btn lg:hidden"
                     >
                         <Heart
                             size={24}
                             strokeWidth={2}
-                            className={liked ? 'fill-gold text-gold' : 'text-gold'}
+                            className={liked ? 'fill-current' : ''}
                         />
                     </button>
                 </div>
@@ -126,12 +126,12 @@ export default function VenueRowCard({ venue }) {
                         type="button"
                         onClick={onLike}
                         aria-label={liked ? 'Убрать из избранного' : 'В избранное'}
-                        className="flex size-[32px] shrink-0 cursor-pointer items-center justify-center rounded-[6px] bg-gold/15 transition-colors hover:bg-gold/30"
+                        className="flex size-[32px] shrink-0 cursor-pointer items-center justify-center rounded-[6px] ui-icon-btn"
                     >
                         <Heart
                             size={24}
                             strokeWidth={2}
-                            className={liked ? 'fill-gold text-gold' : 'text-gold'}
+                            className={liked ? 'fill-current' : ''}
                         />
                     </button>
                 </div>

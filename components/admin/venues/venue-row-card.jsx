@@ -101,12 +101,12 @@ export default function AdminVenueRow({ venue, menuItems }) {
                     <Link
                         href={`${href}/edit`}
                         aria-label="Редактировать"
-                        className="flex size-[32px] items-center justify-center rounded-[6px] bg-gold/25 p-[4px] text-black transition-colors hover:bg-gold/40"
+                        className="flex size-[32px] items-center justify-center rounded-[6px] ui-icon-btn p-[4px]"
                     >
                         <SquarePen size={24} strokeWidth={2} />
                     </Link>
-                    <span className="flex size-[32px] items-center justify-center rounded-[6px] bg-gold/25 p-[4px] text-black">
-                        <AdminRowMenu items={menuItems(venue)} />
+                    <span className="flex size-[32px] items-center justify-center rounded-[6px] ui-icon-btn p-[4px]">
+                        <AdminRowMenu compact items={menuItems(venue)} />
                     </span>
                 </div>
             </div>

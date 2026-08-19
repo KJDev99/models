@@ -66,12 +66,12 @@ export default function VideographerSummary({ videographer, onInvite }) {
                         type="button"
                         onClick={onLike}
                         aria-label={liked ? 'Убрать из избранного' : 'В избранное'}
-                        className="flex size-[32px] shrink-0 cursor-pointer items-center justify-center rounded-[6px] bg-gold/25 backdrop-blur-[2.5px] transition-colors hover:bg-gold/40"
+                        className="flex size-[32px] shrink-0 cursor-pointer items-center justify-center rounded-[6px] ui-icon-btn backdrop-blur-[2.5px]"
                     >
                         <Heart
                             size={24}
                             strokeWidth={2}
-                            className={liked ? 'fill-gold text-gold' : 'text-gold'}
+                            className={liked ? 'fill-current' : ''}
                         />
                     </button>
                 </div>

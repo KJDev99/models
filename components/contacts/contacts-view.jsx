@@ -17,11 +17,13 @@ import { CONTACTS, SOCIALS } from '@/components/contacts/contacts-data'
 
 const BREADCRUMB = [{ name: 'Главная', href: '/' }, { name: 'Контакты' }]
 
-// Kartochka — oq fon, radius 6, p-16, ichida 12px oraliq (Figma 164:14757).
+// Kartochka — oq fon, radius 6, ichida 12px oraliq.
+// Figma: desktop 164:14757 (323×103, p-16, yorliq 14px, qiymat 18/26),
+// mobil 377:16702 (296×68, p-12, yorliq 12px, qiymat 14px).
 function ContactCard({ label, children }) {
     return (
-        <div className="flex flex-col gap-[12px] rounded-[6px] bg-white p-[16px]">
-            <p className="text-[14px] text-grey">{label}</p>
+        <div className="flex flex-col gap-[12px] rounded-[6px] bg-white p-[12px] lg:p-[16px]">
+            <p className="text-[12px] text-grey lg:text-[14px]">{label}</p>
             {children}
         </div>
     )
@@ -31,7 +33,7 @@ function ContactValue({ href, children }) {
     return (
         <a
             href={href}
-            className="text-[16px] leading-[26px] break-words text-black transition-colors hover:text-gold lg:text-[18px]"
+            className="text-[14px] break-words text-black transition-colors hover:text-gold lg:text-[18px] lg:leading-[26px]"
         >
             {children}
         </a>
@@ -40,16 +42,16 @@ function ContactValue({ href, children }) {
 
 export default function ContactsView() {
     return (
-        <div className="flex flex-col gap-[16px] bg-light-white pt-[24px] pb-[40px] lg:gap-[24px] lg:pb-[100px]">
+        <div className="flex flex-col gap-[16px] bg-light-white pt-[16px] lg:pt-[24px] pb-[40px] lg:gap-[24px] lg:pb-[100px]">
             <Container className="flex flex-col gap-[16px] lg:gap-[24px]">
                 <Breadcrumb items={BREADCRUMB} />
 
-                <h1 className="font-display text-[30px] leading-none tracking-[0.6px] text-black uppercase lg:text-[48px] lg:tracking-[0.96px]">
+                <h1 className="font-display text-[24px] leading-none tracking-[0.48px] text-black uppercase lg:text-[48px] lg:tracking-[0.96px]">
                     Контакты
                 </h1>
 
                 {/* To'rtta kartochka — Figma 164:14756 */}
-                <div className="grid grid-cols-1 gap-[12px] sm:grid-cols-2 lg:grid-cols-4 lg:gap-[16px]">
+                <div className="grid grid-cols-1 gap-[16px] sm:grid-cols-2 lg:grid-cols-4">
                     <ContactCard label="Телефон">
                         <ContactValue href={`tel:${CONTACTS.phone.replace(/[^+\d]/g, '')}`}>
                             {CONTACTS.phone}
@@ -63,13 +65,13 @@ export default function ContactsView() {
                     </ContactCard>
 
                     <ContactCard label="Адрес">
-                        <p className="text-[16px] leading-[26px] text-black lg:text-[18px]">
+                        <p className="text-[14px] text-black lg:text-[18px] lg:leading-[26px]">
                             {CONTACTS.address}
                         </p>
                     </ContactCard>
 
                     <ContactCard label="Социальные сети">
-                        <div className="flex items-center gap-[12px]">
+                        <div className="flex items-center gap-[9px] lg:gap-[12px]">
                             {SOCIALS.map((social) => (
                                 <a
                                     key={social.key}
@@ -77,14 +79,14 @@ export default function ContactsView() {
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     aria-label={social.label}
-                                    className="relative flex size-[42px] shrink-0 items-center justify-center rounded-full border border-gold transition-colors hover:bg-gold/10"
+                                    className="relative flex size-[32px] shrink-0 items-center justify-center rounded-full border border-gold transition-colors hover:bg-gold/10 lg:size-[42px]"
                                 >
                                     <Image
                                         src={social.icon}
                                         alt=""
                                         width={40}
                                         height={40}
-                                        className="size-[40px] shrink-0"
+                                        className="size-[30px] shrink-0 lg:size-[40px]"
                                     />
                                 </a>
                             ))}

@@ -42,7 +42,7 @@ export default function HomePage() {
                     <Button
                         href="/company/projects/new"
                         variant="gold"
-                        iconRight={<ArrowUpRight size={24} strokeWidth={2} />}
+                        iconRight={<ArrowUpRight size={22} strokeWidth={2} className="size-[15px] lg:size-[22px]" />}
                         className="w-full lg:w-auto"
                     >
                         Разместить проект
@@ -77,7 +77,7 @@ export default function HomePage() {
                         <Button
                             href="/models"
                             variant="gold"
-                            iconRight={<ArrowUpRight size={24} strokeWidth={2} />}
+                            iconRight={<ArrowUpRight size={22} strokeWidth={2} className="size-[15px] lg:size-[22px]" />}
                             className="w-full lg:w-auto"
                         >
                             Найти исполнителя

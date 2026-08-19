@@ -15,7 +15,7 @@ import { useFavoritesStore } from '@/store/useFavoritesStore'
 
 function SectionTitle({ children }) {
     return (
-        <h2 className="font-sans text-[16px] leading-normal font-bold text-black lg:text-[18px]">
+        <h2 className="font-sans text-[16px] font-bold text-black lg:text-[18px]">
             {children}
         </h2>
     )
@@ -30,7 +30,7 @@ function Contact({ icon: Icon, href, children }) {
             <Icon
                 size={24}
                 strokeWidth={1.75}
-                className="size-[20px] shrink-0 text-gold lg:size-[24px]"
+                className="size-[15px] shrink-0 text-gold lg:size-[24px]"
             />
             {children}
         </a>
@@ -85,7 +85,7 @@ export default function AgencySummary({ agency }) {
             {/* О агентстве */}
             <div className="flex flex-col gap-[16px]">
                 <SectionTitle>О агентстве</SectionTitle>
-                <p className="text-[14px] leading-[20px] text-grey lg:text-[16px] lg:leading-[22px]">
+                <p className="text-[12px] leading-[18px] text-grey lg:text-[16px] lg:leading-[22px]">
                     {agency.about}
                 </p>
             </div>

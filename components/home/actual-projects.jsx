@@ -25,14 +25,18 @@ export default function ActualProjects() {
                     Актуальные проекты
                 </h2>
 
-                <Button
-                    href="/projects"
-                    variant="gold"
-                    iconRight={<ArrowUpRight size={24} strokeWidth={2} />}
-                    className="hidden lg:inline-flex"
-                >
-                    Все проекты
-                </Button>
+                {/* Button'ning bazaviy `inline-flex` klassi CSS'da `hidden`dan
+                    keyin turadi, shuning uchun ko'rinishni tashqi o'ram
+                    boshqaradi (Figma mobil 353:20899 — sarlavha yonida tugma yo'q). */}
+                <span className="hidden lg:inline-flex">
+                    <Button
+                        href="/projects"
+                        variant="gold"
+                        iconRight={<ArrowUpRight size={22} strokeWidth={2} className="size-[15px] lg:size-[22px]" />}
+                    >
+                        Все проекты
+                    </Button>
+                </span>
             </header>
 
             {/* Mobil — svayp.
@@ -69,7 +73,7 @@ export default function ActualProjects() {
             <Button
                 href="/projects"
                 variant="gold"
-                iconRight={<ArrowUpRight size={24} strokeWidth={2} />}
+                iconRight={<ArrowUpRight size={22} strokeWidth={2} className="size-[15px] lg:size-[22px]" />}
                 full
                 className="lg:hidden"
             >

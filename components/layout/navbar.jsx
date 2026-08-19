@@ -10,6 +10,7 @@ import { ROLES, roleFromPathname } from '@/lib/roles'
 import { useAuth } from '@/lib/use-auth'
 import { SKIP_GUARDS } from '@/lib/dev-preview'
 import { useAuthModalStore } from '@/store/useAuthModalStore'
+import { useNotificationStore } from '@/store/useNotificationStore'
 import Button from '@/components/ui/button'
 import Container from '@/components/ui/container'
 import UserMenu from '@/components/layout/user-menu'
@@ -26,7 +27,9 @@ import { LOGO } from '@/lib/assets'
 const AUTHED_ICONS = [
     { href: '/chat', label: 'Сообщения', icon: Mail },
     { href: '/favorites', label: 'Избранное', icon: Heart },
-    { href: '/notifications', label: 'Уведомления', icon: Bell },
+    // Faqat qo'ng'iroqda o'qilmagan bildirishnoma nuqtasi bor
+    // (Figma «хедер» Variant3 — 193:2974: 13.5px gold doira, oq halqa).
+    { href: '/notifications', label: 'Уведомления', icon: Bell, badge: true },
 ]
 
 // Figma'da avatar bo'sh kulrang doira (164:16136) — rasm backenddan keladi.
@@ -60,6 +63,10 @@ export default function Navbar() {
 
     // «Войти» sahifaga o'tmaydi — Авторизация oynasini ochadi (Figma 75:171).
     const openAuth = useAuthModalStore((s) => s.openAuth)
+
+    // Bildirishnoma nuqtasi backend ma'lumotidan chiqadi: 0 bo'lsa Variant2,
+    // 0 dan katta bo'lsa Variant3 ko'rinishi.
+    const unread = useNotificationStore((s) => s.unread)
 
     // Menyu ochiq bo'lganda sahifa aylanmaydi va Esc bosilsa yopiladi.
     useEffect(() => {
@@ -142,7 +149,7 @@ export default function Navbar() {
                     {/* Mobilda ham xuddi shu ikonkalar turadi
                         (Figma 415:17509 / 434:17271 — ✉ ♡ 🔔 avatar ☰). */}
                     {authed ? (
-                        <div className="flex items-center gap-[12px] lg:gap-[16px]">
+                        <div className="flex items-center gap-[16px]">
                             {AUTHED_ICONS.map((item) => {
                                 const Icon = item.icon
                                 return (
@@ -150,15 +157,14 @@ export default function Navbar() {
                                         key={item.href}
                                         href={item.href}
                                         aria-label={item.label}
-                                        className={`transition-opacity hover:opacity-70 ${
+                                        className={`relative transition-opacity hover:opacity-70 ${
                                             overlay ? 'text-white' : 'text-black'
                                         }`}
                                     >
-                                        <Icon
-                                            size={24}
-                                            strokeWidth={2}
-                                            className="size-[20px] lg:size-[24px]"
-                                        />
+                                        <Icon size={24} strokeWidth={2} />
+                                        {item.badge && unread > 0 && (
+                                            <span className="absolute -top-[3px] left-[11px] size-[13.5px] rounded-full border-[1.5px] border-white bg-gold" />
+                                        )}
                                     </Link>
                                 )
                             })}
@@ -167,8 +173,7 @@ export default function Navbar() {
                         <Button
                             onClick={() => openAuth()}
                             variant="gold"
-                            size="md"
-                            className="lg:px-[24px] lg:py-[16px] lg:text-[18px]"
+                            size="lg"
                         >
                             Войти
                         </Button>
@@ -201,10 +206,12 @@ export default function Navbar() {
                         type="button"
                         onClick={() => setOpen(true)}
                         aria-label="Меню"
-                        className={`flex cursor-pointer items-center rounded-[6px] p-[4px] backdrop-blur-[2.5px] transition-colors lg:hidden ${
+                        // `p-4 -m-4` — ikonka Figma'dagidek 24px joyda turadi,
+                        // ammo bosish/hover maydoni 32×32 bo'ladi (373:17034).
+                        className={`-m-[4px] flex cursor-pointer items-center rounded-[6px] p-[4px] transition-colors lg:hidden ${
                             overlay
-                                ? 'bg-black/25 text-white hover:bg-black/45'
-                                : 'bg-black/5 text-black hover:bg-black/10'
+                                ? 'text-white hover:bg-white/20'
+                                : 'text-black hover:bg-black/10'
                         }`}
                     >
                         <Menu size={24} strokeWidth={2} />
@@ -256,7 +263,7 @@ export default function Navbar() {
                                 type="button"
                                 onClick={() => setOpen(false)}
                                 aria-label="Закрыть"
-                                className="cursor-pointer p-[2px] text-black"
+                                className="cursor-pointer text-black"
                             >
                                 <X size={24} strokeWidth={2} />
                             </button>

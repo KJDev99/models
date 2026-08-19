@@ -15,7 +15,7 @@ export function CabinetBreadcrumb({ items }) {
     return (
         <nav
             aria-label="Хлебные крошки"
-            className="flex flex-wrap items-center gap-[12px] text-[14px] text-grey lg:text-[16px]"
+            className="flex flex-wrap items-center gap-[12px] text-[12px] text-grey lg:text-[16px]"
         >
             {items.map((item, i) => {
                 const last = i === items.length - 1

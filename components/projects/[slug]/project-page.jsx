@@ -58,7 +58,7 @@ export default function ProjectPage({ slug }) {
     const others = PROJECTS.slice(0, 4)
 
     return (
-        <div className="flex flex-col gap-[24px] bg-light-white pt-[24px] pb-[40px] lg:gap-[50px] lg:pb-[100px]">
+        <div className="flex flex-col gap-[24px] bg-light-white pt-[16px] lg:pt-[24px] pb-[40px] lg:gap-[50px] lg:pb-[100px]">
             <Container className="flex flex-col gap-[16px] lg:gap-[24px]">
                 <Breadcrumb items={breadcrumb} />
 

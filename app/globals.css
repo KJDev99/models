@@ -33,6 +33,14 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    /* Figma'da matn qator balandligi «Auto» — ya'ni shriftning o'z metrikasi
+       (Montserrat uchun ≈1.22). Tailwind preflight esa 1.5 beradi va shu sabab
+       har bir matn qatori 4-6px baland chiqardi. `normal` aynan Figma'dagi
+       hisobni qaytaradi (Montserrat hhea: (968+251)/1000 = 1.219). CSS
+       `normal` brauzerda OS/2 metrikasini olib ~1.30 beradi, shuning uchun
+       aniq son yozilgan. Ko'p qatorli xatboshilarda kerakli oraliq
+       `leading-[Npx]` bilan alohida beriladi. */
+    line-height: 1.219;
   }
 
   body {
@@ -261,14 +269,29 @@
 
 /* Anketa galereyasining mobil slayderi — Swiper'ning ko'k nuqtalari o'rniga
    gold/oq (Figma 360:24036). */
+/* Figma 363:12045 — nuqtalar chap pastda, qoraytirilgan kapsula ichida:
+   49×13, ichki bo'shliq 4px, nuqta 5px, oralig'i 4px. Aktivi oq. */
+.model-gallery-swiper .swiper-pagination {
+  left: 12px;
+  right: auto;
+  bottom: 12px;
+  width: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.35);
+}
 .model-gallery-swiper .swiper-pagination-bullet {
-  width: 8px;
-  height: 8px;
+  width: 5px;
+  height: 5px;
+  margin: 0;
   background: #ffffff;
-  opacity: 0.5;
+  opacity: 0.45;
 }
 .model-gallery-swiper .swiper-pagination-bullet-active {
-  background: var(--color-gold);
+  background: #ffffff;
   opacity: 1;
 }
 

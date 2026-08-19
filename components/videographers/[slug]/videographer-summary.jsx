@@ -17,11 +17,11 @@ import { useFavoritesStore } from '@/store/useFavoritesStore'
 
 function Meta({ icon: Icon, children }) {
     return (
-        <span className="flex items-center gap-[8px] text-[14px] font-medium whitespace-nowrap text-grey lg:text-[16px]">
+        <span className="flex items-center gap-[8px] text-[12px] font-medium whitespace-nowrap text-grey lg:text-[16px]">
             <Icon
                 size={24}
                 strokeWidth={1.75}
-                className="size-[20px] shrink-0 text-gold lg:size-[24px]"
+                className="size-[15px] shrink-0 text-gold lg:size-[24px]"
             />
             {children}
         </span>
@@ -30,7 +30,7 @@ function Meta({ icon: Icon, children }) {
 
 function SectionTitle({ children }) {
     return (
-        <h2 className="font-sans text-[16px] leading-normal font-bold text-black lg:text-[18px]">
+        <h2 className="font-sans text-[16px] font-bold text-black lg:text-[18px]">
             {children}
         </h2>
     )
@@ -84,11 +84,11 @@ export default function VideographerSummary({ videographer, onInvite }) {
                         <Meta icon={MapPin}>{videographer.city}</Meta>
                     </div>
 
-                    <div className="flex flex-wrap gap-[12px]">
+                    <div className="flex flex-wrap gap-[8px] lg:gap-[12px]">
                         {videographer.tags.map((tag) => (
                             <span
                                 key={tag}
-                                className="flex items-center justify-center rounded-[6px] border border-[#d9d9d9] px-[12px] py-[8px] text-[14px] font-medium whitespace-nowrap text-grey backdrop-blur-[2.5px] lg:text-[16px]"
+                                className="flex items-center justify-center rounded-[6px] border border-[#d9d9d9] px-[12px] py-[8px] text-[12px] font-medium whitespace-nowrap text-grey backdrop-blur-[2.5px] lg:text-[16px]"
                             >
                                 {tag}
                             </span>
@@ -100,7 +100,7 @@ export default function VideographerSummary({ videographer, onInvite }) {
             {/* О видеографе — bu blok o'sadi va kartochkani 600px'ga to'ldiradi */}
             <div className="flex flex-1 flex-col gap-[16px]">
                 <SectionTitle>О видеографе</SectionTitle>
-                <p className="text-[14px] leading-[20px] text-grey lg:text-[16px] lg:leading-[22px]">
+                <p className="text-[12px] leading-[18px] text-grey lg:text-[16px] lg:leading-[22px]">
                     {videographer.about}
                 </p>
             </div>

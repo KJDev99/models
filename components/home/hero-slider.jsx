@@ -142,7 +142,7 @@ export default function HeroSlider() {
                             <Button
                                 href="/models"
                                 variant="gold"
-                                iconRight={<ArrowUpRight size={24} strokeWidth={2} />}
+                                iconRight={<ArrowUpRight size={22} strokeWidth={2} className="size-[15px] lg:size-[22px]" />}
                                 className="w-full lg:w-auto"
                             >
                                 Найти исполнителя
@@ -205,10 +205,11 @@ export default function HeroSlider() {
                         className="hero-swap group flex items-center justify-center gap-[12px] border-b border-white p-[12px] text-[14px] font-medium whitespace-nowrap text-white transition-opacity hover:opacity-80 lg:p-[16px] lg:text-[18px]"
                     >
                         {active.linkText}
+                        {/* Figma: mobil 17px (353:20690), desktop 22px (75:222) */}
                         <ArrowUpRight
-                            size={24}
+                            size={22}
                             strokeWidth={2}
-                            className="transition-transform duration-300 group-hover:translate-x-[3px] group-hover:-translate-y-[3px]"
+                            className="size-[17px] transition-transform duration-300 group-hover:translate-x-[3px] group-hover:-translate-y-[3px] lg:size-[22px]"
                         />
                     </Link>
                 </div>

@@ -4,8 +4,9 @@ import React from 'react'
 // items: [{ name, href? }] — oxirgi element havolasiz.
 export default function Breadcrumb({ items = [] }) {
     return (
-        // Figma 120:1151: 16px, barcha elementlar grey (#666), oralig'i 12px.
-        <nav className="flex flex-wrap items-center gap-x-[12px] gap-y-[4px] text-[14px] text-grey lg:text-[16px]">
+        // Figma: desktop 120:1151 — 16px, mobil 358:21634 — 12px.
+        // Barcha elementlar grey (#666), oralig'i 12px.
+        <nav className="flex flex-wrap items-center gap-x-[12px] gap-y-[4px] text-[12px] text-grey lg:text-[16px]">
             {items.map((item, idx) => {
                 const isLast = idx === items.length - 1
                 return (

@@ -111,11 +111,11 @@ export default function CatalogView({
     }
 
     return (
-        <div className="flex flex-col gap-[40px] bg-light-white pt-[24px] pb-[40px] lg:gap-[100px] lg:pb-[100px]">
+        <div className="flex flex-col gap-[40px] bg-light-white pt-[16px] lg:pt-[24px] pb-[40px] lg:gap-[100px] lg:pb-[100px]">
             <div className="flex flex-col gap-[16px] lg:gap-[24px]">
                 <Container className="flex flex-col gap-[16px] lg:gap-[24px]">
                     <Breadcrumb items={breadcrumb} />
-                    <h1 className="font-display text-[30px] leading-none tracking-[0.6px] text-black uppercase lg:text-[48px] lg:tracking-[0.96px]">
+                    <h1 className="font-display text-[24px] leading-none tracking-[0.48px] text-black uppercase lg:text-[48px] lg:tracking-[0.96px]">
                         {title}
                     </h1>
                 </Container>

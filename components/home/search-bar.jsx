@@ -54,10 +54,11 @@ function SearchField({ field, value, onChange }) {
                 >
                     {selected?.label || field.placeholder}
                 </span>
+                {/* Figma: mobil 17px (353:20512), desktop 22px (52:1302) */}
                 <ChevronDown
-                    size={24}
+                    size={22}
                     strokeWidth={2}
-                    className={`shrink-0 text-white transition-transform duration-200 ${
+                    className={`size-[17px] shrink-0 text-white transition-transform duration-200 lg:size-[22px] ${
                         open ? 'rotate-180' : ''
                     }`}
                 />
@@ -112,7 +113,7 @@ export default function SearchBar() {
                         {i > 0 && (
                             <>
                                 {/* Mobil — gorizontal chiziq, desktop — vertikal */}
-                                <span className="h-px w-full bg-white/20 lg:h-[52px] lg:w-px" />
+                                <span className="h-px w-full bg-white/20 lg:h-[54px] lg:w-px" />
                             </>
                         )}
                         <SearchField
@@ -126,8 +127,8 @@ export default function SearchBar() {
                 <Button
                     onClick={submit}
                     variant="gold"
-                    iconRight={<ArrowUpRight size={24} strokeWidth={2} />}
-                    className="mt-[4px] w-full lg:mt-0 lg:min-w-0 lg:flex-1"
+                    iconRight={<ArrowUpRight size={22} strokeWidth={2} className="size-[15px] lg:size-[22px]" />}
+                    className="w-full lg:min-w-0 lg:flex-1"
                 >
                     Найти
                 </Button>

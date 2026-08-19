@@ -19,11 +19,11 @@ import { useFavoritesStore } from '@/store/useFavoritesStore'
 
 function Meta({ icon: Icon, children }) {
     return (
-        <span className="flex items-center gap-[8px] text-[14px] font-medium whitespace-nowrap text-grey lg:text-[16px]">
+        <span className="flex items-center gap-[8px] text-[12px] font-medium whitespace-nowrap text-grey lg:text-[16px]">
             <Icon
                 size={24}
                 strokeWidth={1.75}
-                className="size-[20px] shrink-0 text-gold lg:size-[24px]"
+                className="size-[15px] shrink-0 text-gold lg:size-[24px]"
             />
             {children}
         </span>
@@ -32,7 +32,7 @@ function Meta({ icon: Icon, children }) {
 
 function SectionTitle({ children }) {
     return (
-        <h2 className="font-sans text-[16px] leading-normal font-bold text-black lg:text-[18px]">
+        <h2 className="font-sans text-[16px] font-bold text-black lg:text-[18px]">
             {children}
         </h2>
     )
@@ -88,7 +88,7 @@ export default function ProjectSummary({ project, onApply }) {
                 {/* О проекте */}
                 <div className="flex flex-col gap-[16px]">
                     <SectionTitle>О проекте</SectionTitle>
-                    <p className="text-[14px] leading-[20px] text-grey lg:text-[16px] lg:leading-[22px]">
+                    <p className="text-[12px] leading-[18px] text-grey lg:text-[16px] lg:leading-[22px]">
                         {project.about}
                     </p>
                 </div>

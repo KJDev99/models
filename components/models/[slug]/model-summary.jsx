@@ -23,11 +23,11 @@ import { useFavoritesStore } from '@/store/useFavoritesStore'
 
 function Meta({ icon: Icon, children }) {
     return (
-        <span className="flex items-center gap-[8px] text-[14px] font-medium whitespace-nowrap text-grey lg:text-[16px]">
+        <span className="flex items-center gap-[8px] text-[12px] font-medium whitespace-nowrap text-grey lg:text-[16px]">
             <Icon
                 size={24}
                 strokeWidth={1.75}
-                className="size-[20px] shrink-0 text-gold lg:size-[24px]"
+                className="size-[15px] shrink-0 text-gold lg:size-[24px]"
             />
             {children}
         </span>
@@ -36,7 +36,7 @@ function Meta({ icon: Icon, children }) {
 
 function SectionTitle({ children }) {
     return (
-        <h2 className="font-sans text-[16px] leading-normal font-bold text-black lg:text-[18px]">
+        <h2 className="font-sans text-[16px] font-bold text-black lg:text-[18px]">
             {children}
         </h2>
     )
@@ -67,7 +67,7 @@ export default function ModelSummary({ model, onInvite, actions, footer }) {
             {/* Ism, parametrlar va teglar — bitta blok (Figma 129:5355, gap 16) */}
             <div className="flex flex-col justify-center gap-[16px]">
                 <div className="flex items-center justify-between gap-[16px]">
-                    <h1 className="font-sans text-[18px] leading-[24px] font-medium text-black lg:text-[32px] lg:leading-[39px]">
+                    <h1 className="font-sans text-[18px] leading-[22px] font-medium text-black lg:text-[32px] lg:leading-[39px]">
                         {model.name}
                     </h1>
 
@@ -88,18 +88,18 @@ export default function ModelSummary({ model, onInvite, actions, footer }) {
                 </div>
 
                 <div className="flex flex-col gap-[12px]">
-                    <div className="flex flex-wrap items-center gap-x-[16px] gap-y-[8px]">
+                    <div className="flex flex-wrap items-center gap-x-[12px] gap-y-[12px] lg:gap-x-[16px] lg:gap-y-[8px]">
                         <Meta icon={Calendar}>{model.age} лет</Meta>
                         <Meta icon={Ruler}>{model.height} см</Meta>
                         <Meta icon={Scale}>{model.weight} кг</Meta>
                         <Meta icon={MapPin}>{model.city}</Meta>
                     </div>
 
-                    <div className="flex flex-wrap gap-[12px]">
+                    <div className="flex flex-wrap gap-[8px] lg:gap-[12px]">
                         {model.tags.map((tag) => (
                             <span
                                 key={tag}
-                                className="flex items-center justify-center rounded-[6px] border border-[#d9d9d9] px-[12px] py-[8px] text-[14px] font-medium whitespace-nowrap text-grey backdrop-blur-[2.5px] lg:text-[16px]"
+                                className="flex items-center justify-center rounded-[6px] border border-[#d9d9d9] px-[12px] py-[8px] text-[12px] font-medium whitespace-nowrap text-grey backdrop-blur-[2.5px] lg:text-[16px]"
                             >
                                 {tag}
                             </span>
@@ -109,26 +109,26 @@ export default function ModelSummary({ model, onInvite, actions, footer }) {
             </div>
 
             {/* О модели — Figma'da bu blok o'sadi va kartochkani 600px'ga to'ldiradi */}
-            <div className="flex flex-1 flex-col gap-[16px]">
+            <div className="flex flex-1 flex-col gap-[12px] lg:gap-[16px]">
                 <SectionTitle>О модели</SectionTitle>
-                <p className="text-[14px] leading-[20px] text-grey lg:text-[16px] lg:leading-[22px]">
+                <p className="text-[12px] leading-[18px] text-grey lg:text-[16px] lg:leading-[22px]">
                     {model.about}
                 </p>
             </div>
 
             {/* Опыт работы — 4 ta plitka bir qatorda, mobilda 2×2 */}
-            <div className="flex flex-col gap-[16px]">
+            <div className="flex flex-col gap-[12px] lg:gap-[16px]">
                 <SectionTitle>Опыт работы</SectionTitle>
                 <div className="grid grid-cols-2 gap-[12px] lg:grid-cols-4 lg:gap-[16px]">
                     {model.stats.map((stat) => (
                         <div
                             key={stat.label}
-                            className="flex flex-col gap-[16px] rounded-[6px] bg-light-white p-[16px]"
+                            className="flex flex-col gap-[16px] rounded-[6px] bg-light-white p-[8px] lg:p-[16px]"
                         >
-                            <p className="font-display text-[24px] leading-none text-black uppercase lg:text-[32px]">
+                            <p className="font-display text-[32px] leading-none text-black uppercase">
                                 {stat.value}
                             </p>
-                            <p className="text-[12px] leading-none text-black lg:text-[14px]">
+                            <p className="text-[14px] text-black">
                                 {stat.label}
                             </p>
                         </div>

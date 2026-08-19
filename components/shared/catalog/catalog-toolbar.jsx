@@ -37,9 +37,9 @@ function SortSelect({ options, value, onChange }) {
                     {selected.label}
                 </span>
                 <ChevronDown
-                    size={24}
+                    size={20}
                     strokeWidth={2}
-                    className={`shrink-0 text-black transition-transform duration-200 ${
+                    className={`size-[15px] shrink-0 text-black transition-transform duration-200 lg:size-[20px] ${
                         open ? 'rotate-180' : ''
                     }`}
                 />
@@ -80,7 +80,7 @@ function ViewToggle({ view, onChange }) {
                     view === 'grid' ? 'text-gold' : 'text-black/40 hover:text-black'
                 }`}
             >
-                <LayoutGrid size={24} strokeWidth={2} className="size-[20px] lg:size-[24px]" />
+                <LayoutGrid size={24} strokeWidth={2} className="size-[15px] lg:size-[24px]" />
             </button>
             <button
                 type="button"
@@ -91,7 +91,7 @@ function ViewToggle({ view, onChange }) {
                     view === 'list' ? 'text-gold' : 'text-black/40 hover:text-black'
                 }`}
             >
-                <List size={24} strokeWidth={2} className="size-[20px] lg:size-[24px]" />
+                <List size={24} strokeWidth={2} className="size-[15px] lg:size-[24px]" />
             </button>
         </div>
     )
@@ -203,7 +203,7 @@ export default function CatalogToolbar({
                             className="flex shrink-0 cursor-pointer items-center gap-[8px] rounded-[8px] bg-gold p-[12px] text-[14px] font-medium whitespace-nowrap text-white"
                         >
                             {summary}
-                            <X size={24} strokeWidth={2} className="size-[20px]" />
+                            <X size={17} strokeWidth={2} className="size-[17px]" />
                         </button>
                     ) : (
                         <button
@@ -212,7 +212,7 @@ export default function CatalogToolbar({
                             onClick={() => onOpenField(field)}
                             className="flex shrink-0 cursor-pointer items-center gap-[8px] rounded-[8px] bg-white p-[12px] text-[14px] font-medium whitespace-nowrap text-grey"
                         >
-                            <Plus size={24} strokeWidth={2} className="size-[20px]" />
+                            <Plus size={17} strokeWidth={2} className="size-[17px]" />
                             {field.label}
                         </button>
                     )

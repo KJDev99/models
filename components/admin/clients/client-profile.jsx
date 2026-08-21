@@ -30,6 +30,7 @@ export default function AdminClientProfile({
     onBlock,
     onUnblock,
     onDelete,
+    onPickPhoto,
     onPublicationAction,
 }) {
     const router = useRouter()
@@ -237,7 +238,7 @@ export default function AdminClientProfile({
                 sections={{
                     info: (
                         <>
-                            <ModalAvatar src={profile.logo} />
+                            <ModalAvatar src={profile.logo} onPick={onPickPhoto} />
                             <ModalField label="Тип аккаунта">
                                 <ModalSelect
                                     value={form.type}

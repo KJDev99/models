@@ -8,6 +8,7 @@ import { ArrowUp, ChevronLeft, Paperclip, Trash2, UserX } from 'lucide-react'
 import { AdminRowMenu } from '@/components/admin/ui/admin-ui'
 import { BlockModal, DeleteModal } from '@/components/admin/ui/admin-modals'
 import { useApi, useAction } from '@/lib/use-api'
+import * as site from '@/lib/api/site'
 import * as adminApi from '@/lib/api/admin'
 import { chatListItem, chatMessage } from '@/lib/adapters'
 import { PLACEHOLDER } from '@/lib/assets'
@@ -66,16 +67,32 @@ export default function AdminChats() {
 
     const sendMessage = useAction(adminApi.sendMessage)
 
-    async function send() {
+    const upload = useAction(site.upload)
+
+    async function send(attachmentUrl = null, fallbackBody = '') {
         const text = draft.trim()
-        if (!text || !current) return
-        const res = await sendMessage.run(current, { body: text })
+        // Backend `body` ni majburiy qilgan (`minLength: 1`) — izohsiz rasm
+        // uchun fayl nomi yuboriladi (hisobot, 21-band).
+        const body = text || fallbackBody
+        if (!body || !current) return
+        const res = await sendMessage.run(current, { body, attachmentUrl })
         if (!res.success) {
             toast.error(res.error.message)
             return
         }
         setDraft('')
         reload()
+    }
+
+    // Skrepka — fayl avval `POST /site/upload` ga ketadi (backend/site.md).
+    async function attach(file) {
+        if (!file || !current) return
+        const res = await upload.run(file)
+        if (!res.success) {
+            toast.error(res.error.message)
+            return
+        }
+        await send(res.data?.url, file.name)
     }
 
     return (
@@ -211,13 +228,31 @@ export default function AdminChats() {
                                 className={`flex ${message.own ? 'justify-end' : 'justify-start'}`}
                             >
                                 <span
-                                    className={`flex max-w-[75%] items-end gap-[8px] rounded-[6px] p-[12px] text-[14px] leading-[20px] text-black lg:text-[16px] lg:leading-[22px] ${
+                                    className={`flex max-w-[75%] flex-col gap-[8px] rounded-[6px] p-[12px] text-[14px] leading-[20px] text-black lg:text-[16px] lg:leading-[22px] ${
                                         message.own ? 'bg-[#f7f2e9]' : 'bg-light-white'
                                     }`}
                                 >
-                                    {message.text}
-                                    <span className="shrink-0 text-[12px] text-grey">
-                                        {message.time}
+                                    {message.attachment && (
+                                        <a
+                                            href={message.attachment}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="relative block h-[160px] w-[220px] max-w-full overflow-hidden rounded-[6px] bg-black/10"
+                                        >
+                                            <Image
+                                                src={message.attachment}
+                                                alt=""
+                                                fill
+                                                sizes="220px"
+                                                className="object-cover"
+                                            />
+                                        </a>
+                                    )}
+                                    <span className="flex items-end gap-[8px]">
+                                        {message.text}
+                                        <span className="shrink-0 text-[12px] text-grey">
+                                            {message.time}
+                                        </span>
                                     </span>
                                 </span>
                             </div>
@@ -225,8 +260,21 @@ export default function AdminChats() {
                     </div>
 
                     <div className="flex items-center gap-[12px] border-t border-black/8 p-[12px] lg:gap-[16px] lg:p-[24px]">
-                        <label className="cursor-pointer text-grey transition-colors hover:text-black">
-                            <input type="file" className="hidden" />
+                        <label
+                            className={`text-grey transition-colors hover:text-black ${
+                                upload.loading ? 'pointer-events-none opacity-50' : 'cursor-pointer'
+                            }`}
+                        >
+                            <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) => {
+                                    const file = e.target.files?.[0]
+                                    e.target.value = ''
+                                    attach(file)
+                                }}
+                            />
                             <Paperclip size={24} strokeWidth={2} />
                             <span className="sr-only">Прикрепить файл</span>
                         </label>
@@ -243,7 +291,7 @@ export default function AdminChats() {
 
                         <button
                             type="button"
-                            onClick={send}
+                            onClick={() => send()}
                             aria-label="Отправить"
                             className="flex size-[32px] shrink-0 cursor-pointer items-center justify-center rounded-full bg-gold text-white transition-colors hover:bg-[#c19754] lg:size-[40px]"
                         >

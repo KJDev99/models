@@ -7,6 +7,7 @@ import AdminAgencyProfile from '@/components/admin/agencies/agency-profile'
 import { blockPayload } from '@/components/admin/ui/admin-modals'
 import { useApi, useAction } from '@/lib/use-api'
 import * as adminApi from '@/lib/api/admin'
+import * as site from '@/lib/api/site'
 import { adminAgencyProfile } from '@/lib/adapters'
 
 // Adminkadagi agentlik profili — GET /admin/agencies/{id} (backend/admin.md).
@@ -20,6 +21,7 @@ export default function AdminAgencyProfileLoader({ id }) {
     const profile = useMemo(() => adminAgencyProfile(data), [data])
 
     const update = useAction(adminApi.updateAgency)
+    const upload = useAction(site.upload)
     const blockAgency = useAction(adminApi.blockAgency)
     const unblockAgency = useAction(adminApi.unblockAgency)
     const removeAgency = useAction(adminApi.deleteAgency)
@@ -64,6 +66,15 @@ export default function AdminAgencyProfileLoader({ id }) {
                     email: form.email || undefined,
                 })
                 await finish(res, 'Профиль сохранён')
+            }}
+            onPickPhoto={async (file) => {
+                // AgencyWriteRequest → `logo_url`.
+                const up = await upload.run(file)
+                if (!up.success) {
+                    toast.error(up.error.message)
+                    return
+                }
+                await finish(await update.run(id, { logo_url: up.data?.url }), 'Логотип обновлён')
             }}
             onBlock={async (row, form) => {
                 const payload = blockPayload(form)

@@ -91,11 +91,16 @@ export const useChatStore = create((set, get) => ({
 
     sendMessage: async (text, attachmentUrl = null) => {
         const id = get().activeId
+        // Backend `body` ni majburiy qilgan, shuning uchun matn har doim
+        // bo'lishi kerak (rasm uchun chaqiruv joyida fayl nomi beriladi).
         if (!id || !text?.trim()) return { success: false }
 
         set({ sending: true })
         try {
-            const created = await roleApi().sendMessage(id, { body: text, attachmentUrl })
+            const created = await roleApi().sendMessage(id, {
+                body: text?.trim() || '',
+                attachmentUrl,
+            })
             const me = getUser()?.id
             // WebSocket ham xuddi shu xabarni qaytarishi mumkin — `id` bo'yicha
             // takrorlanmasligi `pushMessage` ichida tekshiriladi.

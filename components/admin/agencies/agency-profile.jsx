@@ -33,6 +33,7 @@ export default function AdminAgencyProfile({
     onBlock,
     onUnblock,
     onDelete,
+    onPickPhoto,
     onExecutorAction,
 }) {
     const router = useRouter()
@@ -191,7 +192,7 @@ export default function AdminAgencyProfile({
                 sections={{
                     info: (
                         <>
-                            <ModalAvatar src={profile.logo} />
+                            <ModalAvatar src={profile.logo} onPick={onPickPhoto} />
                             <ModalField label="Название агентства">
                                 <ModalInput
                                     value={form.name}

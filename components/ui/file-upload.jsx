@@ -74,8 +74,11 @@ export default function FileUpload({
                 multiple
                 hidden
                 onChange={(e) => {
-                    onAdd?.(e.target.files)
+                    // `input.value` ni tozalash `files` ni ham bo'shatadi —
+                    // shuning uchun avval massivga ko'chiramiz.
+                    const files = Array.from(e.target.files || [])
                     e.target.value = ''
+                    if (files.length) onAdd?.(files)
                 }}
             />
         </div>

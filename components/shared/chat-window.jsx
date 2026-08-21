@@ -1,10 +1,14 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
 import { FiSend } from 'react-icons/fi'
+import { Paperclip } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { formatDateTime } from '@/lib/format'
 import Avatar from '@/components/ui/avatar'
 import Spinner from '@/components/ui/spinner'
+import * as site from '@/lib/api/site'
 
 // Figma: сообщение (193:3489). readOnly — admin "Переписка участников" (344:17016)
 // rejimida yozish imkoni yo'q.
@@ -18,6 +22,7 @@ export default function ChatWindow({
     readOnly = false,
 }) {
     const [text, setText] = useState('')
+    const [uploading, setUploading] = useState(false)
     const bottomRef = useRef(null)
 
     useEffect(() => {
@@ -29,6 +34,26 @@ export default function ChatWindow({
         if (!text.trim()) return
         onSend?.(text)
         setText('')
+    }
+
+    // Skrepka: fayl avval `POST /site/upload` ga ketadi, so'ng xabar sifatida
+    // yuboriladi (matnsiz ham bo'ladi) — backend `attachment_url` ni kutadi.
+    async function attach(file) {
+        if (!file) return
+        setUploading(true)
+        try {
+            const res = await site.upload(file)
+            const url = res?.url
+            if (!url) throw new Error('Файл не загрузился')
+            // Backend `body` ni majburiy qilgan (`minLength: 1`), shuning uchun
+            // izohsiz rasm uchun fayl nomi yuboriladi (hisobot, 21-band).
+            await onSend?.(text.trim() || file.name, url)
+            setText('')
+        } catch (err) {
+            toast.error(err?.message || 'Не удалось отправить файл')
+        } finally {
+            setUploading(false)
+        }
     }
 
     return (
@@ -63,7 +88,25 @@ export default function ChatWindow({
                                     own ? 'bg-gold text-white' : 'bg-light-white text-black'
                                 }`}
                             >
-                                <p className="whitespace-pre-line text-base">{m.text}</p>
+                                {m.attachment && (
+                                    <a
+                                        href={m.attachment}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="relative mb-2 block h-[160px] w-[220px] max-w-full overflow-hidden rounded-[12px] bg-black/10"
+                                    >
+                                        <Image
+                                            src={m.attachment}
+                                            alt=""
+                                            fill
+                                            sizes="220px"
+                                            className="object-cover"
+                                        />
+                                    </a>
+                                )}
+                                {m.text && (
+                                    <p className="whitespace-pre-line text-base">{m.text}</p>
+                                )}
                                 <p className={`mt-1 text-xs ${own ? 'text-white/70' : 'text-grey'}`}>
                                     {formatDateTime(m.createdAt)}
                                 </p>
@@ -76,6 +119,26 @@ export default function ChatWindow({
 
             {!readOnly && (
                 <form onSubmit={submit} className="flex items-center gap-3 border-t border-black/8 p-4">
+                    {/* Fayl biriktirish — Figma'dagi «paperclip» (193:3489). */}
+                    <label
+                        className={`shrink-0 text-grey transition-colors hover:text-black ${
+                            uploading ? 'pointer-events-none opacity-50' : 'cursor-pointer'
+                        }`}
+                    >
+                        <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                                const file = e.target.files?.[0]
+                                e.target.value = ''
+                                attach(file)
+                            }}
+                        />
+                        <Paperclip size={24} strokeWidth={2} />
+                        <span className="sr-only">Прикрепить файл</span>
+                    </label>
+
                     <input
                         value={text}
                         onChange={(e) => setText(e.target.value)}

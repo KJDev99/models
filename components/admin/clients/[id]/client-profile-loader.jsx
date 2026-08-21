@@ -7,6 +7,7 @@ import AdminClientProfile from '@/components/admin/clients/client-profile'
 import { blockPayload } from '@/components/admin/ui/admin-modals'
 import { useApi, useAction } from '@/lib/use-api'
 import * as adminApi from '@/lib/api/admin'
+import * as site from '@/lib/api/site'
 import { adminCustomerProfile } from '@/lib/adapters'
 
 // Adminkadagi zakazchik profili — GET /admin/customers/{id} (backend/admin.md).
@@ -19,6 +20,7 @@ export default function AdminClientProfileLoader({ id }) {
     const profile = useMemo(() => adminCustomerProfile(data), [data])
 
     const update = useAction(adminApi.updateCustomer)
+    const upload = useAction(site.upload)
     const block = useAction(adminApi.blockCustomer)
     const unblock = useAction(adminApi.unblockCustomer)
     const remove = useAction(adminApi.deleteCustomer)
@@ -67,6 +69,16 @@ export default function AdminClientProfileLoader({ id }) {
                     website: form.site || null,
                 })
                 await finish(res, 'Профиль сохранён')
+            }}
+            onPickPhoto={async (file) => {
+                // Avval fayl yuklanadi, so'ng profilga bog'lanadi
+                // (CustomerWriteRequest → `logo_url`).
+                const up = await upload.run(file)
+                if (!up.success) {
+                    toast.error(up.error.message)
+                    return
+                }
+                await finish(await update.run(id, { logo_url: up.data?.url }), 'Фото обновлено')
             }}
             onBlock={async (_row, form) => {
                 await finish(await block.run(id, blockPayload(form)), 'Заказчик заблокирован')

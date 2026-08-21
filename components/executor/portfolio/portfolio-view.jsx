@@ -1,55 +1,78 @@
 'use client'
 
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useState } from 'react'
 import toast from 'react-hot-toast'
 import Card from '@/components/ui/card'
 import FileUpload from '@/components/ui/file-upload'
 import Spinner from '@/components/ui/spinner'
-import { useApiStore } from '@/store/useApiStore'
+import { useApi, useAction } from '@/lib/use-api'
+import * as performerApi from '@/lib/api/performer'
+import * as site from '@/lib/api/site'
 
-// Figma: Портфолио (265:13865).
+// ─────────────────────────────────────────────────────────────────────────────
+// «Портфолио» — Figma 265:13865.
+//
+// Rasm ikki qadamda qo'shiladi (backend/performer.md):
+//   1) POST /site/upload            → { url }
+//   2) POST /performer/portfolio    → { url, album }
+// O'chirish: DELETE /performer/portfolio/{media_id}.
+//
+// Ro'yxat `GET /performer/cabinet` → `media` dan olinadi:
+// `GET /performer/portfolio` hozir 500 qaytaradi (backend hisoboti, 20-band).
+// Backend tuzatilgach `performerApi.portfolio()` ga qaytarish kifoya.
+// ─────────────────────────────────────────────────────────────────────────────
 export default function ExecutorPortfolio() {
-    const getDataToken = useApiStore((s) => s.getDataToken)
-    const postFormDataToken = useApiStore((s) => s.postFormDataToken)
-    const deleteDataToken = useApiStore((s) => s.deleteDataToken)
+    const fetcher = useCallback(() => performerApi.cabinet(), [])
+    const { data, loading, error, reload } = useApi(fetcher)
 
-    const [photos, setPhotos] = useState([])
-    const [loading, setLoading] = useState(true)
+    const upload = useAction(site.upload)
+    const addPortfolio = useAction(performerApi.addPortfolio)
+    const removeMedia = useAction(performerApi.deletePortfolio)
 
-    // setState `.then()` ichida chaqiriladi — effekt tanasida sinxron
-    // holat o'zgartirish React Compiler qoidalarini buzadi.
-    const load = useCallback(() => {
-        getDataToken('/executors/mine/photos/').then((res) => {
-            const raw = res.data
-            setPhotos(raw?.results || raw?.data || raw || [])
-            setLoading(false)
-        })
-    }, [getDataToken])
+    const [busy, setBusy] = useState(false)
 
-    useEffect(() => {
-        load()
-    }, [load])
+    // Kabinet javobida `media` — barcha portfolio kadrlari.
+    const photos = (data?.media || [])
+        .filter((m) => m?.url)
+        .map((m) => ({ id: m.id, url: m.url }))
 
     async function addPhotos(fileList) {
         const files = Array.from(fileList || [])
-        const fd = new FormData()
-        files.forEach((f) => fd.append('photos', f))
-        const res = await postFormDataToken('/executors/mine/photos/', fd)
-        if (res.success) {
-            toast.success('Фото загружены')
-            load()
-        } else {
-            toast.error('Не удалось загрузить фото')
+        if (!files.length) return
+
+        setBusy(true)
+        let ok = 0
+        for (const file of files) {
+            const uploaded = await upload.run(file)
+            if (!uploaded.success) {
+                toast.error(uploaded.error.message)
+                continue
+            }
+            const url = uploaded.data?.url
+            if (!url) continue
+            const saved = await addPortfolio.run({ url })
+            if (!saved.success) {
+                toast.error(saved.error.message)
+                continue
+            }
+            ok += 1
+        }
+        setBusy(false)
+
+        if (ok) {
+            toast.success(ok === 1 ? 'Фото загружено' : `Загружено фото: ${ok}`)
+            reload()
         }
     }
 
     async function removePhoto(id) {
-        const res = await deleteDataToken(`/executors/mine/photos/${id}/`)
-        if (res.success) {
-            setPhotos((p) => p.filter((f) => f.id !== id))
-        } else {
-            toast.error('Не удалось удалить фото')
+        const res = await removeMedia.run(id)
+        if (!res.success) {
+            toast.error(res.error.message)
+            return
         }
+        toast.success('Фото удалено')
+        reload()
     }
 
     if (loading) {
@@ -62,13 +85,21 @@ export default function ExecutorPortfolio() {
 
     return (
         <Card title="Портфолио">
-            <FileUpload
-                files={photos}
-                onAdd={addPhotos}
-                onRemove={removePhoto}
-                max={30}
-                hint="JPG или PNG, до 10 МБ. Первая фотография — обложка анкеты."
-            />
+            {error ? (
+                <p className="text-base text-grey">{error.message}</p>
+            ) : (
+                <FileUpload
+                    files={photos}
+                    onAdd={addPhotos}
+                    onRemove={removePhoto}
+                    max={30}
+                    hint={
+                        busy
+                            ? 'Загружаем…'
+                            : 'JPG или PNG, до 10 МБ. Первая фотография — обложка анкеты.'
+                    }
+                />
+            )}
         </Card>
     )
 }

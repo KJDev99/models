@@ -17,29 +17,36 @@ import AdminProfileModal, {
 import { profileMenu, rowMenu } from '@/components/admin/ui/admin-menu-items'
 import { RowActionModals } from '@/components/admin/ui/admin-modals'
 import { USER_STATUS } from '@/components/admin/ui/admin-statuses'
-import { COMPANY_PROFILE } from '@/components/admin/clients/clients-data'
+// `profile` — `adminCustomerProfile()` adapteri natijasi (lib/adapters.js).
 import Button from '@/components/ui/button'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Zakazchik profili — Figma «Профиль компании - проекты» 338:16465 va
 // «Пустой профиль» 338:16778. Tahrirlash oynasi — 338:17056 / 338:18303.
 // ─────────────────────────────────────────────────────────────────────────────
-export default function AdminClientProfile({ profile = COMPANY_PROFILE }) {
+export default function AdminClientProfile({
+    profile,
+    onSave,
+    onBlock,
+    onUnblock,
+    onDelete,
+    onPublicationAction,
+}) {
     const router = useRouter()
-    const [status, setStatus] = useState(profile.status)
     const [action, setAction] = useState(null)
     const [editing, setEditing] = useState(false)
-    const [form, setForm] = useState({
-        type: 'company',
-        name: profile.name,
+    const [form, setForm] = useState(() => ({
+        type: profile.type === 'Компания' ? 'company' : 'person',
+        name: profile.name || '',
         field: profile.field || '',
         city: profile.city || '',
         about: profile.about || '',
         phone: profile.phone || '',
         email: profile.email || '',
         site: profile.site || '',
-    })
+    }))
 
+    const status = profile.status
     const state = USER_STATUS[status] || USER_STATUS.active
 
     function set(key, value) {
@@ -214,17 +221,18 @@ export default function AdminClientProfile({ profile = COMPANY_PROFILE }) {
                         rowMenu({
                             status: item.status,
                             onEdit: () => router.push(item.editHref),
-                            onToggle: () => {},
-                            onBlock: () => setAction({ type: 'block', row: item }),
-                            onUnblock: () => setAction({ type: 'unblock', row: item }),
-                            onDelete: () => setAction({ type: 'delete', row: item }),
+                            onToggle: () => onPublicationAction?.('toggle', item),
+                            onBlock: () => onPublicationAction?.('pause', item),
+                            onUnblock: () => onPublicationAction?.('resume', item),
+                            onDelete: () => onPublicationAction?.('delete', item),
                         })
                     }
                 />
             </div>
 
+            {editing && (
             <AdminProfileModal
-                open={editing}
+                open
                 onClose={() => setEditing(false)}
                 sections={{
                     info: (
@@ -322,14 +330,19 @@ export default function AdminClientProfile({ profile = COMPANY_PROFILE }) {
                         </ModalField>
                     ),
                 }}
+                onSave={async () => {
+                    await onSave?.(form)
+                    setEditing(false)
+                }}
             />
+            )}
 
             <RowActionModals
                 action={action}
                 onClose={() => setAction(null)}
-                onBlock={() => setStatus('blocked')}
-                onUnblock={() => setStatus('active')}
-                onDelete={() => router.push('/admin/clients')}
+                onBlock={onBlock}
+                onUnblock={onUnblock}
+                onDelete={onDelete}
             />
         </>
     )

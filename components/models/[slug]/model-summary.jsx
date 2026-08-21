@@ -89,10 +89,11 @@ export default function ModelSummary({ model, onInvite, actions, footer }) {
 
                 <div className="flex flex-col gap-[12px]">
                     <div className="flex flex-wrap items-center gap-x-[12px] gap-y-[12px] lg:gap-x-[16px] lg:gap-y-[8px]">
-                        <Meta icon={Calendar}>{model.age} лет</Meta>
-                        <Meta icon={Ruler}>{model.height} см</Meta>
-                        <Meta icon={Scale}>{model.weight} кг</Meta>
-                        <Meta icon={MapPin}>{model.city}</Meta>
+                        {/* Backend to'ldirilmagan maydonni bermaydi — chip chizilmaydi. */}
+                        {model.age != null && <Meta icon={Calendar}>{model.age} лет</Meta>}
+                        {model.height != null && <Meta icon={Ruler}>{model.height} см</Meta>}
+                        {model.weight != null && <Meta icon={Scale}>{model.weight} кг</Meta>}
+                        {model.city && <Meta icon={MapPin}>{model.city}</Meta>}
                     </div>
 
                     <div className="flex flex-wrap gap-[8px] lg:gap-[12px]">

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import {
@@ -23,14 +23,14 @@ import {
     DetailInfoCards,
     DetailProjects,
 } from '@/components/shared/detail/detail-info-cards'
-import {
-    PORTFOLIO_ITEMS,
-    PORTFOLIO_STEP,
-    PORTFOLIO_TABS,
-} from '@/components/models/[slug]/model-detail-data'
+import { PORTFOLIO_STEP } from '@/components/models/[slug]/model-detail-data'
 import { CabinetBreadcrumb, CabinetEmptyBlock, CabinetTitle } from '@/components/shared/cabinet/cabinet-ui'
 import ExecutorProfileSettingsModal from '@/components/executor/dashboard/profile-settings-modal'
-import { EMPTY_PROFILE, EXECUTOR, REJECT_REASON } from '@/components/executor/dashboard/dashboard-data'
+import { EMPTY_PROFILE } from '@/components/executor/dashboard/dashboard-data'
+import DetailReviews from '@/components/shared/detail/detail-reviews'
+import { useApi } from '@/lib/use-api'
+import * as performerApi from '@/lib/api/performer'
+import { performerCabinet, portfolioFromMedia } from '@/lib/adapters'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // «Исполнитель» kabinetining bosh sahifasi — o'z anketasi.
@@ -52,11 +52,29 @@ const QUESTIONNAIRE = '/executor/questionnaire'
 // To'ldirilmagan anketadagi ikonkalar — `ModelSummary`dagi bilan bir xil.
 const ICONS = { calendar: Calendar, ruler: Ruler, scale: Scale }
 
-export default function ExecutorDashboard({ status = 'empty', openSettings = false }) {
+export default function ExecutorDashboard({ openSettings = false }) {
     const [settings, setSettings] = useState(openSettings)
 
-    const filled = status !== 'empty'
+    // GET /performer/cabinet — anketa, bo'limlar holati va usta qadami
+    // bitta so'rovda keladi (backend/performer.md).
+    const fetcher = useCallback(() => performerApi.cabinet(), [])
+    const { data, loading, reload } = useApi(fetcher)
+
+    const executor = useMemo(() => performerCabinet(data), [data])
+    const portfolio = useMemo(() => portfolioFromMedia(data?.media), [data])
+
+    if (loading || !executor) {
+        return (
+            <Container>
+                <div className="my-[24px] h-[400px] animate-pulse rounded-[6px] bg-black/5 lg:my-[40px] lg:h-[600px]" />
+            </Container>
+        )
+    }
+
+    const status = executor.status
+    const filled = executor.filled
     const state = PROJECT_STATUS[status]
+    const EXECUTOR = executor
 
     const actions = (
         <div className="flex shrink-0 items-center gap-[12px] lg:gap-[16px]">
@@ -88,7 +106,9 @@ export default function ExecutorDashboard({ status = 'empty', openSettings = fal
             <Container className="flex flex-col gap-[16px] lg:gap-[24px]">
                 <CabinetBreadcrumb items={BREADCRUMB} />
 
-                {status === 'rejected' && <RejectedBanner />}
+                {status === 'rejected' && (
+                    <RejectedBanner comment={executor.moderationComment} />
+                )}
 
                 <div className="flex flex-col gap-[16px] lg:flex-row lg:gap-[16px]">
                     {filled ? (
@@ -99,7 +119,7 @@ export default function ExecutorDashboard({ status = 'empty', openSettings = fal
                     ) : (
                         <>
                             <EmptyGallery />
-                            <EmptySummary actions={actions} />
+                            <EmptySummary actions={actions} profile={executor} />
                         </>
                     )}
                 </div>
@@ -136,8 +156,8 @@ export default function ExecutorDashboard({ status = 'empty', openSettings = fal
             <Container>
                 {filled ? (
                     <DetailPortfolio
-                        tabs={PORTFOLIO_TABS}
-                        items={PORTFOLIO_ITEMS}
+                        tabs={portfolio.tabs}
+                        items={portfolio.items}
                         step={PORTFOLIO_STEP}
                     />
                 ) : (
@@ -148,28 +168,41 @@ export default function ExecutorDashboard({ status = 'empty', openSettings = fal
                 )}
             </Container>
 
-            {/* Отзывы — kabinetda reyting va «Оставить отзыв» tugmasi yo'q
+            {/* Отзывы — kabinetda «Оставить отзыв» tugmasi yo'q
                 (Figma 320:12206 / 260:11332). */}
             <Container className="flex flex-col gap-[16px] lg:gap-[24px]">
-                <CabinetTitle>Отзывы</CabinetTitle>
-                <CabinetEmptyBlock {...EMPTY_PROFILE.blocks.reviews} />
+                {executor.reviews.length > 0 ? (
+                    <DetailReviews rating={executor.rating} reviews={executor.reviews} step={6} />
+                ) : (
+                    <>
+                        <CabinetTitle>Отзывы</CabinetTitle>
+                        <CabinetEmptyBlock {...EMPTY_PROFILE.blocks.reviews} />
+                    </>
+                )}
             </Container>
 
-            <ExecutorProfileSettingsModal open={settings} onClose={() => setSettings(false)} />
+            {settings && (
+                <ExecutorProfileSettingsModal
+                    open
+                    onClose={() => setSettings(false)}
+                    profile={executor}
+                    onSaved={reload}
+                />
+            )}
         </div>
     )
 }
 
 // Rad etilgan anketa izohi (Figma 265:14667).
-function RejectedBanner() {
+function RejectedBanner({ comment }) {
     return (
         <div className="flex flex-col gap-[12px] rounded-[6px] bg-[#fdecec] p-[12px] lg:flex-row lg:items-center lg:justify-between lg:p-[16px]">
             <div className="flex flex-col gap-[8px]">
                 <p className="text-[14px] font-bold text-[#d14343] lg:text-[16px]">
-                    {REJECT_REASON.title}
+                    Анкета отклонена
                 </p>
                 <p className="text-[12px] leading-[18px] text-[#d14343] lg:text-[14px] lg:leading-[20px]">
-                    {REJECT_REASON.text}
+                    {comment || 'Проверьте данные анкеты и отправьте её на модерацию повторно.'}
                 </p>
             </div>
             <Link
@@ -194,13 +227,13 @@ function EmptyGallery() {
 // To'ldirilmagan anketaning asosiy kartochkasi (Figma 415:17936).
 // Kartochka chapdagi bo'sh maydon bilan bir balandlikda — 600px (260:11746),
 // rasm esa qolgan bo'sh joyni egallaydi (415:17937 — aspect 722/309, flex-1).
-function EmptySummary({ actions }) {
+function EmptySummary({ actions, profile }) {
     return (
         <div className="flex min-w-0 flex-1 flex-col gap-[16px] rounded-[6px] bg-white p-[12px] lg:h-[600px] lg:gap-[24px] lg:p-[24px]">
             <div className="flex flex-col gap-[16px]">
                 <div className="flex items-center justify-between gap-[16px]">
                     <h1 className="text-[18px] leading-[24px] font-medium text-black lg:text-[32px] lg:leading-[39px]">
-                        {EMPTY_PROFILE.name}
+                        {profile?.name || EMPTY_PROFILE.name}
                     </h1>
                     {actions}
                 </div>
@@ -216,7 +249,7 @@ function EmptySummary({ actions }) {
                             strokeWidth={1.75}
                             className="size-[20px] shrink-0 text-gold lg:size-[24px]"
                         />
-                        {EMPTY_PROFILE.city}
+                        {profile?.city || EMPTY_PROFILE.city}
                     </span>
                 </div>
             </div>

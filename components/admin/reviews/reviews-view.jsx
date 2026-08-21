@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
+import toast from 'react-hot-toast'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Eye, EyeOff, Star, Trash2 } from 'lucide-react'
@@ -14,38 +15,52 @@ import {
 } from '@/components/admin/ui/admin-ui'
 import { DeleteModal } from '@/components/admin/ui/admin-modals'
 import {
-    ADMIN_REVIEWS,
     RATING_FILTER,
     REVIEWS_PAGE_SIZE,
     REVIEW_STATUS,
     REVIEW_STATUS_FILTER,
 } from '@/components/admin/reviews/reviews-data'
+import { useApi, useAction } from '@/lib/use-api'
+import * as adminApi from '@/lib/api/admin'
+import { adminReviewRow } from '@/lib/adapters'
 
 // Figma: Отзывы (343:12626 / 457:23859)
 export default function AdminReviews() {
-    const [list, setList] = useState(ADMIN_REVIEWS)
     const [query, setQuery] = useState('')
     const [rating, setRating] = useState('')
     const [status, setStatus] = useState('')
     const [page, setPage] = useState(1)
     const [removing, setRemoving] = useState(null)
 
-    const filtered = useMemo(() => {
-        const q = query.trim().toLowerCase()
-        return list.filter((row) => {
-            if (status && row.status !== status) return false
-            if (rating && String(row.rating) !== rating) return false
-            if (!q) return true
-            return `${row.author} ${row.target.name}`.toLowerCase().includes(q)
-        })
-    }, [list, query, rating, status])
+    // GET /admin/reviews — qidiruv, reyting va holat filtri server tomonida.
+    const fetcher = useCallback(
+        () =>
+            adminApi.reviews({
+                q: query || undefined,
+                rating: rating || undefined,
+                status: status || undefined,
+                page,
+                page_size: REVIEWS_PAGE_SIZE,
+            }),
+        [query, rating, status, page],
+    )
+    const { data, loading, error, reload } = useApi(fetcher)
 
-    const pages = Math.max(1, Math.ceil(filtered.length / REVIEWS_PAGE_SIZE))
-    const current = Math.min(page, pages)
-    const rows = filtered.slice((current - 1) * REVIEWS_PAGE_SIZE, current * REVIEWS_PAGE_SIZE)
+    const rows = useMemo(() => (data?.items || []).map(adminReviewRow), [data])
+    const pages = data?.meta?.pages || 1
+    const current = data?.meta?.page || page
 
-    function patch(row, changes) {
-        setList((all) => all.map((item) => (item.id === row.id ? { ...item, ...changes } : item)))
+    const setStatusOf = useAction(adminApi.setReviewStatus)
+    const remove = useAction(adminApi.deleteReview)
+
+    async function run(promise, message) {
+        const res = await promise
+        if (!res.success) {
+            toast.error(res.error.message)
+            return
+        }
+        toast.success(message)
+        reload()
     }
 
     return (
@@ -84,14 +99,23 @@ export default function AdminReviews() {
                 }
             >
                 <div className="flex flex-col gap-[12px] lg:gap-[16px]">
+                    {(loading || error || rows.length === 0) && (
+                        <p className="rounded-[6px] bg-light-white p-[24px] text-center text-[14px] text-grey lg:text-[16px]">
+                            {loading ? 'Загружаем…' : error ? error.message : 'Отзывов нет'}
+                        </p>
+                    )}
                     {rows.map((review) => (
                         <ReviewCard
                             key={review.id}
                             review={review}
                             onToggle={() =>
-                                patch(review, {
-                                    status: review.status === 'hidden' ? 'published' : 'hidden',
-                                })
+                                run(
+                                    setStatusOf.run(
+                                        review.id,
+                                        review.status === 'hidden' ? 'published' : 'hidden',
+                                    ),
+                                    review.status === 'hidden' ? 'Отзыв опубликован' : 'Отзыв скрыт',
+                                )
                             }
                             onDelete={() => setRemoving(review)}
                         />
@@ -105,7 +129,7 @@ export default function AdminReviews() {
                 open={Boolean(removing)}
                 onClose={() => setRemoving(null)}
                 name={removing?.author}
-                onConfirm={() => setList((all) => all.filter((item) => item.id !== removing.id))}
+                onConfirm={() => run(remove.run(removing.id), 'Отзыв удалён')}
             />
         </>
     )

@@ -1,16 +1,17 @@
 import { agencyMetadata } from '@/lib/seo'
-import { getData } from '@/lib/getData'
+import * as site from '@/lib/api/site'
+import { agencyDetail } from '@/lib/adapters'
 
+// Metadata backenddagi agentlik profilidan yig'iladi (GET /site/agencies/{id}).
 export async function generateMetadata({ params }) {
     const { slug } = await params
     try {
-        const { data } = await getData(`/agencies/${slug}/`)
-        return agencyMetadata(data, slug)
+        return agencyMetadata(agencyDetail(await site.agency(slug)), slug)
     } catch {
         return agencyMetadata(null, slug)
     }
 }
 
-export default function AgencyLayout({ children }) {
+export default function AgencyDetailLayout({ children }) {
     return children
 }

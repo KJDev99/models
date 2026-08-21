@@ -1,31 +1,59 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import { CheckCircle, Eye, MinusCircle } from 'lucide-react'
 import { AdminCard, AdminGoldLink, AdminStats, AdminStatus, AdminTitle } from '@/components/admin/ui/admin-ui'
 import AdminTable from '@/components/admin/ui/admin-table'
 import { ModerationDecisionModals } from '@/components/admin/moderation/moderation-modals'
-import {
-    DASHBOARD_STATS,
-    LATEST_USERS,
-    MODERATION_REQUESTS,
-} from '@/components/admin/dashboard/dashboard-data'
+import { useApi, useAction } from '@/lib/use-api'
+import * as adminApi from '@/lib/api/admin'
+import { adminDashboard } from '@/lib/adapters'
+import toast from 'react-hot-toast'
 
 // Figma: Дашборд (321:12629 / 438:18788)
 export default function AdminDashboard() {
-    const [requests, setRequests] = useState(MODERATION_REQUESTS)
     const [decision, setDecision] = useState(null)
 
-    // Qaror qabul qilingan qator ro'yxatdan chiqadi.
-    function resolve(row) {
-        setRequests((list) => list.filter((item) => item.id !== row.id))
+    // GET /admin/dashboard — statistika, moderatsiya navbati va yangi
+    // foydalanuvchilar bitta so'rovda (backend/admin.md).
+    const fetcher = useCallback(() => adminApi.dashboard(), [])
+    const { data, loading, reload } = useApi(fetcher)
+
+    const dashboard = useMemo(() => adminDashboard(data), [data])
+
+    const approve = useAction(adminApi.approve)
+    const reject = useAction(adminApi.reject)
+
+    // Qaror qabul qilingach ro'yxat serverdan qayta o'qiladi.
+    async function resolve(row, comment) {
+        const action = comment === undefined ? approve : reject
+        const res = comment === undefined
+            ? await action.run(row.source, row.id)
+            : await action.run(row.source, row.id, comment)
+        if (!res.success) {
+            toast.error(res.error.message)
+            return
+        }
+        toast.success(comment === undefined ? 'Одобрено' : 'Отклонено')
+        reload()
     }
+
+    if (loading || !dashboard) {
+        return (
+            <>
+                <AdminTitle>Дашборд</AdminTitle>
+                <div className="h-[600px] animate-pulse rounded-[6px] bg-black/5" />
+            </>
+        )
+    }
+
+    const requests = dashboard.moderation
 
     return (
         <>
             <AdminTitle>Дашборд</AdminTitle>
 
-            <AdminStats items={DASHBOARD_STATS} />
+            <AdminStats items={dashboard.stats} />
 
             <AdminCard
                 title="Последние заявки на модерацию"
@@ -50,7 +78,7 @@ export default function AdminDashboard() {
                             key: 'view',
                             icon: Eye,
                             label: 'Открыть',
-                            href: `/admin/moderation/${row.id}`,
+                            href: `/admin/moderation/${row.id}?source=${row.source}`,
                         },
                         {
                             key: 'approve',
@@ -73,7 +101,7 @@ export default function AdminDashboard() {
 
             <AdminCard title="Последние зарегистрированные пользователи">
                 <AdminTable
-                    rows={LATEST_USERS}
+                    rows={dashboard.users}
                     actionsWidth="lg:w-[24px]"
                     columns={[
                         { key: 'name', label: 'Пользователь' },
@@ -90,8 +118,8 @@ export default function AdminDashboard() {
             <ModerationDecisionModals
                 decision={decision}
                 onClose={() => setDecision(null)}
-                onApprove={resolve}
-                onReject={resolve}
+                onApprove={(row) => resolve(row)}
+                onReject={(row, comment) => resolve(row, comment || '')}
             />
         </>
     )

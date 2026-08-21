@@ -1,10 +1,16 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import toast from 'react-hot-toast'
 import { Star } from 'lucide-react'
 import Modal, { ModalButton } from '@/components/ui/modal'
 import { useAuthModalStore } from '@/store/useAuthModalStore'
+import { useApi, useAction } from '@/lib/use-api'
+import * as site from '@/lib/api/site'
+import * as customerApi from '@/lib/api/customer'
+import { useAuth } from '@/lib/use-auth'
+import { ROLES } from '@/lib/roles'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Anketa sahifasidagi to'rtta modal.
@@ -56,19 +62,34 @@ export function AuthRequiredModal({ open, onClose }) {
     )
 }
 
-// Foydalanuvchining faol loyihalari (Figma 216:5064). Backend ulanganda
-// «Мои проекты» ro'yxati bilan almashtiriladi.
-const MY_PROJECTS = ['Съёмка для fashion-бренда', 'Съёмка для рекламы']
-
 // 2. Пригласить в проект
-export function InviteModal({ open, onClose, onSent }) {
-    const [project, setProject] = useState('')
-    const [message, setMessage] = useState('')
+//
+// Loyihalar ro'yxati zakazchikning o'z loyihalaridan olinadi
+// (GET /customer/projects?status=active), taklif esa
+// POST /site/performers/{id}/invite orqali yuboriladi (backend/site.md).
+export function InviteModal({ open, onClose, onSent, performerId }) {
+    const { role } = useAuth()
+    const isCustomer = role === ROLES.CLIENT || role === ROLES.COMPANY
 
-    function submit() {
-        if (!project.trim()) return
+    const [project, setProject] = useState('')
+
+    const fetchProjects = useCallback(
+        () => customerApi.projects({ status: 'active' }),
+        [],
+    )
+    const { data, loading } = useApi(fetchProjects, { enabled: open && isCustomer })
+    const projects = data?.items || []
+
+    const invite = useAction(site.invitePerformer)
+
+    async function submit() {
+        if (!project) return
+        const res = await invite.run(performerId, project)
+        if (!res.success) {
+            toast.error(res.error.message)
+            return
+        }
         setProject('')
-        setMessage('')
         onSent()
     }
 
@@ -79,7 +100,7 @@ export function InviteModal({ open, onClose, onSent }) {
             title="Пригласить в проект"
             footer={
                 <>
-                    <ModalButton onClick={submit} disabled={!project.trim()}>
+                    <ModalButton onClick={submit} disabled={!project || invite.loading}>
                         Отправить приглашение
                     </ModalButton>
                     <ModalButton variant="secondary" onClick={onClose}>
@@ -93,36 +114,37 @@ export function InviteModal({ open, onClose, onSent }) {
             <div className="flex flex-col gap-[12px] lg:gap-[16px]">
                 <span className="text-[14px] text-grey lg:text-[16px]">Съёмка</span>
 
-                <div className="flex flex-col overflow-hidden rounded-[6px] bg-white">
-                    {MY_PROJECTS.map((item) => (
-                        <button
-                            key={item}
-                            type="button"
-                            onClick={() => setProject(item)}
-                            className={`cursor-pointer p-[12px] text-left text-[14px] transition-colors lg:p-[16px] lg:text-[16px] ${
-                                project === item
-                                    ? 'bg-gold/15 text-black'
-                                    : 'text-grey hover:bg-light-white hover:text-black'
-                            }`}
-                        >
-                            {item}
-                        </button>
-                    ))}
-                </div>
-
-                <Field
-                    as="textarea"
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    placeholder="Сообщение (необязательно)"
-                />
+                {loading ? (
+                    <div className="h-[96px] animate-pulse rounded-[6px] bg-black/5" />
+                ) : projects.length === 0 ? (
+                    <p className="text-[14px] text-grey lg:text-[16px]">
+                        У вас нет активных проектов. Сначала опубликуйте проект.
+                    </p>
+                ) : (
+                    <div className="flex flex-col overflow-hidden rounded-[6px] bg-white">
+                        {projects.map((item) => (
+                            <button
+                                key={item.id}
+                                type="button"
+                                onClick={() => setProject(item.id)}
+                                className={`cursor-pointer p-[12px] text-left text-[14px] transition-colors lg:p-[16px] lg:text-[16px] ${
+                                    project === item.id
+                                        ? 'bg-gold/15 text-black'
+                                        : 'text-grey hover:bg-light-white hover:text-black'
+                                }`}
+                            >
+                                {item.title}
+                            </button>
+                        ))}
+                    </div>
+                )}
             </div>
         </Modal>
     )
 }
 
 // 3. Приглашение отправлено
-export function InviteSentModal({ open, onClose }) {
+export function InviteSentModal({ open, onClose, conversationId }) {
     const router = useRouter()
 
     return (
@@ -131,20 +153,34 @@ export function InviteSentModal({ open, onClose }) {
             onClose={onClose}
             title="Приглашение отправлено"
             description="Приглашение успешно отправлено. Чат с исполнителем уже создан."
-            footer={<ModalButton onClick={() => router.push('/chat')}>Открыть чат</ModalButton>}
+            footer={
+                <ModalButton
+                    onClick={() => router.push(conversationId ? `/chat/${conversationId}` : '/chat')}
+                >
+                    Открыть чат
+                </ModalButton>
+            }
         />
     )
 }
 
 // 4. Оставить отзыв
-export function ReviewModal({ open, onClose }) {
+export function ReviewModal({ open, onClose, targetId, venueId, onSent }) {
     const [rating, setRating] = useState(1)
     const [text, setText] = useState('')
+    const create = useAction(customerApi.createReview)
 
-    function submit() {
+    async function submit() {
         if (!text.trim()) return
+        const res = await create.run({ targetId, venueId, rating, body: text })
+        if (!res.success) {
+            toast.error(res.error.message)
+            return
+        }
         setRating(1)
         setText('')
+        toast.success('Отзыв отправлен на модерацию')
+        onSent?.()
         onClose()
     }
 
@@ -155,7 +191,7 @@ export function ReviewModal({ open, onClose }) {
             title="Оставить отзыв"
             footer={
                 <>
-                    <ModalButton onClick={submit} disabled={!text.trim()}>
+                    <ModalButton onClick={submit} disabled={!text.trim() || create.loading}>
                         Опубликовать отзыв
                     </ModalButton>
                     <ModalButton variant="secondary" onClick={onClose}>

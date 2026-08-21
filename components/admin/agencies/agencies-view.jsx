@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
+import toast from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
 import { Eye } from 'lucide-react'
 import {
@@ -14,38 +15,51 @@ import {
 import Button from '@/components/ui/button'
 import AdminTable from '@/components/admin/ui/admin-table'
 import { rowMenu } from '@/components/admin/ui/admin-menu-items'
-import { RowActionModals } from '@/components/admin/ui/admin-modals'
+import { RowActionModals, blockPayload } from '@/components/admin/ui/admin-modals'
 import { USER_STATUS } from '@/components/admin/ui/admin-statuses'
-import {
-    AGENCIES,
-    AGENCIES_PAGE_SIZE,
-    AGENCY_STATUS_FILTER,
-} from '@/components/admin/agencies/agencies-data'
+import { AGENCIES_PAGE_SIZE, AGENCY_STATUS_FILTER } from '@/components/admin/agencies/agencies-data'
+import { useApi, useAction } from '@/lib/use-api'
+import * as adminApi from '@/lib/api/admin'
+import { adminUserRow } from '@/lib/adapters'
 
 // Figma: Агентства (338:17586 / 452:15650)
 export default function AdminAgencies() {
     const router = useRouter()
-    const [list, setList] = useState(AGENCIES)
     const [query, setQuery] = useState('')
     const [status, setStatus] = useState('')
     const [page, setPage] = useState(1)
     const [action, setAction] = useState(null)
 
-    const filtered = useMemo(() => {
-        const q = query.trim().toLowerCase()
-        return list.filter((row) => {
-            if (status && row.status !== status) return false
-            if (!q) return true
-            return `${row.name} ${row.manager} ${row.email}`.toLowerCase().includes(q)
-        })
-    }, [list, query, status])
+    // Qidiruv, filtr va sahifalash — server tomonida (backend/admin.md).
+    const fetcher = useCallback(
+        () =>
+            adminApi.agencies({
+                q: query || undefined,
+                status: status || undefined,
+                page,
+                page_size: AGENCIES_PAGE_SIZE,
+            }),
+        [query, status, page],
+    )
+    const { data, loading, error, reload } = useApi(fetcher)
 
-    const pages = Math.max(1, Math.ceil(filtered.length / AGENCIES_PAGE_SIZE))
-    const current = Math.min(page, pages)
-    const rows = filtered.slice((current - 1) * AGENCIES_PAGE_SIZE, current * AGENCIES_PAGE_SIZE)
+    const rows = useMemo(() => (data?.items || []).map(adminUserRow), [data])
+    const pages = data?.meta?.pages || 1
+    const current = data?.meta?.page || page
 
-    function patch(row, changes) {
-        setList((all) => all.map((item) => (item.id === row.id ? { ...item, ...changes } : item)))
+    const block = useAction(adminApi.blockAgency)
+    const unblock = useAction(adminApi.unblockAgency)
+    const remove = useAction(adminApi.deleteAgency)
+
+    // Har bir amaldan keyin ro'yxat serverdan qayta o'qiladi.
+    async function run(promise, message) {
+        const res = await promise
+        if (!res.success) {
+            toast.error(res.error.message)
+            return
+        }
+        toast.success(message)
+        reload()
     }
 
     return (
@@ -85,7 +99,8 @@ export default function AdminAgencies() {
                 }
             >
                 <AdminTable
-                    rows={rows}
+                    rows={loading ? [] : rows}
+                    empty={loading ? 'Загружаем…' : error ? error.message : 'Агентства не найдены'}
                     actionsWidth="lg:w-[64px]"
                     columns={[
                         { key: 'name', label: 'Агентства' },
@@ -117,10 +132,6 @@ export default function AdminAgencies() {
                                     items={rowMenu({
                                         status: row.status,
                                         onEdit: () => router.push(`/admin/agencies/${row.id}`),
-                                        onToggle: () =>
-                                            patch(row, {
-                                                status: row.status === 'paused' ? 'active' : 'paused',
-                                            }),
                                         onBlock: () => setAction({ type: 'block', row }),
                                         onUnblock: () => setAction({ type: 'unblock', row }),
                                         onDelete: () => setAction({ type: 'delete', row }),
@@ -137,9 +148,14 @@ export default function AdminAgencies() {
             <RowActionModals
                 action={action}
                 onClose={() => setAction(null)}
-                onBlock={(row) => patch(row, { status: 'blocked' })}
-                onUnblock={(row) => patch(row, { status: 'active' })}
-                onDelete={(row) => setList((all) => all.filter((item) => item.id !== row.id))}
+                onBlock={(row, form) =>
+                    run(
+                        block.run(row.id, blockPayload(form)),
+                        'Пользователь заблокирован',
+                    )
+                }
+                onUnblock={(row) => run(unblock.run(row.id), 'Пользователь разблокирован')}
+                onDelete={(row) => run(remove.run(row.id), 'Пользователь удалён')}
             />
         </>
     )

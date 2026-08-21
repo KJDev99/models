@@ -9,7 +9,9 @@ import { ChevronLeft, ChevronRight, Heart } from 'lucide-react'
 import Container from '@/components/ui/container'
 import { FAVORITE_TYPES } from '@/lib/favorites'
 import { useFavoritesStore } from '@/store/useFavoritesStore'
-import { EXECUTORS } from '@/components/home/home-data'
+import { useApi } from '@/lib/use-api'
+import * as site from '@/lib/api/site'
+import { homeExecutorCard } from '@/lib/adapters'
 
 import 'swiper/css'
 import 'swiper/css/free-mode'
@@ -106,8 +108,13 @@ function Arrow({ direction, onClick, label }) {
     )
 }
 
+// Backend «популярные» tartibini `sort=popular` bilan beradi (backend/site.md).
+const fetchPopular = () => site.performers({ sort: 'popular', page_size: 8 })
+
 export default function PopularExecutors() {
     const [swiper, setSwiper] = useState(null)
+    const { data } = useApi(fetchPopular)
+    const executors = (data?.items || []).map(homeExecutorCard)
 
     const prev = useCallback(() => swiper?.slidePrev(), [swiper])
     const next = useCallback(() => swiper?.slideNext(), [swiper])
@@ -143,7 +150,7 @@ export default function PopularExecutors() {
                 }}
                 className="w-full"
             >
-                {EXECUTORS.map((executor) => (
+                {executors.map((executor) => (
                     // Mobilda en 284px. Ikki klassli selektor `.swiper-slide{width:100%}`
                     // dan kuchli, lekin inline uslubdan kuchsiz — shuning uchun 1024'dan
                     // boshlab Swiper o'zi hisoblagan en (1340−3×16)/4 = 323px ishlaydi.

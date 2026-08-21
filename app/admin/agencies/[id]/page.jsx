@@ -1,8 +1,10 @@
 'use client'
 
 import React from 'react'
-import AdminAgencyProfile from '@/components/admin/agencies/agency-profile'
+import { useParams } from 'next/navigation'
+import AdminAgencyProfileLoader from '@/components/admin/agencies/[id]/agency-profile-loader'
 
 export default function AdminAgencyDetailPage() {
-    return <AdminAgencyProfile />
+    const { id } = useParams()
+    return <AdminAgencyProfileLoader id={id} />
 }

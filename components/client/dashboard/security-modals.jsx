@@ -1,7 +1,11 @@
 'use client'
 
 import React, { useState } from 'react'
+import toast from 'react-hot-toast'
 import { X } from 'lucide-react'
+import { useAction } from '@/lib/use-api'
+import { useAuth } from '@/lib/use-auth'
+import { securityApi } from '@/components/shared/cabinet/security-actions'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // «Безопасность» bo'limidagi kichik oynalar — Figma:
@@ -14,6 +18,8 @@ import { X } from 'lucide-react'
 //
 // Hammasi «Редактировать профиль» oynasining ustida ochiladi: 630px keng,
 // markazda, sarlavha o'rtada, ostida maydonlar va ikkita tugma.
+//
+// Endpointlar rolga qarab tanlanadi — `security-actions.js`.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function SmallModal({ open, onClose, title, children }) {
@@ -74,13 +80,24 @@ export function SmallText({ children }) {
     )
 }
 
+// Xato matni — backend `error.message` ni ruscha beradi.
+export function SmallError({ children }) {
+    if (!children) return null
+    return (
+        <p role="alert" className="text-[12px] text-danger lg:text-[14px]">
+            {children}
+        </p>
+    )
+}
+
 export function SmallActions({ primary, secondary }) {
     return (
         <div className="flex flex-col gap-[12px] lg:flex-row lg:gap-[16px]">
             <button
                 type="button"
                 onClick={primary.onClick}
-                className="ui-shine relative min-w-0 flex-1 cursor-pointer overflow-hidden rounded-[6px] bg-gold px-[24px] py-[12px] text-[14px] font-medium text-white transition-colors hover:bg-[#c19754] lg:py-[16px] lg:text-[16px]"
+                disabled={primary.disabled}
+                className="ui-shine relative min-w-0 flex-1 cursor-pointer overflow-hidden rounded-[6px] bg-gold px-[24px] py-[12px] text-[14px] font-medium text-white transition-colors hover:bg-[#c19754] disabled:cursor-not-allowed disabled:opacity-50 lg:py-[16px] lg:text-[16px]"
             >
                 <span className="relative">{primary.label}</span>
             </button>
@@ -100,30 +117,119 @@ export function SmallActions({ primary, secondary }) {
 // ── Konkret oynalar ──────────────────────────────────────────────────────────
 
 // Изменить пароль (260:7888)
+//
+// Backend uch maydon so'raydi: joriy parol, yangi parol, takror. Muvaffaqiyatdan
+// keyin refresh tokenlar bekor qilinadi — foydalanuvchi qayta kirishi kerak.
 export function PasswordModal({ open, onClose, onDone }) {
+    const { role } = useAuth()
+    const api = securityApi(role)
+
+    const [current, setCurrent] = useState('')
+    const [next, setNext] = useState('')
+    const [repeat, setRepeat] = useState('')
+    const [error, setError] = useState(null)
+
+    const change = useAction(api.changePassword || noop)
+
+    async function submit() {
+        setError(null)
+        if (next !== repeat) {
+            setError('Пароли не совпадают')
+            return
+        }
+        const res = await change.run({
+            currentPassword: current,
+            newPassword: next,
+            repeatPassword: repeat,
+        })
+        if (!res.success) {
+            setError(res.error.message)
+            return
+        }
+        setCurrent('')
+        setNext('')
+        setRepeat('')
+        onDone()
+    }
+
     return (
         <SmallModal open={open} onClose={onClose} title="Изменить пароль">
-            <SmallField label="Пароль" type="password" placeholder="Введите пароль" />
+            <SmallField
+                label="Текущий пароль"
+                type="password"
+                value={current}
+                onChange={(e) => setCurrent(e.target.value)}
+                placeholder="Введите текущий пароль"
+            />
+            <SmallField
+                label="Пароль"
+                type="password"
+                value={next}
+                onChange={(e) => setNext(e.target.value)}
+                placeholder="Введите пароль"
+            />
             <SmallField
                 label="Повторите пароль"
                 type="password"
+                value={repeat}
+                onChange={(e) => setRepeat(e.target.value)}
                 placeholder="Введите повторный пароль"
             />
+            <SmallError>{error}</SmallError>
             <SmallActions
-                primary={{ label: 'Изменить', onClick: onDone }}
+                primary={{
+                    label: 'Изменить',
+                    onClick: submit,
+                    disabled: !current || !next || change.loading,
+                }}
                 secondary={{ label: 'Отменить', onClick: onClose }}
             />
         </SmallModal>
     )
 }
 
-// Изменить почту (260:8454) → Подтвердите почту (260:8937) → Почта подтверждена (260:9420)
+// Изменить почту (260:8454) → Подтвердите почту (260:8937)
+//
+// Заказчик: POST /customer/settings/email → xat yuboriladi, tasdiq havola orqali.
+// Исполнитель: PATCH /performer/settings/email — bir qadamda o'zgaradi.
 export function EmailModal({ open, onClose }) {
+    const { role } = useAuth()
+    const api = securityApi(role)
+    const twoStep = Boolean(api.resendEmail)
+
     const [stage, setStage] = useState('form')
+    const [email, setEmail] = useState('')
+    const [error, setError] = useState(null)
+
+    const change = useAction(api.changeEmail || noop)
+    const resend = useAction(api.resendEmail || noop)
 
     function close() {
         setStage('form')
+        setEmail('')
+        setError(null)
         onClose()
+    }
+
+    async function submit() {
+        setError(null)
+        const res = await change.run(email)
+        if (!res.success) {
+            setError(res.error.message)
+            return
+        }
+        if (twoStep) {
+            setStage('sent')
+            return
+        }
+        toast.success('Почта изменена')
+        close()
+    }
+
+    async function resendLetter() {
+        const res = await resend.run()
+        if (res.success) toast.success('Письмо отправлено')
+        else toast.error(res.error.message)
     }
 
     if (stage === 'sent') {
@@ -134,30 +240,25 @@ export function EmailModal({ open, onClose }) {
                     письме, чтобы подтвердить электронную почту.
                 </SmallText>
                 <SmallActions
-                    primary={{ label: 'Перейти на главную', onClick: () => setStage('done') }}
-                    secondary={{ label: 'Отправить письмо повторно', onClick: () => {} }}
+                    primary={{ label: 'Хорошо', onClick: close }}
+                    secondary={{ label: 'Отправить письмо повторно', onClick: resendLetter }}
                 />
-            </SmallModal>
-        )
-    }
-
-    if (stage === 'done') {
-        return (
-            <SmallModal open={open} onClose={close} title="Почта подтверждена">
-                <SmallText>
-                    Электронная почта успешно подтверждена. Теперь на неё будут приходить
-                    уведомления о проектах и сообщениях.
-                </SmallText>
-                <SmallActions primary={{ label: 'Хорошо', onClick: close }} />
             </SmallModal>
         )
     }
 
     return (
         <SmallModal open={open} onClose={close} title="Изменить почту">
-            <SmallField label="Электронная почта" type="email" placeholder="Введите почту" />
+            <SmallField
+                label="Электронная почта"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Введите почту"
+            />
+            <SmallError>{error}</SmallError>
             <SmallActions
-                primary={{ label: 'Изменить', onClick: () => setStage('sent') }}
+                primary={{ label: 'Изменить', onClick: submit, disabled: !email || change.loading }}
                 secondary={{ label: 'Отменить', onClick: close }}
             />
         </SmallModal>
@@ -165,13 +266,92 @@ export function EmailModal({ open, onClose }) {
 }
 
 // Изменение номера телефона (260:9904)
+//
+// Заказчик: PATCH /customer/settings/phone → SMS kodi, keyin
+// POST /customer/settings/phone/confirm. Исполнитель: bir qadamda.
 export function PhoneModal({ open, onClose, onDone }) {
+    const { role } = useAuth()
+    const api = securityApi(role)
+    const twoStep = Boolean(api.confirmPhone)
+
+    const [stage, setStage] = useState('form')
+    const [phone, setPhone] = useState('')
+    const [code, setCode] = useState('')
+    const [error, setError] = useState(null)
+
+    const change = useAction(api.changePhone || noop)
+    const confirm = useAction(api.confirmPhone || noop)
+
+    function close() {
+        setStage('form')
+        setPhone('')
+        setCode('')
+        setError(null)
+        onClose()
+    }
+
+    async function submit() {
+        setError(null)
+        const res = await change.run(phone)
+        if (!res.success) {
+            setError(res.error.message)
+            return
+        }
+        if (twoStep) {
+            setStage('code')
+            return
+        }
+        onDone()
+    }
+
+    async function submitCode() {
+        setError(null)
+        const res = await confirm.run(code)
+        if (!res.success) {
+            setError(res.error.message)
+            return
+        }
+        close()
+        onDone()
+    }
+
+    if (stage === 'code') {
+        return (
+            <SmallModal open={open} onClose={close} title="Подтвердите номер">
+                <SmallText>Мы отправили код подтверждения на указанный номер.</SmallText>
+                <SmallField
+                    label="Код из СМС"
+                    inputMode="numeric"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    placeholder="0000"
+                />
+                <SmallError>{error}</SmallError>
+                <SmallActions
+                    primary={{
+                        label: 'Подтвердить',
+                        onClick: submitCode,
+                        disabled: !code || confirm.loading,
+                    }}
+                    secondary={{ label: 'Отменить', onClick: close }}
+                />
+            </SmallModal>
+        )
+    }
+
     return (
-        <SmallModal open={open} onClose={onClose} title="Изменение номера телефона">
-            <SmallField label="Телефон" type="tel" placeholder="+ 7 (000)-000-00-00" />
+        <SmallModal open={open} onClose={close} title="Изменение номера телефона">
+            <SmallField
+                label="Телефон"
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="+ 7 (000)-000-00-00"
+            />
+            <SmallError>{error}</SmallError>
             <SmallActions
-                primary={{ label: 'Изменить', onClick: onDone }}
-                secondary={{ label: 'Отменить', onClick: onClose }}
+                primary={{ label: 'Изменить', onClick: submit, disabled: !phone || change.loading }}
+                secondary={{ label: 'Отменить', onClick: close }}
             />
         </SmallModal>
     )
@@ -179,6 +359,19 @@ export function PhoneModal({ open, onClose, onDone }) {
 
 // Удалить аккаунт? (270:24791)
 export function DeleteAccountModal({ open, onClose, onConfirm }) {
+    const { role } = useAuth()
+    const api = securityApi(role)
+    const remove = useAction(api.deleteAccount || noop)
+
+    async function submit() {
+        const res = await remove.run()
+        if (!res.success) {
+            toast.error(res.error.message)
+            return
+        }
+        onConfirm()
+    }
+
     return (
         <SmallModal open={open} onClose={onClose} title="Удалить аккаунт?">
             <SmallText>
@@ -186,9 +379,12 @@ export function DeleteAccountModal({ open, onClose, onConfirm }) {
                 данные после удаления невозможно.
             </SmallText>
             <SmallActions
-                primary={{ label: 'Удалить', onClick: onConfirm }}
+                primary={{ label: 'Удалить', onClick: submit, disabled: remove.loading }}
                 secondary={{ label: 'Отменить', onClick: onClose }}
             />
         </SmallModal>
     )
 }
+
+// Rol uchun endpoint yo'q bo'lsa (masalan agentlikda pochta) — bo'sh amal.
+async function noop() {}

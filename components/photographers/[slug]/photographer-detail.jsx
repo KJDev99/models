@@ -1,11 +1,10 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import Image from 'next/image'
 import Container from '@/components/ui/container'
 import Breadcrumb from '@/components/ui/breadcrumb'
 import PhotographerCard from '@/components/photographers/photographer-card'
-import { PHOTOGRAPHERS } from '@/components/photographers/photographers-data'
 import PhotographerSummary from '@/components/photographers/[slug]/photographer-summary'
 import DetailPortfolio from '@/components/shared/detail/detail-portfolio'
 import DetailReviews from '@/components/shared/detail/detail-reviews'
@@ -21,13 +20,13 @@ import {
     ReviewModal,
 } from '@/components/shared/detail/detail-modals'
 import {
-    PHOTOGRAPHER,
-    PORTFOLIO_ITEMS,
     PORTFOLIO_STEP,
-    PORTFOLIO_TABS,
-    REVIEWS,
     REVIEWS_STEP,
 } from '@/components/photographers/[slug]/photographer-detail-data'
+import DetailState from '@/components/shared/detail/detail-state'
+import { useApi } from '@/lib/use-api'
+import * as site from '@/lib/api/site'
+import { performerDetail, portfolioFromMedia } from '@/lib/adapters'
 import { useAuth } from '@/lib/use-auth'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -49,11 +48,30 @@ export default function PhotographerDetail({ slug }) {
     const [sentModal, setSentModal] = useState(false)
     const [reviewModal, setReviewModal] = useState(false)
 
-    const photographer = { ...PHOTOGRAPHER, slug: slug || PHOTOGRAPHER.slug }
+    const fetcher = useCallback(() => site.performer(slug), [slug])
+    const { data: raw, loading, error, reload } = useApi(fetcher, { enabled: Boolean(slug) })
+
+    const photographer = useMemo(() => performerDetail(raw), [raw])
+    const portfolio = useMemo(() => portfolioFromMedia(raw?.media), [raw])
 
     // Mehmon bo'lsa — avval «Требуется вход» oynasi (Figma 164:14791).
-    function guard(open) {
-        return () => (authed ? open(true) : setAuthModal(true))
+    const guard = useCallback(
+        (open) => () => (authed ? open(true) : setAuthModal(true)),
+        [authed],
+    )
+
+    if (loading || error || !photographer) {
+        return (
+            <DetailState
+                loading={loading}
+                error={error}
+                onRetry={reload}
+                breadcrumb={[
+                    { name: 'Главная', href: '/' },
+                    { name: 'Фотографы', href: '/photographers' },
+                ]}
+            />
+        )
     }
 
     const breadcrumb = [
@@ -62,8 +80,7 @@ export default function PhotographerDetail({ slug }) {
         { name: photographer.name },
     ]
 
-    // «Другие фотографы» — katalogdan dastlabki 4 ta anketa.
-    const others = PHOTOGRAPHERS.slice(0, 4)
+    const others = photographer.related || []
 
     return (
         <div className="flex flex-col gap-[24px] bg-light-white pt-[16px] lg:pt-[24px] pb-[40px] lg:gap-[50px] lg:pb-[100px]">
@@ -103,8 +120,8 @@ export default function PhotographerDetail({ slug }) {
 
             <Container>
                 <DetailPortfolio
-                    tabs={PORTFOLIO_TABS}
-                    items={PORTFOLIO_ITEMS}
+                    tabs={portfolio.tabs}
+                    items={portfolio.items}
                     step={PORTFOLIO_STEP}
                 />
             </Container>
@@ -112,7 +129,7 @@ export default function PhotographerDetail({ slug }) {
             <Container>
                 <DetailReviews
                     rating={photographer.rating}
-                    reviews={REVIEWS}
+                    reviews={photographer.reviews}
                     step={REVIEWS_STEP}
                     onLeaveReview={guard(setReviewModal)}
                 />
@@ -151,6 +168,7 @@ export default function PhotographerDetail({ slug }) {
             <InviteModal
                 open={inviteModal}
                 onClose={() => setInviteModal(false)}
+                performerId={photographer.id}
                 onSent={() => {
                     setInviteModal(false)
                     setSentModal(true)
@@ -159,7 +177,12 @@ export default function PhotographerDetail({ slug }) {
 
             <InviteSentModal open={sentModal} onClose={() => setSentModal(false)} />
 
-            <ReviewModal open={reviewModal} onClose={() => setReviewModal(false)} />
+            <ReviewModal
+                open={reviewModal}
+                onClose={() => setReviewModal(false)}
+                targetId={photographer.id}
+                onSent={reload}
+            />
         </div>
     )
 }

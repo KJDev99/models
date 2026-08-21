@@ -11,8 +11,12 @@ import LegacyPageFrame from '@/components/shared/cabinet/legacy-page-frame'
 // faqat rol tekshiruvi qoladi.
 export default function ClientLayout({ children }) {
     return (
-        <RoleGuard allow={[ROLES.CLIENT]}>
+        <RoleGuard allow={ALLOW}>
             <LegacyPageFrame>{children}</LegacyPageFrame>
         </RoleGuard>
     )
 }
+
+// Modul darajasida — har renderda yangi massiv `RoleGuard` effektini
+// qayta ishga tushirmasligi uchun.
+const ALLOW = [ROLES.CLIENT]

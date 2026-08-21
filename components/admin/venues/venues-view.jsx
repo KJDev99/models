@@ -1,42 +1,60 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
+import toast from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
 import { AdminListCard, AdminPagination, AdminSearch, AdminSelect } from '@/components/admin/ui/admin-ui'
 import Button from '@/components/ui/button'
 import AdminVenueRow from '@/components/admin/venues/venue-row-card'
 import { publicationMenu } from '@/components/admin/ui/admin-menu-items'
 import { DeleteModal } from '@/components/admin/ui/admin-modals'
-import {
-    ADMIN_VENUES,
-    VENUES_PAGE_SIZE,
-    VENUE_STATUS_FILTER,
-} from '@/components/admin/venues/venues-data'
+import { VENUES_PAGE_SIZE, VENUE_STATUS_FILTER } from '@/components/admin/venues/venues-data'
+import { useApi, useAction } from '@/lib/use-api'
+import * as adminApi from '@/lib/api/admin'
+import { adminVenueRow } from '@/lib/adapters'
 
 // Figma: Площадки (342:10467 / 456:21759)
 export default function AdminVenues() {
     const router = useRouter()
-    const [list, setList] = useState(ADMIN_VENUES)
     const [query, setQuery] = useState('')
     const [status, setStatus] = useState('')
     const [page, setPage] = useState(1)
     const [removing, setRemoving] = useState(null)
 
-    const filtered = useMemo(() => {
-        const q = query.trim().toLowerCase()
-        return list.filter((row) => {
-            if (status && row.status !== status) return false
-            if (!q) return true
-            return `${row.name} ${row.city}`.toLowerCase().includes(q)
-        })
-    }, [list, query, status])
+    // Qidiruv, filtr va sahifalash — server tomonida (backend/admin.md).
+    const fetcher = useCallback(
+        () =>
+            adminApi.venues({
+                q: query || undefined,
+                status: status || undefined,
+                page,
+                page_size: VENUES_PAGE_SIZE,
+            }),
+        [query, status, page],
+    )
+    const { data, loading, error, reload } = useApi(fetcher)
 
-    const pages = Math.max(1, Math.ceil(filtered.length / VENUES_PAGE_SIZE))
-    const current = Math.min(page, pages)
-    const rows = filtered.slice((current - 1) * VENUES_PAGE_SIZE, current * VENUES_PAGE_SIZE)
+    const rows = useMemo(() => (data?.items || []).map(adminVenueRow), [data])
+    const pages = data?.meta?.pages || 1
+    const current = data?.meta?.page || page
 
-    function patch(row, changes) {
-        setList((all) => all.map((item) => (item.id === row.id ? { ...item, ...changes } : item)))
+    const update = useAction(adminApi.updateVenue)
+    const remove = useAction(adminApi.deleteVenue)
+
+    async function run(promise, message) {
+        const res = await promise
+        if (!res.success) {
+            toast.error(res.error.message)
+            return
+        }
+        toast.success(message)
+        reload()
+    }
+
+    // Menyudagi «Поставить на паузу / Возобновить / Завершить» — holatni
+    // yangilaydi (PUT /admin/{resource}/{id}).
+    function setStatusOf(item, next, message) {
+        return run(update.run(item.id, { status: next }), message)
     }
 
     return (
@@ -84,9 +102,12 @@ export default function AdminVenues() {
                                 publicationMenu({
                                     status: item.status,
                                     onEdit: () => router.push(`/admin/venues/${item.id}/edit`),
-                                    onPause: () => patch(item, { status: 'paused' }),
-                                    onResume: () => patch(item, { status: 'active' }),
-                                    onFinish: () => patch(item, { status: 'archive' }),
+                                    onPause: () =>
+                                        setStatusOf(item, 'paused', 'Публикация на паузе'),
+                                    onResume: () =>
+                                        setStatusOf(item, 'active', 'Публикация возобновлена'),
+                                    onFinish: () =>
+                                        setStatusOf(item, 'archived', 'Публикация завершена'),
                                     onDelete: () => setRemoving(item),
                                 })
                             }
@@ -101,7 +122,7 @@ export default function AdminVenues() {
                 open={Boolean(removing)}
                 onClose={() => setRemoving(null)}
                 name={removing?.name}
-                onConfirm={() => setList((all) => all.filter((item) => item.id !== removing.id))}
+                onConfirm={() => run(remove.run(removing.id), 'Публикация удалена')}
             />
         </>
     )

@@ -3,6 +3,7 @@
 import React from 'react'
 import Card from '@/components/ui/card'
 import ResourceList from '@/components/cabinet/resource-list'
+import { toProjectCard, performerProjects } from '@/components/cabinet/list-fetchers'
 import ProjectCard from '@/components/shared/project-card'
 
 const TABS = [
@@ -15,7 +16,8 @@ export default function ExecutorProjects() {
     return (
         <Card title="Мои проекты" padded={false} className="border-0 bg-transparent">
             <ResourceList
-                endpoint="/projects/participating/"
+                fetcher={performerProjects}
+                adapt={toProjectCard}
                 tabs={TABS}
                 columns="grid-cols-1 md:grid-cols-2"
                 emptyTitle="Проектов пока нет"

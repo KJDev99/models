@@ -1,12 +1,16 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
+import toast from 'react-hot-toast'
 import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowUp, ChevronLeft, Paperclip, Trash2, UserX } from 'lucide-react'
 import { AdminRowMenu } from '@/components/admin/ui/admin-ui'
 import { BlockModal, DeleteModal } from '@/components/admin/ui/admin-modals'
-import { CHATS, CHAT_MESSAGES } from '@/components/admin/chats/chats-data'
+import { useApi, useAction } from '@/lib/use-api'
+import * as adminApi from '@/lib/api/admin'
+import { chatListItem, chatMessage } from '@/lib/adapters'
+import { PLACEHOLDER } from '@/lib/assets'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // «Чаты» — Figma 344:16231 / mobil 461:28717.
@@ -14,19 +18,64 @@ import { CHATS, CHAT_MESSAGES } from '@/components/admin/chats/chats-data'
 // ko'rsatiladi: suhbat tanlangunча ro'yxat, keyin yozishma.
 // ─────────────────────────────────────────────────────────────────────────────
 export default function AdminChats() {
-    const [activeId, setActiveId] = useState(CHATS[1].id)
+    const [activeId, setActiveId] = useState(null)
     const [openOnMobile, setOpenOnMobile] = useState(false)
     const [draft, setDraft] = useState('')
-    const [messages, setMessages] = useState(CHAT_MESSAGES)
     const [action, setAction] = useState(null)
 
-    const active = CHATS.find((chat) => chat.id === activeId) || CHATS[0]
+    // GET /admin/chats — qo'llab-quvvatlash suhbatlari (backend/admin.md).
+    const listFetcher = useCallback(() => adminApi.chats(), [])
+    const { data: listData, loading: listLoading } = useApi(listFetcher)
 
-    function send() {
+    const chats = useMemo(
+        () =>
+            (Array.isArray(listData) ? listData : listData?.items || [])
+                .map(chatListItem)
+                .filter(Boolean)
+                .map((c) => ({
+                    id: c.id,
+                    name: c.companion.name,
+                    role: c.companion.role,
+                    avatar: c.companion.avatar || PLACEHOLDER,
+                    preview: c.lastMessage?.text || '',
+                    time: shortTime(c.lastAt),
+                    unread: c.unreadCount > 0,
+                    peerId: c.peerId,
+                })),
+        [listData],
+    )
+
+    const current = activeId || chats[0]?.id || null
+    const active = chats.find((chat) => chat.id === current) || null
+
+    const historyFetcher = useCallback(() => adminApi.chat(current), [current])
+    const { data: historyData, reload } = useApi(historyFetcher, {
+        enabled: Boolean(current),
+    })
+
+    // Adminning o'z xabarlari o'ng tomonda: `own` uchun suhbatdosh emas,
+    // administrator identifikatori kerak — backend uni `admin_id` bilan beradi.
+    const messages = useMemo(
+        () =>
+            (historyData?.messages || [])
+                .map((m) => chatMessage(m, historyData?.admin_id))
+                .filter(Boolean)
+                .map((m) => ({ ...m, time: shortTime(m.createdAt) })),
+        [historyData],
+    )
+
+    const sendMessage = useAction(adminApi.sendMessage)
+
+    async function send() {
         const text = draft.trim()
-        if (!text) return
-        setMessages((all) => [...all, { id: Date.now(), own: true, text, time: '12:46' }])
+        if (!text || !current) return
+        const res = await sendMessage.run(current, { body: text })
+        if (!res.success) {
+            toast.error(res.error.message)
+            return
+        }
         setDraft('')
+        reload()
     }
 
     return (
@@ -43,7 +92,12 @@ export default function AdminChats() {
                     </h1>
 
                     <div className="flex flex-col">
-                        {CHATS.map((chat) => (
+                        {!listLoading && chats.length === 0 && (
+                            <p className="p-[12px] text-[14px] text-grey lg:text-[16px]">
+                                Обращений нет
+                            </p>
+                        )}
+                        {chats.map((chat) => (
                             <button
                                 key={chat.id}
                                 type="button"
@@ -52,7 +106,7 @@ export default function AdminChats() {
                                     setOpenOnMobile(true)
                                 }}
                                 className={`flex cursor-pointer items-center gap-[12px] rounded-[6px] border-b border-black/8 p-[12px] text-left transition-colors ${
-                                    chat.id === activeId ? 'bg-light-white' : 'hover:bg-light-white'
+                                    chat.id === current ? 'bg-light-white' : 'hover:bg-light-white'
                                 }`}
                             >
                                 <span className="relative block size-[40px] shrink-0 overflow-hidden rounded-full bg-[#d9d9d9]">
@@ -211,4 +265,12 @@ export default function AdminChats() {
             />
         </>
     )
+}
+
+// «12:46» — xabar va suhbat vaqti (Figma 344:16231).
+function shortTime(value) {
+    if (!value) return ''
+    const d = new Date(value)
+    if (Number.isNaN(d.getTime())) return ''
+    return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
 }

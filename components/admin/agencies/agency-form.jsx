@@ -1,6 +1,8 @@
 'use client'
 
 import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import toast from 'react-hot-toast'
 import {
     AdminBreadcrumb,
     AdminField,
@@ -14,10 +16,15 @@ import {
     AdminTextarea,
 } from '@/components/admin/ui/admin-form'
 import { CreatedModal } from '@/components/admin/ui/admin-modals'
+import { useAction } from '@/lib/use-api'
+import * as adminApi from '@/lib/api/admin'
 
 // Figma: Создать агентство (338:17831 / 452:16203)
 export default function AdminAgencyForm() {
+    const router = useRouter()
     const [done, setDone] = useState(false)
+    const [savedId, setSavedId] = useState(null)
+    const create = useAction(adminApi.createAgency)
     const [form, setForm] = useState({
         name: '',
         manager: '',
@@ -31,6 +38,26 @@ export default function AdminAgencyForm() {
 
     function set(key, value) {
         setForm((f) => ({ ...f, [key]: value }))
+    }
+
+    // POST /admin/agencies (backend/admin.md).
+    async function submit() {
+        const res = await create.run({
+            agency_name: form.name,
+            representative_name: form.manager || undefined,
+            business_field: form.field || undefined,
+            city: form.city || undefined,
+            about: form.about || undefined,
+            email: form.email,
+            phone: form.phone || undefined,
+            password: form.password,
+        })
+        if (!res.success) {
+            toast.error(res.error.message)
+            return
+        }
+        setSavedId(res.data?.id || res.data?.user?.id || null)
+        setDone(true)
     }
 
     return (
@@ -49,8 +76,8 @@ export default function AdminAgencyForm() {
                         title="Создание агентства"
                         steps={['Основная информация', 'Данные для входа']}
                         current={0}
-                        onSubmit={() => setDone(true)}
-                        submitLabel="Сохранить"
+                        onSubmit={submit}
+                        submitLabel={create.loading ? 'Сохраняем…' : 'Сохранить'}
                     />
                 }
             >
@@ -141,8 +168,11 @@ export default function AdminAgencyForm() {
 
             <CreatedModal
                 open={done}
-                onClose={() => setDone(false)}
-                viewHref="/admin/agencies/a-1"
+                onClose={() => {
+                    setDone(false)
+                    router.push('/admin/agencies')
+                }}
+                viewHref={savedId ? `/admin/agencies/${savedId}` : '/admin/agencies'}
                 listHref="/admin/agencies"
             />
         </>

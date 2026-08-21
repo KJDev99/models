@@ -3,6 +3,7 @@
 import React from 'react'
 import Card from '@/components/ui/card'
 import ResourceList from '@/components/cabinet/resource-list'
+import { toVenueCard, customerVenues } from '@/components/cabinet/list-fetchers'
 import VenueCard from '@/components/shared/venue-card'
 
 const TABS = [
@@ -16,7 +17,8 @@ export default function CompanyVenues() {
     return (
         <Card title="Площадки" padded={false} className="border-0 bg-transparent">
             <ResourceList
-                endpoint="/venues/mine/"
+                fetcher={customerVenues}
+                adapt={toVenueCard}
                 tabs={TABS}
             createText="Добавить площадку"
             createHref="/company/venues/new"

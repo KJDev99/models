@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
+import toast from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
 import { Eye } from 'lucide-react'
 import {
@@ -14,39 +15,52 @@ import {
 import Button from '@/components/ui/button'
 import AdminTable from '@/components/admin/ui/admin-table'
 import { rowMenu } from '@/components/admin/ui/admin-menu-items'
-import { RowActionModals } from '@/components/admin/ui/admin-modals'
+import { RowActionModals, blockPayload } from '@/components/admin/ui/admin-modals'
 import { USER_STATUS } from '@/components/admin/ui/admin-statuses'
-import {
-    EXECUTORS,
-    EXECUTORS_PAGE_SIZE,
-    STATUS_FILTER,
-} from '@/components/admin/executors/executors-data'
+import { EXECUTORS_PAGE_SIZE, STATUS_FILTER } from '@/components/admin/executors/executors-data'
+import { useApi, useAction } from '@/lib/use-api'
+import * as adminApi from '@/lib/api/admin'
+import { adminUserRow } from '@/lib/adapters'
 
 // Figma: Исполнители (321:13149 / 440:19416)
 export default function AdminExecutors() {
     const router = useRouter()
-    const [list, setList] = useState(EXECUTORS)
     const [query, setQuery] = useState('')
     const [status, setStatus] = useState('')
     const [page, setPage] = useState(1)
     const [action, setAction] = useState(null)
 
-    const filtered = useMemo(() => {
-        const q = query.trim().toLowerCase()
-        return list.filter((row) => {
-            if (status && row.status !== status) return false
-            if (!q) return true
-            return `${row.name} ${row.email}`.toLowerCase().includes(q)
-        })
-    }, [list, query, status])
+    // Qidiruv, filtr va sahifalash — server tomonida (backend/admin.md).
+    const fetcher = useCallback(
+        () =>
+            adminApi.performers({
+                q: query || undefined,
+                status: status || undefined,
+                page,
+                page_size: EXECUTORS_PAGE_SIZE,
+            }),
+        [query, status, page],
+    )
+    const { data, loading, error, reload } = useApi(fetcher)
 
-    const pages = Math.max(1, Math.ceil(filtered.length / EXECUTORS_PAGE_SIZE))
-    const current = Math.min(page, pages)
-    const rows = filtered.slice((current - 1) * EXECUTORS_PAGE_SIZE, current * EXECUTORS_PAGE_SIZE)
+    const rows = useMemo(() => (data?.items || []).map(adminUserRow), [data])
+    const pages = data?.meta?.pages || 1
+    const current = data?.meta?.page || page
 
-    // Ro'yxatdagi holatni yangilash — bloklash, ko'rsatish/yashirish, o'chirish.
-    function patch(row, changes) {
-        setList((all) => all.map((item) => (item.id === row.id ? { ...item, ...changes } : item)))
+    const block = useAction(adminApi.blockPerformer)
+    const unblock = useAction(adminApi.unblockPerformer)
+    const remove = useAction(adminApi.deletePerformer)
+    const hide = useAction(adminApi.hidePerformer)
+
+    // Har bir amaldan keyin ro'yxat serverdan qayta o'qiladi.
+    async function run(promise, message) {
+        const res = await promise
+        if (!res.success) {
+            toast.error(res.error.message)
+            return
+        }
+        toast.success(message)
+        reload()
     }
 
     return (
@@ -86,7 +100,14 @@ export default function AdminExecutors() {
                 }
             >
                 <AdminTable
-                    rows={rows}
+                    rows={loading ? [] : rows}
+                    empty={
+                        loading
+                            ? 'Загружаем…'
+                            : error
+                              ? error.message
+                              : 'Исполнители не найдены'
+                    }
                     actionsWidth="lg:w-[64px]"
                     columns={[
                         { key: 'name', label: 'Пользователь' },
@@ -118,10 +139,12 @@ export default function AdminExecutors() {
                                     items={rowMenu({
                                         status: row.status,
                                         onEdit: () => router.push(`/admin/executors/${row.id}/edit`),
+                                        // «Скрыть профиль» — POST /admin/performers/{id}/hide
                                         onToggle: () =>
-                                            patch(row, {
-                                                status: row.status === 'paused' ? 'active' : 'paused',
-                                            }),
+                                            run(
+                                                hide.run(row.id, !row.isHidden),
+                                                row.isHidden ? 'Профиль показан' : 'Профиль скрыт',
+                                            ),
                                         onBlock: () => setAction({ type: 'block', row }),
                                         onUnblock: () => setAction({ type: 'unblock', row }),
                                         onDelete: () => setAction({ type: 'delete', row }),
@@ -138,9 +161,14 @@ export default function AdminExecutors() {
             <RowActionModals
                 action={action}
                 onClose={() => setAction(null)}
-                onBlock={(row) => patch(row, { status: 'blocked' })}
-                onUnblock={(row) => patch(row, { status: 'active' })}
-                onDelete={(row) => setList((all) => all.filter((item) => item.id !== row.id))}
+                onBlock={(row, form) =>
+                    run(
+                        block.run(row.id, blockPayload(form)),
+                        'Пользователь заблокирован',
+                    )
+                }
+                onUnblock={(row) => run(unblock.run(row.id), 'Пользователь разблокирован')}
+                onDelete={(row) => run(remove.run(row.id), 'Пользователь удалён')}
             />
         </>
     )

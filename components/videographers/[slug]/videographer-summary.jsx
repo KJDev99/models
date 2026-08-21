@@ -78,9 +78,13 @@ export default function VideographerSummary({ videographer, onInvite }) {
 
                 <div className="flex flex-col gap-[12px]">
                     <div className="flex flex-wrap items-center gap-x-[16px] gap-y-[8px]">
-                        <Meta icon={Calendar}>{videographer.age} лет</Meta>
-                        <Meta icon={Briefcase}>{videographer.experienceYears} года опыта</Meta>
-                        <Meta icon={Aperture}>{videographer.cases} кейсов</Meta>
+                        {videographer.age != null && <Meta icon={Calendar}>{videographer.age} лет</Meta>}
+                        {videographer.experienceYears != null && (
+                            <Meta icon={Briefcase}>{videographer.experienceYears} года опыта</Meta>
+                        )}
+                        {videographer.cases != null && (
+                            <Meta icon={Aperture}>{videographer.cases} кейсов</Meta>
+                        )}
                         <Meta icon={MapPin}>{videographer.city}</Meta>
                     </div>
 

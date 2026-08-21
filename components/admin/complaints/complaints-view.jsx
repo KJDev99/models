@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import toast from 'react-hot-toast'
 import { CheckCircle, Eye, MinusCircle } from 'lucide-react'
 import {
@@ -15,31 +15,48 @@ import AdminModal, {
 } from '@/components/admin/ui/admin-modal'
 import ComplaintChatModal from '@/components/admin/complaints/complaint-chat-modal'
 import {
-    COMPLAINTS,
     COMPLAINTS_PAGE_SIZE,
     COMPLAINT_FILTER,
     COMPLAINT_STATUS,
 } from '@/components/admin/complaints/complaints-data'
+import { useApi, useAction } from '@/lib/use-api'
+import * as adminApi from '@/lib/api/admin'
+import { adminComplaintRow } from '@/lib/adapters'
 
 // Figma: Жалоба (344:16561 / 458:26503)
 export default function AdminComplaints() {
-    const [list, setList] = useState(COMPLAINTS)
     const [filter, setFilter] = useState('')
     const [page, setPage] = useState(1)
     const [chat, setChat] = useState(null)
     const [rejecting, setRejecting] = useState(null)
 
-    const filtered = useMemo(
-        () => list.filter((row) => !filter || row.status === filter),
-        [list, filter]
+    // GET /admin/complaints — filtr va sahifalash server tomonida.
+    const fetcher = useCallback(
+        () =>
+            adminApi.complaints({
+                status: filter || undefined,
+                page,
+                page_size: COMPLAINTS_PAGE_SIZE,
+            }),
+        [filter, page],
     )
+    const { data, loading, error, reload } = useApi(fetcher)
 
-    const pages = Math.max(1, Math.ceil(filtered.length / COMPLAINTS_PAGE_SIZE))
-    const current = Math.min(page, pages)
-    const rows = filtered.slice((current - 1) * COMPLAINTS_PAGE_SIZE, current * COMPLAINTS_PAGE_SIZE)
+    const rows = useMemo(() => (data?.items || []).map(adminComplaintRow), [data])
+    const pages = data?.meta?.pages || 1
+    const current = data?.meta?.page || page
 
-    function patch(row, changes) {
-        setList((all) => all.map((item) => (item.id === row.id ? { ...item, ...changes } : item)))
+    const accept = useAction(adminApi.acceptComplaint)
+    const rejectComplaint = useAction(adminApi.rejectComplaint)
+
+    async function run(promise, message) {
+        const res = await promise
+        if (!res.success) {
+            toast.error(res.error.message)
+            return
+        }
+        toast.success(message)
+        reload()
     }
 
     return (
@@ -59,6 +76,11 @@ export default function AdminComplaints() {
                 }
             >
                 <div className="flex flex-col gap-[12px] lg:gap-[16px]">
+                    {(loading || error || rows.length === 0) && (
+                        <p className="rounded-[6px] bg-light-white p-[24px] text-center text-[14px] text-grey lg:text-[16px]">
+                            {loading ? 'Загружаем…' : error ? error.message : 'Жалоб нет'}
+                        </p>
+                    )}
                     {rows.map((complaint) => {
                         const state = COMPLAINT_STATUS[complaint.status]
                         const pending = complaint.status === 'pending'
@@ -75,7 +97,7 @@ export default function AdminComplaints() {
                                             <span className="text-[14px] font-medium text-black lg:text-[16px]">
                                                 {complaint.author}{' '}
                                                 <span className="text-grey">на</span>{' '}
-                                                {complaint.target}
+                                                {complaint.accused}
                                             </span>
                                             <span className="text-[12px] text-grey lg:text-[14px]">
                                                 Причина: {complaint.reason}
@@ -101,10 +123,12 @@ export default function AdminComplaints() {
                                             <>
                                                 <button
                                                     type="button"
-                                                    onClick={() => {
-                                                        patch(complaint, { status: 'done' })
-                                                        toast.success('Жалоба рассмотрена')
-                                                    }}
+                                                    onClick={() =>
+                                                        run(
+                                                            accept.run(complaint.id),
+                                                            'Жалоба рассмотрена',
+                                                        )
+                                                    }
                                                     aria-label="Рассмотрено"
                                                     className="cursor-pointer text-[#44a400] transition-opacity hover:opacity-70"
                                                 >
@@ -153,10 +177,10 @@ export default function AdminComplaints() {
 
                 <div className="flex gap-[16px]">
                     <AdminModalButton
-                        onClick={() => {
-                            patch(rejecting, { status: 'rejected' })
+                        onClick={async () => {
+                            const row = rejecting
                             setRejecting(null)
-                            toast.success('Жалоба отклонена')
+                            await run(rejectComplaint.run(row.id), 'Жалоба отклонена')
                         }}
                     >
                         Отклонить

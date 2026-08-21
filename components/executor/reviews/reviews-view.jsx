@@ -3,6 +3,7 @@
 import React from 'react'
 import Card from '@/components/ui/card'
 import ResourceList from '@/components/cabinet/resource-list'
+import { toReviewCard, performerReviews } from '@/components/cabinet/list-fetchers'
 import ReviewCard from '@/components/shared/review-card'
 
 const TABS = [
@@ -15,7 +16,8 @@ export default function ExecutorReviews() {
     return (
         <Card title="Отзывы" padded={false} className="border-0 bg-transparent">
             <ResourceList
-                endpoint="/reviews/mine/"
+                fetcher={performerReviews}
+                adapt={toReviewCard}
                 tabs={TABS}
                 columns="grid-cols-1"
                 emptyTitle="Отзывов пока нет"

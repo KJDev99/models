@@ -9,8 +9,12 @@ import { ROLES } from '@/lib/roles'
 // Har bir ichki sahifaning o'z layout.jsx'i metadata beradi.
 export default function CompanyLayout({ children }) {
     return (
-        <RoleGuard allow={[ROLES.COMPANY]}>
+        <RoleGuard allow={ALLOW}>
             <CabinetLayout role={ROLES.COMPANY}>{children}</CabinetLayout>
         </RoleGuard>
     )
 }
+
+// Modul darajasida — har renderda yangi massiv `RoleGuard` effektini
+// qayta ishga tushirmasligi uchun.
+const ALLOW = [ROLES.COMPANY]

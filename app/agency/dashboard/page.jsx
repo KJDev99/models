@@ -16,12 +16,7 @@ export default function AgencyDashboardPage() {
 
 function DashboardWithParams() {
     const params = useSearchParams()
-    // `?status=empty` — Figma'dagi to'ldirilmagan profil (270:19929).
+    // Profil holati backenddan keladi (GET /agency/cabinet).
     // `?settings=1` — heder menyusidagi «Настройки профиля» oynasini ochadi.
-    return (
-        <AgencyDashboard
-            filled={params.get('status') !== 'empty'}
-            openSettings={params.get('settings') === '1'}
-        />
-    )
+    return <AgencyDashboard openSettings={params.get('settings') === '1'} />
 }

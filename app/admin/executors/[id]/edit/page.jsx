@@ -1,8 +1,10 @@
 'use client'
 
 import React from 'react'
-import AdminExecutorForm from '@/components/admin/executors/executor-form'
+import { useParams } from 'next/navigation'
+import AdminExecutorFormLoader from '@/components/admin/executors/[id]/edit/executor-form-loader'
 
 export default function AdminEditExecutorPage() {
-    return <AdminExecutorForm mode="edit" />
+    const { id } = useParams()
+    return <AdminExecutorFormLoader id={id} />
 }

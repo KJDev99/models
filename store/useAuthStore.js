@@ -1,34 +1,35 @@
 import { create } from 'zustand'
-import { api, apiToken } from '@/lib/axios'
+import * as authApi from '@/lib/api/auth'
 import {
     clearSession,
+    getRefreshToken,
     getUser,
     isAuthenticated,
     setSession,
     setUser as persistUser,
 } from '@/lib/auth'
+import { ERROR_CODES, toApiError } from '@/lib/api-error'
+import { normalizeUser, toApiRole } from '@/lib/roles'
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Auth oqimi (Figma: ВХОД 75:171 → Заказчик-Телефон/Почта → Введите пароль →
-// Регистрация → Знакомство (rol tanlash) → Аккаунт заблокирован 345:18476).
+// Avtorizatsiya oqimi — backend/auth.md.
 //
-// Endpoint nomlari backend bilan kelishilganda faqat shu faylda o'zgaradi.
+//   role-select → identify → password        (intent = login)
+//                          → знакомство      (intent = register)
+//                          ↘ oauth
+//
+// `challengeToken` faqat store'da yashaydi (10 daqiqa), localStorage'ga
+// yozilmaydi. Muvaffaqiyatli login/register'dan keyin `tokens` + `user`
+// saqlanadi va `user.role` frontend roliga o'giriladi (lib/roles.js).
 // ─────────────────────────────────────────────────────────────────────────────
 
-const ENDPOINTS = {
-    login: '/auth/login/',
-    loginPhone: '/auth/login/phone/',
-    sendCode: '/auth/code/send/',
-    verifyCode: '/auth/code/verify/',
-    register: '/auth/register/',
-    setRole: '/auth/role/',
-    me: '/auth/me/',
-    forgotPassword: '/auth/password/forgot/',
-    resetPassword: '/auth/password/reset/',
-    changePassword: '/auth/password/change/',
-    changeEmail: '/auth/email/change/',
-    changePhone: '/auth/phone/change/',
-    deleteAccount: '/auth/account/delete/',
+const initialFlow = {
+    role: null,
+    intent: 'login',
+    identifierType: 'phone',
+    challengeToken: null,
+    displayIdentifier: '',
+    nextStep: null,
 }
 
 export const useAuthStore = create((set, get) => ({
@@ -36,120 +37,106 @@ export const useAuthStore = create((set, get) => ({
     authed: false,
     loading: false,
     error: null,
+    blocked: null,
+    ...initialFlow,
+
+    resetFlow: () => set({ ...initialFlow, error: null, blocked: null }),
 
     // Sahifa ochilganda localStorage'dan sessiyani ko'taradi.
     hydrate: () => {
         set({ user: getUser(), authed: isAuthenticated() })
     },
 
-    // Serverdan joriy foydalanuvchini qayta o'qish (rol o'zgargan bo'lishi mumkin).
+    // Serverdan joriy foydalanuvchini qayta o'qish (status o'zgargan bo'lishi mumkin).
     fetchMe: async () => {
         if (!isAuthenticated()) return { success: false }
         set({ loading: true })
         try {
-            const res = await apiToken.get(ENDPOINTS.me)
-            persistUser(res.data)
-            set({ user: res.data, authed: true })
-            return { success: true, data: res.data }
-        } catch (err) {
-            return { success: false, error: err?.response?.data || err }
-        } finally {
-            set({ loading: false })
-        }
-    },
-
-    // Login — telefon yoki pochta + parol.
-    login: async ({ login, password }) => {
-        set({ loading: true, error: null })
-        try {
-            const res = await api.post(ENDPOINTS.login, { login, password })
-            const { access, refresh, user } = res.data
-            setSession({ access, refresh, user })
+            const raw = await authApi.me()
+            const user = normalizeUser(raw)
+            persistUser(user)
             set({ user, authed: true })
             return { success: true, user }
         } catch (err) {
-            const error = err?.response?.data || err
-            set({ error })
-            return { success: false, error, blocked: err?.response?.status === 423 }
-        } finally {
-            set({ loading: false })
-        }
-    },
-
-    // SMS/Email kod yuborish (Figma: Введите пароль / подтверждение).
-    sendCode: async ({ login }) => {
-        set({ loading: true, error: null })
-        try {
-            const res = await api.post(ENDPOINTS.sendCode, { login })
-            return { success: true, data: res.data }
-        } catch (err) {
-            const error = err?.response?.data || err
-            set({ error })
+            const error = toApiError(err)
+            if (error.code === ERROR_CODES.ACCOUNT_BLOCKED) set({ blocked: error })
             return { success: false, error }
         } finally {
             set({ loading: false })
         }
     },
 
-    verifyCode: async ({ login, code }) => {
+    // ── 1-qadam: telefon/pochta bo'yicha profilni aniqlash ──────────────────
+    identify: async ({ role, intent, identifierType, value }) => {
         set({ loading: true, error: null })
         try {
-            const res = await api.post(ENDPOINTS.verifyCode, { login, code })
-            const { access, refresh, user } = res.data
-            if (access) setSession({ access, refresh, user })
-            set({ user: user || get().user, authed: Boolean(access) })
-            return { success: true, data: res.data }
+            const data = await authApi.identify({
+                role: toApiRole(role),
+                intent,
+                identifierType,
+                phone: identifierType === 'phone' ? value : undefined,
+                email: identifierType === 'email' ? value : undefined,
+            })
+            set({
+                role,
+                intent,
+                identifierType,
+                challengeToken: data.challenge_token,
+                displayIdentifier: data.display_identifier,
+                nextStep: data.next_step,
+            })
+            return { success: true, data }
         } catch (err) {
-            const error = err?.response?.data || err
+            const error = toApiError(err)
             set({ error })
+            if (error.code === ERROR_CODES.ACCOUNT_BLOCKED) set({ blocked: error })
             return { success: false, error }
         } finally {
             set({ loading: false })
         }
     },
 
-    register: async (payload) => {
+    // ── 2-qadam: parol bilan kirish ─────────────────────────────────────────
+    login: async (password) => {
         set({ loading: true, error: null })
         try {
-            const res = await api.post(ENDPOINTS.register, payload)
-            const { access, refresh, user } = res.data
-            if (access) setSession({ access, refresh, user })
-            set({ user: user || null, authed: Boolean(access) })
-            return { success: true, data: res.data }
-        } catch (err) {
-            const error = err?.response?.data || err
-            set({ error })
-            return { success: false, error }
-        } finally {
-            set({ loading: false })
-        }
-    },
-
-    // "Знакомство" ekrani — rolni tanlab yuborish.
-    chooseRole: async (role, extra = {}) => {
-        set({ loading: true, error: null })
-        try {
-            const res = await apiToken.post(ENDPOINTS.setRole, { role, ...extra })
-            const user = res.data?.user || { ...get().user, role }
-            persistUser(user)
-            set({ user })
+            const data = await authApi.login({
+                challengeToken: get().challengeToken,
+                password,
+            })
+            const user = normalizeUser(data.user)
+            setSession({ tokens: data.tokens, user })
+            set({ user, authed: true, ...initialFlow })
             return { success: true, user }
         } catch (err) {
-            const error = err?.response?.data || err
+            const error = toApiError(err)
             set({ error })
+            if (error.code === ERROR_CODES.ACCOUNT_BLOCKED) set({ blocked: error })
             return { success: false, error }
         } finally {
             set({ loading: false })
         }
     },
 
-    forgotPassword: async ({ login }) => {
+    // ── «Знакомство»: ro'yxatdan o'tish ─────────────────────────────────────
+    // `kind`: customer | performer | agency, `payload` — backend maydonlari.
+    register: async (kind, payload) => {
         set({ loading: true, error: null })
         try {
-            const res = await api.post(ENDPOINTS.forgotPassword, { login })
-            return { success: true, data: res.data }
+            const body = { challenge_token: get().challengeToken, ...payload }
+            const fn =
+                kind === 'performer'
+                    ? authApi.registerPerformer
+                    : kind === 'agency'
+                      ? authApi.registerAgency
+                      : authApi.registerCustomer
+            const data = await fn(body)
+            const user = normalizeUser(data.user)
+            setSession({ tokens: data.tokens, user })
+            set({ user, authed: true, ...initialFlow })
+            return { success: true, user }
         } catch (err) {
-            const error = err?.response?.data || err
+            const error = toApiError(err)
             set({ error })
             return { success: false, error }
         } finally {
@@ -157,13 +144,17 @@ export const useAuthStore = create((set, get) => ({
         }
     },
 
-    resetPassword: async (payload) => {
+    // OAuth'dan keyin profil to'ldirilmagan bo'lsa shu chaqiriladi.
+    completeProfile: async (kind, payload) => {
         set({ loading: true, error: null })
         try {
-            const res = await api.post(ENDPOINTS.resetPassword, payload)
-            return { success: true, data: res.data }
+            const data = await authApi.completeProfile(kind, payload)
+            const user = normalizeUser(data.user || data)
+            persistUser(user)
+            set({ user, authed: true })
+            return { success: true, user }
         } catch (err) {
-            const error = err?.response?.data || err
+            const error = toApiError(err)
             set({ error })
             return { success: false, error }
         } finally {
@@ -171,13 +162,17 @@ export const useAuthStore = create((set, get) => ({
         }
     },
 
-    changePassword: async (payload) => {
+    // Adminka alohida kiradi (pochta + parol).
+    adminLogin: async ({ email, password }) => {
         set({ loading: true, error: null })
         try {
-            const res = await apiToken.post(ENDPOINTS.changePassword, payload)
-            return { success: true, data: res.data }
+            const data = await authApi.adminLogin({ email, password })
+            const user = normalizeUser(data.user)
+            setSession({ tokens: data.tokens, user })
+            set({ user, authed: true })
+            return { success: true, user }
         } catch (err) {
-            const error = err?.response?.data || err
+            const error = toApiError(err)
             set({ error })
             return { success: false, error }
         } finally {
@@ -185,52 +180,19 @@ export const useAuthStore = create((set, get) => ({
         }
     },
 
-    changeEmail: async (payload) => {
-        set({ loading: true, error: null })
-        try {
-            const res = await apiToken.post(ENDPOINTS.changeEmail, payload)
-            return { success: true, data: res.data }
-        } catch (err) {
-            const error = err?.response?.data || err
-            set({ error })
-            return { success: false, error }
-        } finally {
-            set({ loading: false })
-        }
-    },
+    setBlocked: (blocked) => set({ blocked }),
 
-    changePhone: async (payload) => {
-        set({ loading: true, error: null })
-        try {
-            const res = await apiToken.post(ENDPOINTS.changePhone, payload)
-            return { success: true, data: res.data }
-        } catch (err) {
-            const error = err?.response?.data || err
-            set({ error })
-            return { success: false, error }
-        } finally {
-            set({ loading: false })
+    logout: async () => {
+        const refresh = getRefreshToken()
+        // Server xato qaytarsa ham lokal sessiya baribir tozalanadi.
+        if (refresh) {
+            try {
+                await authApi.logout(refresh)
+            } catch {
+                /* jim */
+            }
         }
-    },
-
-    deleteAccount: async (payload) => {
-        set({ loading: true, error: null })
-        try {
-            await apiToken.post(ENDPOINTS.deleteAccount, payload)
-            clearSession()
-            set({ user: null, authed: false })
-            return { success: true }
-        } catch (err) {
-            const error = err?.response?.data || err
-            set({ error })
-            return { success: false, error }
-        } finally {
-            set({ loading: false })
-        }
-    },
-
-    logout: () => {
         clearSession()
-        set({ user: null, authed: false, error: null })
+        set({ user: null, authed: false, error: null, blocked: null, ...initialFlow })
     },
 }))

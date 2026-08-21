@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
+import toast from 'react-hot-toast'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -11,7 +12,9 @@ import { AdminRowMenu, AdminStatus } from '@/components/admin/ui/admin-ui'
 import { publicationMenu } from '@/components/admin/ui/admin-menu-items'
 import { DeleteModal } from '@/components/admin/ui/admin-modals'
 import { PROJECT_STATUS } from '@/components/admin/ui/admin-statuses'
-import { DETAILS, PROJECT } from '@/components/admin/projects/projects-data'
+import { useApi, useAction } from '@/lib/use-api'
+import * as customerApi from '@/lib/api/customer'
+import { projectDetail } from '@/lib/adapters'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // «Заказчик» kabinetidagi loyiha sahifasi — Figma «активен» 216:5469 /
@@ -20,15 +23,51 @@ import { DETAILS, PROJECT } from '@/components/admin/projects/projects-data'
 // Ochiq saytdagi loyiha sahifasining o'zi, faqat «Подать заявку» o'rniga
 // holat yorlig'i, tahrirlash va «⋮». Rad etilganda tepada pushti banner.
 // ─────────────────────────────────────────────────────────────────────────────
-export default function ClientProjectDetail({ initialStatus = 'active' }) {
+export default function ClientProjectDetail({ id }) {
     const router = useRouter()
-    const project = PROJECT
-    const details = DETAILS
-    const [status, setStatus] = useState(initialStatus)
     const [removing, setRemoving] = useState(false)
 
-    const state = PROJECT_STATUS[status]
-    const editHref = '/client/projects/p-1/edit'
+    // GET /customer/projects/{id} — o'z loyihasi (backend/customer.md).
+    const fetcher = useCallback(() => customerApi.project(id), [id])
+    const { data, loading, error, reload } = useApi(fetcher, { enabled: Boolean(id) })
+
+    const project = useMemo(() => projectDetail(data), [data])
+    const details = project?.detailsBlocks || { intro: '', blocks: [] }
+
+    const archive = useAction(customerApi.archiveProject)
+    const draft = useAction(customerApi.draftProject)
+    const submit = useAction(customerApi.submitProject)
+    const remove = useAction(customerApi.deleteProject)
+
+    async function run(promise, message) {
+        const res = await promise
+        if (!res.success) {
+            toast.error(res.error.message)
+            return
+        }
+        toast.success(message)
+        reload()
+    }
+
+    if (loading || error || !project) {
+        return (
+            <Container>
+                <div className="py-[16px] lg:py-[24px]">
+                    {loading ? (
+                        <div className="h-[600px] animate-pulse rounded-[6px] bg-black/5" />
+                    ) : (
+                        <p className="rounded-[6px] bg-white p-[40px] text-center text-[14px] text-grey lg:text-[16px]">
+                            {error?.message || 'Проект не найден'}
+                        </p>
+                    )}
+                </div>
+            </Container>
+        )
+    }
+
+    const status = project.status
+    const state = PROJECT_STATUS[status] || PROJECT_STATUS.draft
+    const editHref = `/client/projects/${id}/edit`
 
     return (
         <Container>
@@ -94,9 +133,14 @@ export default function ClientProjectDetail({ initialStatus = 'active' }) {
                                             items={publicationMenu({
                                                 status,
                                                 onEdit: () => router.push(editHref),
-                                                onPause: () => setStatus('paused'),
-                                                onResume: () => setStatus('active'),
-                                                onFinish: () => setStatus('done'),
+                                                // «Пауза» — arxivga, «Возобновить» —
+                                                // qayta moderatsiyaga (backend/customer.md).
+                                                onPause: () =>
+                                                    run(draft.run(id), 'Проект снят с публикации'),
+                                                onResume: () =>
+                                                    run(submit.run(id), 'Проект отправлен на модерацию'),
+                                                onFinish: () =>
+                                                    run(archive.run(id), 'Проект завершён'),
                                                 onDelete: () => setRemoving(true),
                                             })}
                                         />
@@ -189,7 +233,16 @@ export default function ClientProjectDetail({ initialStatus = 'active' }) {
                 open={removing}
                 onClose={() => setRemoving(false)}
                 name={project.title}
-                onConfirm={() => router.push('/client/dashboard')}
+                onConfirm={async () => {
+                    const res = await remove.run(id)
+                    setRemoving(false)
+                    if (!res.success) {
+                        toast.error(res.error.message)
+                        return
+                    }
+                    toast.success('Проект удалён')
+                    router.push('/client/dashboard')
+                }}
             />
         </Container>
     )

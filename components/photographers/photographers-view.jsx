@@ -9,10 +9,12 @@ import {
     FILTER_FIELDS,
     GRID_PAGE_SIZE,
     LIST_PAGE_SIZE,
-    PHOTOGRAPHERS,
-    PHOTOGRAPHERS_FAQ,
     SORT_OPTIONS,
 } from '@/components/photographers/photographers-data'
+import {
+    fetchPhotographers,
+    performerParams,
+} from '@/components/shared/catalog/performer-catalog'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Фотографы katalogi.
@@ -51,16 +53,15 @@ export default function PhotographersView() {
         <CatalogView
             title="Фотографы"
             breadcrumb={BREADCRUMB}
-            items={PHOTOGRAPHERS}
             fields={FILTER_FIELDS}
             emptyFilters={EMPTY_PHOTOGRAPHER_FILTERS}
             sortOptions={SORT_OPTIONS}
             searchPlaceholder="Имя фотографа / ключевые слова"
-            faq={PHOTOGRAPHERS_FAQ}
+            faqType="photographers"
             gridPageSize={GRID_PAGE_SIZE}
             listPageSize={LIST_PAGE_SIZE}
-            matchFilters={matchFilters}
-            sortItems={sortItems}
+            fetcher={fetchPhotographers}
+            buildParams={performerParams}
             renderCard={(item) => <PhotographerCard key={item.id} photographer={item} />}
             renderRow={(item) => <PhotographerRowCard key={item.id} photographer={item} />}
         />

@@ -103,12 +103,15 @@ export const FILTER_FIELDS = [
         kind: 'select',
         label: 'Город',
         placeholder: 'Любой город',
+        // Backend `city` ni matn bo'yicha filtrlaydi (GET /site/…?city=Москва),
+        // shuning uchun `value` — shaharning to'liq nomi.
         options: [
             { value: '', label: 'Любой город' },
-            { value: 'moscow', label: 'Москва' },
-            { value: 'spb', label: 'Санкт-Петербург' },
-            { value: 'kazan', label: 'Казань' },
-            { value: 'ekb', label: 'Екатеринбург' },
+            { value: 'Москва', label: 'Москва' },
+            { value: 'Санкт-Петербург', label: 'Санкт-Петербург' },
+            { value: 'Казань', label: 'Казань' },
+            { value: 'Екатеринбург', label: 'Екатеринбург' },
+            { value: 'Сочи', label: 'Сочи' },
         ],
     },
     {

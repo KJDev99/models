@@ -6,14 +6,19 @@ import Tabs from '@/components/ui/tabs'
 import EmptyState from '@/components/ui/empty-state'
 import Pagination from '@/components/ui/pagination'
 import { SkeletonGrid, SkeletonRows } from '@/components/ui/skeleton'
-import { useApiStore } from '@/store/useApiStore'
 
+// ─────────────────────────────────────────────────────────────────────────────
 // Kabinet ichidagi har qanday ro'yxat (проекты, площадки, исполнители,
 // приглашения, отзывы) uchun umumiy blok: tab'lar → yuklash → bo'sh holat →
 // to'r yoki jadval → sahifalash.
+//
+// `fetcher({ status, page, limit })` — chaqiruv joyidan beriladigan barqaror
+// funksiya (`lib/api/*` modullaridan). U `{ items, meta }` yoki oddiy massiv
+// qaytarishi mumkin. `adapt` berilsa, har bir element shundan o'tkaziladi.
+// ─────────────────────────────────────────────────────────────────────────────
 export default function ResourceList({
-    endpoint,
-    params = {},
+    fetcher,
+    adapt,
     tabs = [],
     defaultTab,
     renderItem,
@@ -27,35 +32,39 @@ export default function ResourceList({
     emptyActionText,
     emptyActionHref,
 }) {
-    const getDataToken = useApiStore((s) => s.getDataToken)
-
     const [tab, setTab] = useState(defaultTab || tabs[0]?.value || '')
     const [items, setItems] = useState([])
     const [count, setCount] = useState(0)
     const [page, setPage] = useState(1)
     const [loading, setLoading] = useState(true)
+    const [error, setError] = useState(null)
 
-    // setState `.then()` ichida chaqiriladi — effekt tanasida sinxron holat
-    // o'zgartirish React Compiler qoidalarini buzadi.
     const load = useCallback(() => {
-        getDataToken(endpoint, {
-            ...params,
-            status: tab || undefined,
-            page,
-            limit,
-        }).then((res) => {
-            const raw = res.data
-            setItems(raw?.results || raw?.data || raw || [])
-            setCount(raw?.count ?? (Array.isArray(raw) ? raw.length : 0))
-            setLoading(false)
-        })
-        // `params` har renderda yangi obyekt bo'ladi — qasddan bog'liqlikdan chiqarilgan.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [endpoint, getDataToken, tab, page, limit])
+        let cancelled = false
 
-    useEffect(() => {
-        load()
-    }, [load])
+        Promise.resolve()
+            .then(() => fetcher({ status: tab || undefined, page, limit }))
+            .then((res) => {
+                if (cancelled) return
+                const list = Array.isArray(res) ? res : res?.items || []
+                setItems(adapt ? list.map(adapt).filter(Boolean) : list)
+                setCount(Array.isArray(res) ? res.length : (res?.meta?.total ?? list.length))
+                setError(null)
+                setLoading(false)
+            })
+            .catch((e) => {
+                if (cancelled) return
+                setItems([])
+                setError(e)
+                setLoading(false)
+            })
+
+        return () => {
+            cancelled = true
+        }
+    }, [fetcher, adapt, tab, page, limit])
+
+    useEffect(() => load(), [load])
 
     // Tab yoki sahifa foydalanuvchi tomonidan almashtirilganda skeleton qaytadi
     // (bu — hodisa ishlovchisi, effekt emas, shuning uchun setState ruxsat etiladi).
@@ -89,10 +98,10 @@ export default function ResourceList({
 
             {!loading && items.length === 0 && (
                 <EmptyState
-                    title={emptyTitle}
-                    description={emptyDescription}
-                    actionText={emptyActionText || createText}
-                    actionHref={emptyActionHref || createHref}
+                    title={error ? 'Не удалось загрузить' : emptyTitle}
+                    description={error ? error.message : emptyDescription}
+                    actionText={error ? undefined : emptyActionText || createText}
+                    actionHref={error ? undefined : emptyActionHref || createHref}
                 />
             )}
 

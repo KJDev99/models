@@ -1,12 +1,13 @@
 import { executorMetadata } from '@/lib/seo'
-import { getData } from '@/lib/getData'
+import * as site from '@/lib/api/site'
+import { performerDetail } from '@/lib/adapters'
 
-// Metadata backend'dagi anketadan yig'iladi. API javob bermasa —
-// fallback matn ishlatiladi, sahifa baribir ochiladi.
+// Metadata backenddagi anketadan yig'iladi (GET /site/performers/{id}).
+// API javob bermasa — fallback matn ishlatiladi, sahifa baribir ochiladi.
 export async function generateMetadata({ params }) {
     const { slug } = await params
     try {
-        const { data } = await getData(`/executors/${slug}/`)
+        const data = performerDetail(await site.performer(slug))
         return executorMetadata(data, slug, 'модели')
     } catch {
         return executorMetadata(null, slug, 'модели')

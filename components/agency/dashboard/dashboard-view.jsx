@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Image as ImageIcon, Mail, Phone, SquarePen } from 'lucide-react'
@@ -12,13 +12,10 @@ import { rowMenu } from '@/components/admin/ui/admin-menu-items'
 import { DeleteModal } from '@/components/admin/ui/admin-modals'
 import AgencyExecutorsBlock from '@/components/agency/dashboard/executors-block'
 import AgencyProfileModal from '@/components/agency/dashboard/profile-modal'
-import {
-    AGENCY,
-    AGENCY_EXECUTORS,
-    EMPTY_AGENCY,
-    EXECUTORS_STEP,
-    EXECUTOR_TABS,
-} from '@/components/agency/dashboard/dashboard-data'
+import { EMPTY_AGENCY, EXECUTORS_STEP } from '@/components/agency/dashboard/dashboard-data'
+import { useApi, useAction } from '@/lib/use-api'
+import * as agencyApi from '@/lib/api/agency'
+import { agencyCabinet } from '@/lib/adapters'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // «Агентство» kabinetining bosh sahifasi.
@@ -31,12 +28,32 @@ import {
 
 const BREADCRUMB = [{ label: 'Главная', href: '/' }, { label: 'Личный кабинет' }]
 
-export default function AgencyDashboard({ filled = true, openSettings = false }) {
+export default function AgencyDashboard({ openSettings = false }) {
     const router = useRouter()
     const [editing, setEditing] = useState(openSettings)
     const [removing, setRemoving] = useState(null)
 
-    const executors = filled ? AGENCY_EXECUTORS : []
+    // GET /agency/cabinet — profil, hisoblagichlar va ijrochilar (backend/agency.md).
+    const fetcher = useCallback(() => agencyApi.cabinet(), [])
+    const { data, loading, reload } = useApi(fetcher)
+
+    const AGENCY = useMemo(() => agencyCabinet(data), [data])
+
+    const removePerformer = useAction(agencyApi.deletePerformer)
+    const hidePerformer = useAction(agencyApi.setPerformerHidden)
+
+    if (loading || !AGENCY) {
+        return (
+            <Container>
+                <div className="my-[24px] h-[400px] animate-pulse rounded-[6px] bg-black/5 lg:my-[40px] lg:h-[600px]" />
+            </Container>
+        )
+    }
+
+    const executors = AGENCY.executors
+    // Profil to'ldirilgan deb hisoblaymiz, agar logotip yoki tavsif bo'lsa.
+    const filled = Boolean(data?.logo_url || data?.about)
+    const EXECUTOR_TABS = agencyTabs(AGENCY.statsRaw)
 
     return (
         <div className="flex flex-col gap-[24px] bg-light-white pt-[16px] pb-[40px] lg:gap-[50px] lg:pt-[24px] lg:pb-[100px]">
@@ -46,7 +63,7 @@ export default function AgencyDashboard({ filled = true, openSettings = false })
                 <div className="flex flex-col gap-[16px] lg:flex-row lg:items-stretch lg:gap-[16px]">
                     {/* Logotip — Figma 270:20531: 554×554 kvadrat, rasm to'liq to'ldiradi. */}
                     <div className="relative flex h-[280px] shrink-0 items-center justify-center overflow-hidden rounded-[6px] bg-white lg:h-auto lg:min-h-[400px] lg:w-[554px]">
-                        {filled ? (
+                        {data?.logo_url ? (
                             <Image
                                 src={AGENCY.logo}
                                 alt={AGENCY.name}
@@ -96,8 +113,8 @@ export default function AgencyDashboard({ filled = true, openSettings = false })
                         <Block title="Контакты">
                             {filled ? (
                                 <div className="flex flex-wrap items-center gap-[16px] lg:gap-[24px]">
-                                    <Contact icon={Phone}>{AGENCY.phone}</Contact>
-                                    <Contact icon={Mail}>{AGENCY.email}</Contact>
+                                    {AGENCY.phone && <Contact icon={Phone}>{AGENCY.phone}</Contact>}
+                                    {AGENCY.email && <Contact icon={Mail}>{AGENCY.email}</Contact>}
                                 </div>
                             ) : (
                                 <p className="text-[14px] text-grey lg:text-[16px]">
@@ -107,7 +124,7 @@ export default function AgencyDashboard({ filled = true, openSettings = false })
                         </Block>
 
                         <div className="grid grid-cols-2 gap-[12px] lg:grid-cols-4 lg:gap-[16px]">
-                            {(filled ? AGENCY.stats : EMPTY_AGENCY.stats).map((stat) => (
+                            {(AGENCY.stats.length ? AGENCY.stats : EMPTY_AGENCY.stats).map((stat) => (
                                 <div
                                     key={stat.label}
                                     className="flex flex-col gap-[12px] rounded-[6px] bg-light-white p-[16px]"
@@ -145,24 +162,43 @@ export default function AgencyDashboard({ filled = true, openSettings = false })
                         rowMenu({
                             status: item.status,
                             onEdit: () => router.push(item.editHref),
-                            onToggle: () => toast.success('Видимость анкеты изменена'),
-                            onBlock: () => toast.success('Исполнитель заблокирован'),
-                            onUnblock: () => toast.success('Исполнитель разблокирован'),
+                            onToggle: async () => {
+                                const res = await hidePerformer.run(item.id, !item.isHidden)
+                                if (!res.success) {
+                                    toast.error(res.error.message)
+                                    return
+                                }
+                                toast.success('Видимость анкеты изменена')
+                                reload()
+                            },
                             onDelete: () => setRemoving(item),
                         })
                     }
                 />
             </Container>
 
-            <AgencyProfileModal open={editing} onClose={() => setEditing(false)} />
+            {editing && (
+                <AgencyProfileModal
+                    open
+                    onClose={() => setEditing(false)}
+                    profile={AGENCY}
+                    onSaved={reload}
+                />
+            )}
 
             <DeleteModal
                 open={Boolean(removing)}
                 onClose={() => setRemoving(null)}
                 name={removing?.name}
-                onConfirm={() => {
+                onConfirm={async () => {
+                    const res = await removePerformer.run(removing.id)
                     setRemoving(null)
+                    if (!res.success) {
+                        toast.error(res.error.message)
+                        return
+                    }
                     toast.success('Исполнитель удалён')
+                    reload()
                 }}
             />
         </div>
@@ -185,4 +221,15 @@ function Contact({ icon: Icon, children }) {
             {children}
         </span>
     )
+}
+
+// «Исполнители» bo'limi tablari — sonlar kabinet hisoblagichlaridan
+// (Figma 270:20604). `key` — backendga yuboriladigan `specialty`.
+function agencyTabs(stats = {}) {
+    return [
+        { key: 'all', label: 'Все', count: stats.performers ?? 0 },
+        { key: 'model', label: 'Модели', count: stats.models ?? 0 },
+        { key: 'photographer', label: 'Фотографы', count: stats.photographers ?? 0 },
+        { key: 'videographer', label: 'Видеографы', count: stats.videographers ?? 0 },
+    ]
 }

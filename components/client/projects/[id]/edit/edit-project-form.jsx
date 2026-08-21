@@ -1,83 +1,65 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import toast from 'react-hot-toast'
-import FormCard from '@/components/cabinet/form-card'
-import Spinner from '@/components/ui/spinner'
-import Input from '@/components/ui/input'
-import Textarea from '@/components/ui/textarea'
-import { useApiStore } from '@/store/useApiStore'
+import React, { useCallback } from 'react'
+import Container from '@/components/ui/container'
+import ClientNewProjectForm from '@/components/client/projects/new/new-project-form'
+import { useApi } from '@/lib/use-api'
+import * as customerApi from '@/lib/api/customer'
 
-// Figma: проект — редактирование (216:5469 ustidagi amal).
+// ─────────────────────────────────────────────────────────────────────────────
+// «Редактировать проект» — Figma'da alohida ekran yo'q: bu «Новый проект»
+// ustasi to'ldirilgan holda ochilgani (208:8790).
+//
+// Ma'lumot GET /customer/projects/{id} dan olinadi, saqlash esa
+// PUT /customer/projects/{id} orqali ketadi (backend/customer.md).
+// ─────────────────────────────────────────────────────────────────────────────
 export default function ClientEditProject({ id }) {
-    const router = useRouter()
-    const getDataToken = useApiStore((s) => s.getDataToken)
-    const patchDataToken = useApiStore((s) => s.patchDataToken)
-    const saving = useApiStore((s) => s.loading)
+    const fetcher = useCallback(() => customerApi.project(id), [id])
+    const { data, loading, error } = useApi(fetcher, { enabled: Boolean(id) })
 
-    const [ready, setReady] = useState(false)
-    const [form, setForm] = useState({ title: '', description: '', city: '', startDate: '', deadline: '', fee: '', requirements: '' })
-
-    function set(key) {
-        return (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
-    }
-
-    useEffect(() => {
-        if (!id) return
-        let alive = true
-        getDataToken(`/projects/${id}/`).then((res) => {
-            if (!alive) return
-            if (res.success && res.data) {
-                setForm((f) => {
-                    const next = { ...f }
-                    Object.keys(f).forEach((k) => {
-                        if (res.data[k] != null) next[k] = res.data[k]
-                    })
-                    return next
-                })
-            }
-            setReady(true)
-        })
-        return () => {
-            alive = false
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [id])
-
-    async function submit() {
-        const res = await patchDataToken(`/projects/${id}/`, form)
-        if (res.success) {
-            toast.success('Изменения сохранены')
-            router.push(`/client/projects/${id}`)
-        } else {
-            toast.error('Не удалось сохранить')
-        }
-    }
-
-    if (!ready) {
+    if (loading || error || !data) {
         return (
-            <div className="flex min-h-[40vh] items-center justify-center">
-                <Spinner size={32} />
-            </div>
+            <Container>
+                <div className="py-[16px] lg:py-[24px]">
+                    {loading ? (
+                        <div className="h-[600px] animate-pulse rounded-[6px] bg-black/5" />
+                    ) : (
+                        <p className="rounded-[6px] bg-white p-[40px] text-center text-[14px] text-grey lg:text-[16px]">
+                            {error?.message || 'Проект не найден'}
+                        </p>
+                    )}
+                </div>
+            </Container>
         )
     }
 
     return (
-        <FormCard
-            title="Редактировать проект"
-            description="После изменений проект снова уйдёт на модерацию."
-            onSubmit={submit}
-            submitText="Сохранить изменения"
-            loading={saving}
-        >
-            <Input label="Название проекта" value={form.title} onChange={set('title')} required />
-            <Textarea label="Описание" value={form.description} maxLength={2000} onChange={set('description')} />
-            <Input label="Город" value={form.city} onChange={set('city')} />
-            <Input label="Дата съёмки" type="date" value={form.startDate} onChange={set('startDate')} />
-            <Input label="Приём заявок до" type="date" value={form.deadline} onChange={set('deadline')} />
-            <Input label="Гонорар, ₽" type="number" value={form.fee} onChange={set('fee')} />
-            <Textarea label="Требования к исполнителям" value={form.requirements} maxLength={2000} onChange={set('requirements')} />
-        </FormCard>
+        <ClientNewProjectForm
+            mode="edit"
+            projectId={id}
+            initialValues={toFormValues(data)}
+        />
     )
+}
+
+// Backend maydonlarini forma kalitlariga o'giradi.
+function toFormValues(p) {
+    return {
+        title: p.title || '',
+        category: p.category || '',
+        type: p.project_type || '',
+        description: p.description || '',
+        kind: p.performer_specialty || 'model',
+        requirements: p.requirement_tags || [],
+        count: p.model_count ?? 1,
+        city: p.city || '',
+        address: p.address || '',
+        date: (p.shoot_date || '').slice(0, 10),
+        from: p.time_from || '',
+        to: p.time_to || '',
+        duration: p.duration_label || '',
+        rate: p.hourly_rate_label || '',
+        cover: '',
+        details: p.details || '',
+    }
 }

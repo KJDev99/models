@@ -52,9 +52,12 @@ export default function ModelCard({ model, className = '' }) {
 
             <div className="relative flex items-center justify-between">
                 <div className="flex items-center gap-[8px]">
-                    <span className="flex items-center justify-center rounded-[6px] bg-black/25 px-[12px] py-[8px] text-[12px] font-medium text-white backdrop-blur-[2.5px]">
-                        {firstTag}
-                    </span>
+                    {/* Backend teg bermasa chip umuman chizilmaydi. */}
+                    {firstTag && (
+                        <span className="flex items-center justify-center rounded-[6px] bg-black/25 px-[12px] py-[8px] text-[12px] font-medium text-white backdrop-blur-[2.5px]">
+                            {firstTag}
+                        </span>
+                    )}
                     {restTags.length > 0 && (
                         <span className="flex items-center justify-center rounded-[6px] bg-black/25 px-[12px] py-[8px] text-[12px] font-medium text-white backdrop-blur-[2.5px]">
                             +{restTags.length}
@@ -81,12 +84,16 @@ export default function ModelCard({ model, className = '' }) {
                     {model.name}
                 </p>
                 <div className="flex flex-wrap gap-[8px]">
-                    <span className="flex items-center justify-center rounded-[6px] bg-black/20 px-[12px] py-[8px] text-[12px] font-medium text-white backdrop-blur-[2.5px]">
-                        {model.age} лет
-                    </span>
-                    <span className="flex items-center justify-center rounded-[6px] bg-black/20 px-[12px] py-[8px] text-[12px] font-medium text-white backdrop-blur-[2.5px]">
-                        {model.height} см
-                    </span>
+                    {model.age != null && (
+                        <span className="flex items-center justify-center rounded-[6px] bg-black/20 px-[12px] py-[8px] text-[12px] font-medium text-white backdrop-blur-[2.5px]">
+                            {model.age} лет
+                        </span>
+                    )}
+                    {model.height != null && (
+                        <span className="flex items-center justify-center rounded-[6px] bg-black/20 px-[12px] py-[8px] text-[12px] font-medium text-white backdrop-blur-[2.5px]">
+                            {model.height} см
+                        </span>
+                    )}
                 </div>
             </div>
         </Link>

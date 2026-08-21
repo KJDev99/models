@@ -16,13 +16,7 @@ export default function ExecutorDashboardPage() {
 
 function DashboardWithParams() {
     const params = useSearchParams()
-    // `?status=active | moderation | rejected` — Figma'dagi to'ldirilgan
-    // anketa holatlarini ko'rish uchun. Standart holat — bo'sh anketa.
+    // Anketa holati endi backenddan keladi (GET /performer/cabinet).
     // `?settings=1` — heder menyusidagi «Настройки профиля» oynasini ochadi.
-    return (
-        <ExecutorDashboard
-            status={params.get('status') || 'empty'}
-            openSettings={params.get('settings') === '1'}
-        />
-    )
+    return <ExecutorDashboard openSettings={params.get('settings') === '1'} />
 }

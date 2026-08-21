@@ -1,8 +1,9 @@
 'use client'
 
 import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
-import { Lock, Mail, Phone } from 'lucide-react'
+import { Lock } from 'lucide-react'
 import AdminProfileModal, {
     ModalAvatar,
     ModalField,
@@ -13,43 +14,106 @@ import Button from '@/components/ui/button'
 import { CabinetSecurityRow } from '@/components/shared/cabinet/cabinet-ui'
 import {
     DeleteAccountModal,
-    EmailModal,
     PasswordModal,
-    PhoneModal,
 } from '@/components/client/dashboard/security-modals'
-import { AGENCY } from '@/components/agency/dashboard/dashboard-data'
+import { useAction } from '@/lib/use-api'
+import * as agencyApi from '@/lib/api/agency'
+import * as site from '@/lib/api/site'
+import { useAuthStore } from '@/store/useAuthStore'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // «Редактировать профиль» — Figma 270:21182 (1200×1158), mobil 437:17337 ichida.
 // Oyna karkasi adminka va «Заказчик» kabinetidagi bilan bitta komponent,
 // faqat «Информация» bo'limidagi maydonlar agentlik uchun.
+//
+// Saqlash (backend/agency.md):
+//   Информация → PATCH /agency/profile/info
+//   Контакты   → PATCH /agency/profile/contacts
+//   Пароль     → PATCH /agency/profile/security
+//   Фото       → POST  /site/upload → POST /agency/profile/photo
+//
+// Backendda agentlik uchun pochta va telefonni almashtirish endpointi yo'q,
+// shuning uchun «Безопасность» bo'limida faqat parol qatori qoladi
+// (backend-report.md ga kiritilgan).
 // ─────────────────────────────────────────────────────────────────────────────
 
-const SECURITY_ROWS = [
-    { key: 'password', title: 'Пароль', icon: Lock, note: 'Последнее изменение 01.07.2026' },
-    { key: 'email', title: 'Электронная почта', icon: Mail, note: AGENCY.email },
-    { key: 'phone', title: 'Телефон', icon: Phone, note: AGENCY.phone },
-]
+function fromProfile(profile) {
+    return {
+        name: profile?.name || '',
+        representative: profile?.representative || '',
+        sphere: profile?.sphere || profile?.kind || '',
+        city: profile?.city || '',
+        about: profile?.about || '',
+        logo: profile?.image || null,
+        phone: profile?.phone || '',
+        site: profile?.website || '',
+    }
+}
 
-export default function AgencyProfileModal({ open, onClose }) {
-    const [about, setAbout] = useState(AGENCY.about)
+export default function AgencyProfileModal({ open, onClose, profile, onSaved }) {
+    const router = useRouter()
+    const logout = useAuthStore((s) => s.logout)
+
+    const [form, setForm] = useState(() => fromProfile(profile))
     const [security, setSecurity] = useState(null)
 
-    function save() {
+    const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
+
+    const saveInfo = useAction(agencyApi.updateInfo)
+    const saveContacts = useAction(agencyApi.updateContacts)
+    const upload = useAction(site.upload)
+    const savePhoto = useAction(agencyApi.updatePhoto)
+
+    function finish(res, message) {
+        if (!res.success) {
+            toast.error(res.error.message)
+            return
+        }
+        toast.success(message)
+        onSaved?.()
         onClose()
-        toast.success('Изменения сохранены')
     }
 
-    const actions = (
-        <div className="flex flex-col gap-[12px] lg:flex-row lg:gap-[16px]">
-            <Button variant="gold" onClick={save} full className="lg:flex-1">
-                Сохранить
-            </Button>
-            <Button variant="white" onClick={onClose} full className="lg:flex-1">
-                Отменить
-            </Button>
-        </div>
-    )
+    async function submitInfo() {
+        const res = await saveInfo.run({
+            agency_name: form.name,
+            representative_name: form.representative,
+            sphere_of_activity: form.sphere || undefined,
+            city: form.city,
+            about: form.about || undefined,
+        })
+        finish(res, 'Информация сохранена')
+    }
+
+    async function submitContacts() {
+        const res = await saveContacts.run({
+            phone: form.phone || undefined,
+            contact_phone: form.phone || undefined,
+            website: form.site || undefined,
+        })
+        finish(res, 'Контакты сохранены')
+    }
+
+    async function pickPhoto(file) {
+        if (!file) return
+        const uploaded = await upload.run(file)
+        if (!uploaded.success) {
+            toast.error(uploaded.error.message)
+            return
+        }
+        const url = uploaded.data?.url
+        const res = await savePhoto.run(url)
+        if (!res.success) {
+            toast.error(res.error.message)
+            return
+        }
+        setForm((f) => ({ ...f, logo: url }))
+        toast.success('Логотип обновлён')
+        onSaved?.()
+    }
+
+    const busy = saveInfo.loading || saveContacts.loading
+    const required = form.name.trim() && form.representative.trim() && form.city.trim()
 
     return (
         <AdminProfileModal
@@ -60,34 +124,56 @@ export default function AgencyProfileModal({ open, onClose }) {
             sections={{
                 info: (
                     <>
-                        <ModalAvatar src={AGENCY.logo} />
+                        <ModalAvatar src={form.logo} onPick={pickPhoto} />
                         <ModalField label="Название агентства">
-                            <ModalInput defaultValue={AGENCY.name} placeholder="Введите название" />
+                            <ModalInput
+                                value={form.name}
+                                onChange={set('name')}
+                                placeholder="Введите название"
+                            />
                         </ModalField>
                         <ModalField
                             label="Имя представителя"
                             hint="Имя представителя видно только администрации и используется для связи с агентством."
                         >
-                            <ModalInput defaultValue="Алексей" placeholder="Введите имя" />
+                            <ModalInput
+                                value={form.representative}
+                                onChange={set('representative')}
+                                placeholder="Введите имя"
+                            />
                         </ModalField>
                         <ModalField label="Сфера деятельности">
                             <ModalInput
-                                defaultValue={AGENCY.kind}
+                                value={form.sphere}
+                                onChange={set('sphere')}
                                 placeholder="Например: Модельное и креативное агентство"
                             />
                         </ModalField>
                         <ModalField label="Город">
-                            <ModalInput defaultValue={AGENCY.city} placeholder="Введите город" />
+                            <ModalInput
+                                value={form.city}
+                                onChange={set('city')}
+                                placeholder="Введите город"
+                            />
                         </ModalField>
                         <ModalField label="О компании">
                             <ModalTextarea
-                                value={about}
-                                onChange={(e) => setAbout(e.target.value)}
+                                value={form.about}
+                                onChange={set('about')}
                                 max={600}
                                 placeholder="Расскажите, чем занимается агентство, каких исполнителей представляет и с кем сотрудничает."
                             />
                         </ModalField>
-                        {actions}
+
+                        <Button
+                            variant="gold"
+                            onClick={submitInfo}
+                            disabled={busy || !required}
+                            full
+                            className="lg:w-[240px]"
+                        >
+                            Сохранить
+                        </Button>
                     </>
                 ),
 
@@ -96,21 +182,37 @@ export default function AgencyProfileModal({ open, onClose }) {
                         <ModalField label="Телефон">
                             <ModalInput
                                 type="tel"
-                                defaultValue={AGENCY.phone}
+                                value={form.phone}
+                                onChange={set('phone')}
                                 placeholder="+ 7 (000)-000-00-00"
                             />
                         </ModalField>
                         <ModalField label="Электронная почта">
+                            {/* Backendda agentlik pochtasini almashtirish yo'q. */}
                             <ModalInput
                                 type="email"
-                                defaultValue={AGENCY.email}
+                                value={profile?.email || ''}
+                                readOnly
                                 placeholder="po4ta@mail.ru"
                             />
                         </ModalField>
                         <ModalField label="Сайт">
-                            <ModalInput placeholder="lumen.ru" />
+                            <ModalInput
+                                value={form.site}
+                                onChange={set('site')}
+                                placeholder="lumen.ru"
+                            />
                         </ModalField>
-                        {actions}
+
+                        <Button
+                            variant="gold"
+                            onClick={submitContacts}
+                            disabled={busy}
+                            full
+                            className="lg:w-[240px]"
+                        >
+                            Сохранить
+                        </Button>
                     </>
                 ),
 
@@ -119,16 +221,12 @@ export default function AgencyProfileModal({ open, onClose }) {
                         <p className="text-[12px] leading-[18px] text-grey lg:text-[14px] lg:leading-[20px]">
                             Защитите свой аккаунт и управляйте способами входа.
                         </p>
-                        {SECURITY_ROWS.map((row) => (
-                            <CabinetSecurityRow
-                                key={row.key}
-                                icon={row.icon}
-                                title={row.title}
-                                note={row.note}
-                                onChange={() => setSecurity(row.key)}
-                            />
-                        ))}
-                        {actions}
+                        <CabinetSecurityRow
+                            icon={Lock}
+                            title="Пароль"
+                            note="Смените пароль, если давно этого не делали"
+                            onChange={() => setSecurity('password')}
+                        />
                     </>
                 ),
 
@@ -153,27 +251,22 @@ export default function AgencyProfileModal({ open, onClose }) {
             <PasswordModal
                 open={security === 'password'}
                 onClose={() => setSecurity(null)}
-                onDone={() => {
+                onDone={async () => {
                     setSecurity(null)
-                    toast.success('Пароль изменён')
-                }}
-            />
-            <EmailModal open={security === 'email'} onClose={() => setSecurity(null)} />
-            <PhoneModal
-                open={security === 'phone'}
-                onClose={() => setSecurity(null)}
-                onDone={() => {
-                    setSecurity(null)
-                    toast.success('Номер изменён')
+                    toast.success('Пароль изменён, войдите заново')
+                    await logout()
+                    router.push('/')
                 }}
             />
             <DeleteAccountModal
                 open={security === 'delete'}
                 onClose={() => setSecurity(null)}
-                onConfirm={() => {
+                onConfirm={async () => {
                     setSecurity(null)
                     onClose()
-                    toast.success('Заявка на удаление отправлена')
+                    toast.success('Аккаунт удалён')
+                    await logout()
+                    router.push('/')
                 }}
             />
         </AdminProfileModal>

@@ -1,10 +1,9 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import Container from '@/components/ui/container'
 import Breadcrumb from '@/components/ui/breadcrumb'
 import VenueCard from '@/components/venues/venue-card'
-import { VENUES } from '@/components/venues/venues-data'
 import VenueSummary from '@/components/venues/[slug]/venue-summary'
 import { BookingModal, BookingSentModal } from '@/components/venues/[slug]/venue-modals'
 import DetailGallery from '@/components/shared/detail/detail-gallery'
@@ -15,14 +14,11 @@ import {
     DetailInfoCards,
 } from '@/components/shared/detail/detail-info-cards'
 import { AuthRequiredModal, ReviewModal } from '@/components/shared/detail/detail-modals'
-import {
-    PHOTO_ITEMS,
-    PHOTO_STEP,
-    PHOTO_TABS,
-    REVIEWS,
-    REVIEWS_STEP,
-    VENUE,
-} from '@/components/venues/[slug]/venue-detail-data'
+import { PHOTO_STEP, REVIEWS_STEP } from '@/components/venues/[slug]/venue-detail-data'
+import DetailState from '@/components/shared/detail/detail-state'
+import { useApi } from '@/lib/use-api'
+import * as site from '@/lib/api/site'
+import { portfolioFromMedia, venueCard, venueDetail } from '@/lib/adapters'
 import { useAuth } from '@/lib/use-auth'
 import { MapPin } from 'lucide-react'
 
@@ -44,11 +40,36 @@ export default function VenuePage({ slug }) {
     const [sentModal, setSentModal] = useState(false)
     const [reviewModal, setReviewModal] = useState(false)
 
-    const venue = { ...VENUE, slug: slug || VENUE.slug }
+    const fetcher = useCallback(() => site.venue(slug), [slug])
+    const { data: raw, loading, error, reload } = useApi(fetcher, { enabled: Boolean(slug) })
+
+    const venue = useMemo(() => venueDetail(raw), [raw])
+    const photos = useMemo(() => portfolioFromMedia(raw?.media), [raw])
+    // Backend «Другие площадки» bermaydi — o'sha shahardagi e'lonlar olinadi.
+    const relatedFetcher = useCallback(
+        () => site.venues({ city: raw?.city, page_size: 5 }),
+        [raw?.city],
+    )
+    const { data: relatedData } = useApi(relatedFetcher, { enabled: Boolean(raw?.city) })
 
     // Mehmon bo'lsa — avval «Требуется вход» oynasi (Figma 164:14791).
-    function guard(open) {
-        return () => (authed ? open(true) : setAuthModal(true))
+    const guard = useCallback(
+        (open) => () => (authed ? open(true) : setAuthModal(true)),
+        [authed],
+    )
+
+    if (loading || error || !venue) {
+        return (
+            <DetailState
+                loading={loading}
+                error={error}
+                onRetry={reload}
+                breadcrumb={[
+                    { name: 'Главная', href: '/' },
+                    { name: 'Площадки', href: '/venues' },
+                ]}
+            />
+        )
     }
 
     const breadcrumb = [
@@ -57,8 +78,11 @@ export default function VenuePage({ slug }) {
         { name: venue.name },
     ]
 
-    // «Другие площадки» — katalogdan dastlabki 4 ta e'lon.
-    const others = VENUES.slice(0, 4)
+    // «Другие площадки» — o'sha shahardagi boshqa e'lonlar (o'zidan tashqari).
+    const others = (relatedData?.items || [])
+        .map(venueCard)
+        .filter((v) => v.id !== venue.id)
+        .slice(0, 4)
 
     return (
         <div className="flex flex-col gap-[24px] bg-light-white pt-[16px] lg:pt-[24px] pb-[40px] lg:gap-[50px] lg:pb-[100px]">
@@ -80,6 +104,7 @@ export default function VenuePage({ slug }) {
             </Container>
 
             {/* Оснащение — Figma 141:8781 */}
+            {venue.equipment && (
             <Container>
                 <section className="flex flex-col gap-[16px] rounded-[6px] bg-white p-[12px] lg:gap-[24px] lg:p-[24px]">
                     <h2 className="font-display text-[18px] leading-none tracking-[0.36px] text-black uppercase lg:text-[24px] lg:tracking-[0.48px]">
@@ -90,13 +115,14 @@ export default function VenuePage({ slug }) {
                     </p>
                 </section>
             </Container>
+            )}
 
             {/* Фотографии — portfolio bilan bir xil komponent (Figma 138:8497) */}
             <Container>
                 <DetailPortfolio
                     title="Фотографии"
-                    tabs={PHOTO_TABS}
-                    items={PHOTO_ITEMS}
+                    tabs={photos.tabs}
+                    items={photos.items}
                     step={PHOTO_STEP}
                 />
             </Container>
@@ -134,12 +160,13 @@ export default function VenuePage({ slug }) {
             <Container>
                 <DetailReviews
                     rating={venue.rating}
-                    reviews={REVIEWS}
+                    reviews={venue.reviews}
                     step={REVIEWS_STEP}
                     onLeaveReview={guard(setReviewModal)}
                 />
             </Container>
 
+            {others.length > 0 && (
             <Container className="flex flex-col gap-[16px] lg:gap-[32px]">
                 <h2 className="font-display text-[24px] leading-[26px] tracking-[0.48px] text-black uppercase lg:text-[32px] lg:leading-none lg:tracking-[0.64px]">
                     Другие площадки
@@ -163,12 +190,14 @@ export default function VenuePage({ slug }) {
                     ))}
                 </div>
             </Container>
+            )}
 
             <AuthRequiredModal open={authModal} onClose={() => setAuthModal(false)} />
 
             <BookingModal
                 open={bookModal}
                 onClose={() => setBookModal(false)}
+                venueId={venue.id}
                 onSent={() => {
                     setBookModal(false)
                     setSentModal(true)
@@ -177,7 +206,13 @@ export default function VenuePage({ slug }) {
 
             <BookingSentModal open={sentModal} onClose={() => setSentModal(false)} />
 
-            <ReviewModal open={reviewModal} onClose={() => setReviewModal(false)} />
+            <ReviewModal
+                open={reviewModal}
+                onClose={() => setReviewModal(false)}
+                venueId={venue.id}
+                targetId={venue.owner?.id}
+                onSent={reload}
+            />
         </div>
     )
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -15,22 +15,18 @@ import { DeleteModal } from '@/components/admin/ui/admin-modals'
 import DetailGallery from '@/components/shared/detail/detail-gallery'
 import DetailPortfolio from '@/components/shared/detail/detail-portfolio'
 import DetailReviews from '@/components/shared/detail/detail-reviews'
+import DetailState from '@/components/shared/detail/detail-state'
 import ModelSummary from '@/components/models/[slug]/model-summary'
 import {
     DetailInfoCard,
     DetailInfoCards,
     DetailProjects,
 } from '@/components/shared/detail/detail-info-cards'
-import {
-    MODEL,
-    PORTFOLIO_ITEMS,
-    PORTFOLIO_STEP,
-    PORTFOLIO_TABS,
-    REVIEWS,
-    REVIEWS_STEP,
-} from '@/components/models/[slug]/model-detail-data'
-import { ReviewModal } from '@/components/shared/detail/detail-modals'
-import { AGENCY } from '@/components/agency/dashboard/dashboard-data'
+import { PORTFOLIO_STEP, REVIEWS_STEP } from '@/components/models/[slug]/model-detail-data'
+import { useApi, useAction } from '@/lib/use-api'
+import * as agencyApi from '@/lib/api/agency'
+import { mapStatus, performerDetail, portfolioFromMedia } from '@/lib/adapters'
+import { useAuthStore } from '@/store/useAuthStore'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // «Агентство» kabinetidagi ijrochi anketasi — Figma 345:19306,
@@ -39,15 +35,53 @@ import { AGENCY } from '@/components/agency/dashboard/dashboard-data'
 // Sahifa ochiq saytdagi anketa bilan bir xil komponentlardan yig'iladi,
 // farqi — yurakcha o'rnida holat + qalam + «⋮» (345:19901) va pastdagi
 // «Пригласить в проект» o'rnida agentlik yorlig'i (345:19391).
+//
+// Ma'lumot: GET /agency/performers/{id} (backend/agency.md).
 // ─────────────────────────────────────────────────────────────────────────────
-export default function AgencyExecutorDetail({ id = 'e-1', initialStatus = 'active' }) {
+export default function AgencyExecutorDetail({ id }) {
     const router = useRouter()
-    const [status, setStatus] = useState(initialStatus)
+    const user = useAuthStore((s) => s.user)
     const [removing, setRemoving] = useState(false)
-    const [reviewModal, setReviewModal] = useState(false)
 
+    const fetcher = useCallback(() => agencyApi.performer(id), [id])
+    const { data: raw, loading, error, reload } = useApi(fetcher, { enabled: Boolean(id) })
+
+    const model = useMemo(() => performerDetail(raw), [raw])
+    const portfolio = useMemo(() => portfolioFromMedia(raw?.media), [raw])
+
+    const hide = useAction(agencyApi.setPerformerHidden)
+    const remove = useAction(agencyApi.deletePerformer)
+
+    if (loading || error || !model) {
+        return (
+            <DetailState
+                loading={loading}
+                error={error}
+                onRetry={reload}
+                breadcrumb={[
+                    { name: 'Главная', href: '/' },
+                    { name: 'Личный кабинет', href: '/agency/dashboard' },
+                ]}
+            />
+        )
+    }
+
+    // Backend holatini adminka yorliqlariga o'giradi: `mapStatus()` `moderation`
+    // va `paused` beradi, qolganlari «Активен».
+    const mapped = mapStatus(model.status)
+    const status = USER_STATUS[mapped] ? mapped : 'active'
     const state = USER_STATUS[status]
     const editHref = `/agency/executors/${id}/edit`
+
+    async function toggle() {
+        const res = await hide.run(id, status !== 'paused')
+        if (!res.success) {
+            toast.error(res.error.message)
+            return
+        }
+        toast.success(status === 'paused' ? 'Анкета опубликована' : 'Анкета скрыта')
+        reload()
+    }
 
     const actions = (
         <div className="flex shrink-0 items-center gap-[12px] lg:gap-[16px]">
@@ -62,13 +96,14 @@ export default function AgencyExecutorDetail({ id = 'e-1', initialStatus = 'acti
                 <SquarePen size={24} strokeWidth={2} />
             </Link>
             <span className="ui-icon-btn flex size-[32px] items-center justify-center rounded-[6px] p-[4px]">
-                <AdminRowMenu compact
+                <AdminRowMenu
+                    compact
                     items={rowMenu({
                         status,
                         onEdit: () => router.push(editHref),
-                        onToggle: () => setStatus(status === 'paused' ? 'active' : 'paused'),
-                        onBlock: () => setStatus('blocked'),
-                        onUnblock: () => setStatus('active'),
+                        onToggle: toggle,
+                        onBlock: toggle,
+                        onUnblock: toggle,
                         onDelete: () => setRemoving(true),
                     })}
                 />
@@ -83,13 +118,19 @@ export default function AgencyExecutorDetail({ id = 'e-1', initialStatus = 'acti
             className="flex w-full items-center gap-[12px] rounded-[6px] border border-gold p-[16px] transition-colors hover:bg-gold/10 lg:w-fit lg:self-end"
         >
             <span className="relative block size-[37px] shrink-0 overflow-hidden rounded-[6px] bg-light-white">
-                <Image src={AGENCY.logo} alt="" fill sizes="37px" className="object-contain" />
+                <Image
+                    src={user?.logo_url || '/img/placeholder.svg'}
+                    alt=""
+                    fill
+                    sizes="37px"
+                    className="object-contain"
+                />
             </span>
             <span className="flex min-w-0 flex-col gap-[2px]">
                 <span className="truncate text-[14px] font-medium text-black lg:text-[16px]">
-                    {AGENCY.name}
+                    {user?.agency_name || user?.name || 'Агентство'}
                 </span>
-                <span className="truncate text-[12px] text-grey">Еще 67 исполнителей</span>
+                <span className="truncate text-[12px] text-grey">Личный кабинет</span>
             </span>
         </Link>
     )
@@ -101,57 +142,54 @@ export default function AgencyExecutorDetail({ id = 'e-1', initialStatus = 'acti
                     items={[
                         { label: 'Главная', href: '/' },
                         { label: 'Личный кабинет', href: '/agency/dashboard' },
-                        { label: MODEL.name },
+                        { label: model.name },
                     ]}
                 />
 
                 <div className="flex flex-col gap-[16px] lg:flex-row lg:gap-[16px]">
-                    <DetailGallery photos={MODEL.photos} alt={MODEL.name} />
-                    <ModelSummary model={MODEL} actions={actions} footer={agencyBadge} />
+                    <DetailGallery photos={model.photos} alt={model.name} />
+                    <ModelSummary model={model} actions={actions} footer={agencyBadge} />
                 </div>
             </Container>
 
             <Container>
                 <DetailInfoCards>
-                    <DetailInfoCard
-                        title="Параметры"
-                        columns={[MODEL.params.slice(0, 6), MODEL.params.slice(6)]}
-                    />
-                    <DetailInfoCard title="Стоимость" columns={[MODEL.prices]} />
+                    <DetailInfoCard title="Параметры" columns={model.info} />
+                    <DetailInfoCard title="Стоимость" columns={[model.prices]} />
                 </DetailInfoCards>
             </Container>
 
-            <Container>
-                <DetailProjects title="Опыт участия в проектах" projects={MODEL.projects} />
-            </Container>
+            {model.projects.length > 0 && (
+                <Container>
+                    <DetailProjects title="Опыт участия в проектах" projects={model.projects} />
+                </Container>
+            )}
 
             <Container>
                 <DetailPortfolio
-                    tabs={PORTFOLIO_TABS}
-                    items={PORTFOLIO_ITEMS}
+                    tabs={portfolio.tabs}
+                    items={portfolio.items}
                     step={PORTFOLIO_STEP}
                 />
             </Container>
 
             <Container>
-                <DetailReviews
-                    rating={MODEL.rating}
-                    reviews={REVIEWS}
-                    step={REVIEWS_STEP}
-                    onLeaveReview={() => setReviewModal(true)}
-                />
+                <DetailReviews rating={model.rating} reviews={model.reviews} step={REVIEWS_STEP} />
             </Container>
-
-            <ReviewModal open={reviewModal} onClose={() => setReviewModal(false)} />
 
             <DeleteModal
                 open={removing}
                 onClose={() => setRemoving(false)}
-                name={MODEL.name}
-                onConfirm={() => {
+                name={model.name}
+                onConfirm={async () => {
                     setRemoving(false)
+                    const res = await remove.run(id)
+                    if (!res.success) {
+                        toast.error(res.error.message)
+                        return
+                    }
                     toast.success('Исполнитель удалён')
-                    router.push('/agency/dashboard')
+                    router.push('/agency/executors')
                 }}
             />
         </div>

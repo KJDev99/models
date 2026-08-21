@@ -10,9 +10,11 @@ import {
     GRID_PAGE_SIZE,
     LIST_PAGE_SIZE,
     SORT_OPTIONS,
-    VIDEOGRAPHERS,
-    VIDEOGRAPHERS_FAQ,
 } from '@/components/videographers/videographers-data'
+import {
+    fetchVideographers,
+    performerParams,
+} from '@/components/shared/catalog/performer-catalog'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Видеографы katalogi.
@@ -51,16 +53,15 @@ export default function VideographersView() {
         <CatalogView
             title="Видеографы"
             breadcrumb={BREADCRUMB}
-            items={VIDEOGRAPHERS}
             fields={FILTER_FIELDS}
             emptyFilters={EMPTY_VIDEOGRAPHER_FILTERS}
             sortOptions={SORT_OPTIONS}
             searchPlaceholder="Имя видеографа / ключевые слова"
-            faq={VIDEOGRAPHERS_FAQ}
+            faqType="videographers"
             gridPageSize={GRID_PAGE_SIZE}
             listPageSize={LIST_PAGE_SIZE}
-            matchFilters={matchFilters}
-            sortItems={sortItems}
+            fetcher={fetchVideographers}
+            buildParams={performerParams}
             renderCard={(item) => <VideographerCard key={item.id} videographer={item} />}
             renderRow={(item) => <VideographerRowCard key={item.id} videographer={item} />}
         />

@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
+import toast from 'react-hot-toast'
 import { CheckCircle, Eye, MinusCircle } from 'lucide-react'
 import {
     AdminListCard,
@@ -11,55 +12,59 @@ import {
 } from '@/components/admin/ui/admin-ui'
 import AdminTable from '@/components/admin/ui/admin-table'
 import { ModerationDecisionModals } from '@/components/admin/moderation/moderation-modals'
+import { useApi, useAction } from '@/lib/use-api'
+import * as adminApi from '@/lib/api/admin'
+import { adminModerationRow } from '@/lib/adapters'
 
 // Figma: Модерация (343:14293 / 458:25261)
+// Backend navbatni manba bo'yicha filtrlaydi: user | project | venue.
 const TYPES = [
     { value: '', label: 'Все типы' },
-    { value: 'Модель', label: 'Модель' },
-    { value: 'Фотограф', label: 'Фотограф' },
-    { value: 'Видеограф', label: 'Видеограф' },
-    { value: 'Площадка', label: 'Площадка' },
-    { value: 'Проект', label: 'Проект' },
-]
-
-const SAMPLE = [
-    { name: 'Анна Смирнова', type: 'Модель' },
-    { name: 'Studio Loft 21', type: 'Площадка' },
-    { name: 'Съёмка для fashion-бренда', type: 'Проект' },
-    { name: 'Studio Loft 21', type: 'Площадка' },
+    { value: 'user', label: 'Исполнители' },
+    { value: 'project', label: 'Проекты' },
+    { value: 'venue', label: 'Площадки' },
 ]
 
 const PAGE_SIZE = 9
 
-const QUEUE = Array.from({ length: 45 }, (_, i) => ({
-    id: `mo-${i + 1}`,
-    ...SAMPLE[i % SAMPLE.length],
-    email: 'почта@mail.ru',
-    date: '17.07.2026, 14:34',
-}))
-
 export default function AdminModeration() {
-    const [list, setList] = useState(QUEUE)
     const [query, setQuery] = useState('')
     const [type, setType] = useState('')
     const [page, setPage] = useState(1)
     const [decision, setDecision] = useState(null)
 
-    const filtered = useMemo(() => {
-        const q = query.trim().toLowerCase()
-        return list.filter((row) => {
-            if (type && row.type !== type) return false
-            if (!q) return true
-            return `${row.name} ${row.email}`.toLowerCase().includes(q)
-        })
-    }, [list, query, type])
+    // GET /admin/moderation — navbat serverdan keladi (backend/admin.md).
+    const fetcher = useCallback(
+        () =>
+            adminApi.moderation({
+                q: query || undefined,
+                source: type || undefined,
+                page,
+                page_size: PAGE_SIZE,
+            }),
+        [query, type, page],
+    )
+    const { data, loading, error, reload } = useApi(fetcher)
 
-    const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
-    const current = Math.min(page, pages)
-    const rows = filtered.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE)
+    const rows = useMemo(() => (data?.items || []).map(adminModerationRow), [data])
+    const pages = data?.meta?.pages || 1
+    const current = data?.meta?.page || page
 
-    function resolve(row) {
-        setList((all) => all.filter((item) => item.id !== row.id))
+    const approve = useAction(adminApi.approve)
+    const reject = useAction(adminApi.reject)
+
+    // «Одобрить» — comment berilmaydi, «Отклонить» — sabab bilan.
+    async function resolve(row, comment) {
+        const res =
+            comment === undefined
+                ? await approve.run(row.source, row.id)
+                : await reject.run(row.source, row.id, comment)
+        if (!res.success) {
+            toast.error(res.error.message)
+            return
+        }
+        toast.success(comment === undefined ? 'Одобрено' : 'Отклонено')
+        reload()
     }
 
     return (
@@ -89,7 +94,7 @@ export default function AdminModeration() {
                 }
             >
                 <AdminTable
-                    rows={rows}
+                    rows={loading ? [] : rows}
                     columns={[
                         { key: 'name', label: 'Пользователь' },
                         { key: 'type', label: 'Тип' },
@@ -107,7 +112,7 @@ export default function AdminModeration() {
                             key: 'view',
                             icon: Eye,
                             label: 'Открыть',
-                            href: `/admin/moderation/${row.id}`,
+                            href: `/admin/moderation/${row.id}?source=${row.source}`,
                         },
                         {
                             key: 'approve',
@@ -124,7 +129,13 @@ export default function AdminModeration() {
                             onClick: () => setDecision({ type: 'reject', row }),
                         },
                     ]}
-                    empty="Заявок на модерацию нет"
+                    empty={
+                        loading
+                            ? 'Загружаем…'
+                            : error
+                              ? error.message
+                              : 'Заявок на модерацию нет'
+                    }
                 />
 
                 <AdminPagination page={current} pages={pages} onChange={setPage} />
@@ -133,8 +144,8 @@ export default function AdminModeration() {
             <ModerationDecisionModals
                 decision={decision}
                 onClose={() => setDecision(null)}
-                onApprove={resolve}
-                onReject={resolve}
+                onApprove={(row) => resolve(row)}
+                onReject={(row, comment) => resolve(row, comment || '')}
             />
         </>
     )

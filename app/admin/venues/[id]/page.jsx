@@ -1,8 +1,10 @@
 'use client'
 
 import React from 'react'
-import AdminVenueDetail from '@/components/admin/venues/venue-detail'
+import { useParams } from 'next/navigation'
+import AdminVenueDetailLoader from '@/components/admin/venues/[id]/venue-detail-loader'
 
 export default function AdminVenueDetailPage() {
-    return <AdminVenueDetail />
+    const { id } = useParams()
+    return <AdminVenueDetailLoader id={id} />
 }

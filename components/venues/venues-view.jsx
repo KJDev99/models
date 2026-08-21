@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import CatalogView, { inRange } from '@/components/shared/catalog/catalog-view'
+import CatalogView from '@/components/shared/catalog/catalog-view'
 import VenueCard from '@/components/venues/venue-card'
 import VenueRowCard from '@/components/venues/venue-row-card'
 import {
@@ -10,9 +10,8 @@ import {
     GRID_PAGE_SIZE,
     LIST_PAGE_SIZE,
     SORT_OPTIONS,
-    VENUES,
-    VENUES_FAQ,
 } from '@/components/venues/venues-data'
+import { fetchVenues, venueParams } from '@/components/shared/catalog/catalog-fetchers'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Площадки katalogi.
@@ -24,45 +23,20 @@ import {
 
 const BREADCRUMB = [{ name: 'Главная', href: '/' }, { name: 'Площадки' }]
 
-function matchFilters(venue, filters) {
-    if (!inRange(venue.area, filters.areaFrom, filters.areaTo)) return false
-    if (!inRange(venue.pricePerHour, filters.priceFrom, filters.priceTo)) return false
-
-    if (filters.venueType) {
-        const option = FILTER_FIELDS.find((f) => f.key === 'venueType').options.find(
-            (o) => o.value === filters.venueType,
-        )
-        if (option && venue.type !== option.label) return false
-    }
-
-    // «до N человек» — maydon sig'imi tanlangan chegaradan oshmasligi kerak.
-    if (filters.capacity && venue.capacity > Number(filters.capacity)) return false
-
-    return true
-}
-
-function sortItems(list, sort) {
-    if (sort === 'price-asc') return [...list].sort((a, b) => a.pricePerHour - b.pricePerHour)
-    if (sort === 'price-desc') return [...list].sort((a, b) => b.pricePerHour - a.pricePerHour)
-    if (sort === 'new') return [...list].reverse()
-    return list
-}
-
 export default function VenuesView() {
     return (
         <CatalogView
             title="Площадки"
             breadcrumb={BREADCRUMB}
-            items={VENUES}
             fields={FILTER_FIELDS}
             emptyFilters={EMPTY_VENUE_FILTERS}
             sortOptions={SORT_OPTIONS}
             searchPlaceholder="Название площадки / ключевые слова"
-            faq={VENUES_FAQ}
+            faqType="venues"
             gridPageSize={GRID_PAGE_SIZE}
             listPageSize={LIST_PAGE_SIZE}
-            matchFilters={matchFilters}
-            sortItems={sortItems}
+            fetcher={fetchVenues}
+            buildParams={venueParams}
             renderCard={(item) => <VenueCard key={item.id} venue={item} />}
             renderRow={(item) => <VenueRowCard key={item.id} venue={item} />}
         />

@@ -9,7 +9,7 @@ import { AdminRowMenu, AdminStatus } from '@/components/admin/ui/admin-ui'
 import { publicationMenu } from '@/components/admin/ui/admin-menu-items'
 import { DeleteModal } from '@/components/admin/ui/admin-modals'
 import { PROJECT_STATUS } from '@/components/admin/ui/admin-statuses'
-import { PHOTO_ITEMS, PHOTO_TABS, VENUE } from '@/components/venues/[slug]/venue-detail-data'
+// Ma'lumot va rasm albomlari chaqiruv joyidan beriladi (backend adapteri orqali).
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Maydon sahifasi — Figma «Studio Loft 21» 343:12110 / mobil 456:23609.
@@ -19,21 +19,27 @@ import { PHOTO_ITEMS, PHOTO_TABS, VENUE } from '@/components/venues/[slug]/venue
 // kabinetida ham ishlatiladi (Figma 230:7018 / 230:7420), o'sha yerda boshqa
 // yo'lakcha, boshqa manzillar va rad etilgan holat uchun banner beriladi.
 export default function AdminVenueDetail({
-    venue = VENUE,
+    venue,
+    // `portfolioFromMedia()` natijasi: { tabs, items }
+    photoTabs = [],
+    photoItems = {},
     breadcrumb,
-    editHref = '/admin/venues/v-1/edit',
+    editHref,
     backHref = '/admin/venues',
     banner,
-    initialStatus = 'active',
+    onPause,
+    onResume,
+    onFinish,
+    onDelete,
 }) {
     const router = useRouter()
-    const [status, setStatus] = useState(initialStatus)
     const [removing, setRemoving] = useState(false)
     const [tab, setTab] = useState('all')
     const [shown, setShown] = useState(8)
 
-    const state = PROJECT_STATUS[status]
-    const photos = PHOTO_ITEMS[tab] || PHOTO_ITEMS.all
+    const status = venue?.status || 'draft'
+    const state = PROJECT_STATUS[status] || PROJECT_STATUS.draft
+    const photos = photoItems[tab] || photoItems.all || []
 
     return (
         <>
@@ -82,9 +88,9 @@ export default function AdminVenueDetail({
                                         items={publicationMenu({
                                             status,
                                             onEdit: () => router.push(editHref),
-                                            onPause: () => setStatus('paused'),
-                                            onResume: () => setStatus('active'),
-                                            onFinish: () => setStatus('archive'),
+                                            onPause,
+                                            onResume,
+                                            onFinish,
                                             onDelete: () => setRemoving(true),
                                         })}
                                     />
@@ -192,7 +198,7 @@ export default function AdminVenueDetail({
                     </h2>
 
                     <div className="flex flex-wrap gap-[12px] lg:gap-[16px]">
-                        {PHOTO_TABS.map((item) => {
+                        {photoTabs.map((item) => {
                             const on = item.key === tab
                             return (
                                 <button
@@ -257,7 +263,11 @@ export default function AdminVenueDetail({
                 open={removing}
                 onClose={() => setRemoving(false)}
                 name={venue.name}
-                onConfirm={() => router.push(backHref)}
+                onConfirm={async () => {
+                    setRemoving(false)
+                    await onDelete?.()
+                    router.push(backHref)
+                }}
             />
         </>
     )

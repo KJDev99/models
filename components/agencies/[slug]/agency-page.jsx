@@ -1,18 +1,19 @@
 'use client'
 
-import React from 'react'
+import React, { useCallback, useMemo } from 'react'
 import Image from 'next/image'
 import Container from '@/components/ui/container'
 import Breadcrumb from '@/components/ui/breadcrumb'
 import AgencySummary from '@/components/agencies/[slug]/agency-summary'
 import AgencyExecutors from '@/components/agencies/[slug]/agency-executors'
 import {
-    AGENCY,
-    EXECUTORS,
     EXECUTORS_SORT_OPTIONS,
     EXECUTORS_STEP,
-    EXECUTOR_TABS,
 } from '@/components/agencies/[slug]/agency-detail-data'
+import DetailState from '@/components/shared/detail/detail-state'
+import { useApi } from '@/lib/use-api'
+import * as site from '@/lib/api/site'
+import { agencyDetail } from '@/lib/adapters'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Agentlik sahifasi. Figma: desktop 164:13583, mobil 377:14960.
@@ -21,7 +22,24 @@ import {
 // faqat logotip, agentlik haqidagi kartochka va «Исполнители» ro'yxati.
 // ─────────────────────────────────────────────────────────────────────────────
 export default function AgencyPage({ slug }) {
-    const agency = { ...AGENCY, slug: slug || AGENCY.slug }
+    const fetcher = useCallback(() => site.agency(slug), [slug])
+    const { data: raw, loading, error, reload } = useApi(fetcher, { enabled: Boolean(slug) })
+
+    const agency = useMemo(() => agencyDetail(raw), [raw])
+
+    if (loading || error || !agency) {
+        return (
+            <DetailState
+                loading={loading}
+                error={error}
+                onRetry={reload}
+                breadcrumb={[
+                    { name: 'Главная', href: '/' },
+                    { name: 'Агентства', href: '/agencies' },
+                ]}
+            />
+        )
+    }
 
     const breadcrumb = [
         { name: 'Главная', href: '/' },
@@ -53,8 +71,8 @@ export default function AgencyPage({ slug }) {
 
             <Container>
                 <AgencyExecutors
-                    executors={EXECUTORS}
-                    tabs={EXECUTOR_TABS}
+                    executors={agency.executors}
+                    tabs={agency.executorTabs}
                     step={EXECUTORS_STEP}
                     sortOptions={EXECUTORS_SORT_OPTIONS}
                 />

@@ -1,8 +1,10 @@
 'use client'
 
 import React from 'react'
-import AdminProjectDetail from '@/components/admin/projects/project-detail'
+import { useParams } from 'next/navigation'
+import AdminProjectDetailLoader from '@/components/admin/projects/[id]/project-detail-loader'
 
 export default function AdminProjectDetailPage() {
-    return <AdminProjectDetail />
+    const { id } = useParams()
+    return <AdminProjectDetailLoader id={id} />
 }

@@ -10,8 +10,12 @@ import LegacyPageFrame from '@/components/shared/cabinet/legacy-page-frame'
 // «Главная > Личный кабинет» yo'lakchasi turadi.
 export default function AgencyLayout({ children }) {
     return (
-        <RoleGuard allow={[ROLES.AGENCY]}>
+        <RoleGuard allow={ALLOW}>
             <LegacyPageFrame>{children}</LegacyPageFrame>
         </RoleGuard>
     )
 }
+
+// Modul darajasida — har renderda yangi massiv `RoleGuard` effektini
+// qayta ishga tushirmasligi uchun.
+const ALLOW = [ROLES.AGENCY]

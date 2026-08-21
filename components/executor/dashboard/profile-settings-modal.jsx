@@ -11,6 +11,11 @@ import {
     PasswordModal,
     PhoneModal,
 } from '@/components/client/dashboard/security-modals'
+import { useRouter } from 'next/navigation'
+import { useAction } from '@/lib/use-api'
+import * as performerApi from '@/lib/api/performer'
+import { useAuthStore } from '@/store/useAuthStore'
+import { formatDate } from '@/lib/format'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // «Настройка профиля» — Figma 265:14993 / 334:14236, mobil 434:16923.
@@ -28,14 +33,42 @@ const TABS = [
 
 // «Безопасность» bo'limidagi qatorlar (Figma 260:6989 bilan bir xil komponent).
 const SECURITY_ROWS = [
-    { key: 'password', title: 'Пароль', icon: Lock, note: 'Последнее изменение 01.07.2026' },
-    { key: 'email', title: 'Электронная почта', icon: Mail, note: 'lime@mail.ru' },
-    { key: 'phone', title: 'Телефон', icon: Phone, note: 'lime@mail.ru' },
+    { key: 'password', title: 'Пароль', icon: Lock },
+    { key: 'email', title: 'Электронная почта', icon: Mail },
+    { key: 'phone', title: 'Телефон', icon: Phone },
 ]
 
-export default function ExecutorProfileSettingsModal({ open, onClose }) {
+export default function ExecutorProfileSettingsModal({ open, onClose, profile, onSaved }) {
+    const router = useRouter()
+    const logout = useAuthStore((s) => s.logout)
+
     const [step, setStep] = useState(null)
-    const [hidden, setHidden] = useState(false)
+    // Boshlang'ich holat backenddan (`is_hidden`), oyna ochilganda o'qiladi.
+    const [hidden, setHidden] = useState(() => Boolean(profile?.isHidden))
+
+    const setHiddenApi = useAction(performerApi.setHidden)
+
+    async function toggleHidden() {
+        const next = !hidden
+        const res = await setHiddenApi.run(next)
+        if (!res.success) {
+            toast.error(res.error.message)
+            return
+        }
+        setHidden(next)
+        toast.success(next ? 'Профиль скрыт' : 'Профиль снова виден')
+        onSaved?.()
+    }
+
+    function noteFor(key) {
+        if (key === 'password') {
+            return profile?.passwordChangedAt
+                ? `Последнее изменение ${formatDate(profile.passwordChangedAt)}`
+                : 'Смените пароль, если давно этого не делали'
+        }
+        if (key === 'email') return profile?.email || 'Не указана'
+        return profile?.phone || 'Не указан'
+    }
 
     return (
         <AdminProfileModal
@@ -58,18 +91,11 @@ export default function ExecutorProfileSettingsModal({ open, onClose }) {
                                 key={row.key}
                                 icon={row.icon}
                                 title={row.title}
-                                note={row.note}
+                                note={noteFor(row.key)}
                                 onChange={() => setStep(row.key)}
                             />
                         ))}
 
-                        <ModalActions
-                            onSave={() => {
-                                onClose()
-                                toast.success('Изменения сохранены')
-                            }}
-                            onCancel={onClose}
-                        />
                     </>
                 ),
 
@@ -82,11 +108,9 @@ export default function ExecutorProfileSettingsModal({ open, onClose }) {
                         </p>
                         <button
                             type="button"
-                            onClick={() => {
-                                setHidden((v) => !v)
-                                toast.success(hidden ? 'Профиль снова виден' : 'Профиль скрыт')
-                            }}
-                            className="ui-shine relative w-full cursor-pointer overflow-hidden rounded-[6px] bg-gold px-[24px] py-[12px] text-[14px] font-medium text-white transition-colors hover:bg-[#c19754] lg:w-[420px] lg:py-[16px] lg:text-[18px]"
+                            onClick={toggleHidden}
+                            disabled={setHiddenApi.loading}
+                            className="ui-shine relative w-full cursor-pointer overflow-hidden rounded-[6px] bg-gold px-[24px] py-[12px] text-[14px] font-medium text-white transition-colors hover:bg-[#c19754] disabled:cursor-not-allowed disabled:opacity-50 lg:w-[420px] lg:py-[16px] lg:text-[18px]"
                         >
                             <span className="relative">
                                 {hidden ? 'Показать профиль' : 'Скрыть профиль'}
@@ -115,9 +139,11 @@ export default function ExecutorProfileSettingsModal({ open, onClose }) {
             <PasswordModal
                 open={step === 'password'}
                 onClose={() => setStep(null)}
-                onDone={() => {
+                onDone={async () => {
                     setStep(null)
-                    toast.success('Пароль изменён')
+                    toast.success('Пароль изменён, войдите заново')
+                    await logout()
+                    router.push('/')
                 }}
             />
             <EmailModal open={step === 'email'} onClose={() => setStep(null)} />
@@ -127,39 +153,21 @@ export default function ExecutorProfileSettingsModal({ open, onClose }) {
                 onDone={() => {
                     setStep(null)
                     toast.success('Номер изменён')
+                    onSaved?.()
                 }}
             />
             <DeleteAccountModal
                 open={step === 'delete'}
                 onClose={() => setStep(null)}
-                onConfirm={() => {
+                onConfirm={async () => {
                     setStep(null)
                     onClose()
-                    toast.success('Заявка на удаление отправлена')
+                    toast.success('Аккаунт удалён')
+                    await logout()
+                    router.push('/')
                 }}
             />
         </AdminProfileModal>
     )
 }
 
-// «Сохранить / Отменить» — gold va oq (Figma 260:7010).
-function ModalActions({ onSave, onCancel }) {
-    return (
-        <div className="flex flex-col gap-[12px] lg:flex-row lg:gap-[16px]">
-            <button
-                type="button"
-                onClick={onSave}
-                className="ui-shine relative min-w-0 flex-1 cursor-pointer overflow-hidden rounded-[6px] bg-gold px-[24px] py-[12px] text-[14px] font-medium text-white transition-colors hover:bg-[#c19754] lg:py-[16px] lg:text-[18px]"
-            >
-                <span className="relative">Сохранить</span>
-            </button>
-            <button
-                type="button"
-                onClick={onCancel}
-                className="ui-shine relative min-w-0 flex-1 cursor-pointer overflow-hidden rounded-[6px] bg-white px-[24px] py-[12px] text-[14px] font-medium text-black transition-colors hover:bg-[#e6e6e6] lg:py-[16px] lg:text-[18px]"
-            >
-                <span className="relative">Отменить</span>
-            </button>
-        </div>
-    )
-}

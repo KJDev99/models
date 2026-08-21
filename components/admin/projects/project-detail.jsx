@@ -9,19 +9,31 @@ import { AdminRowMenu, AdminStatus } from '@/components/admin/ui/admin-ui'
 import { publicationMenu } from '@/components/admin/ui/admin-menu-items'
 import { DeleteModal } from '@/components/admin/ui/admin-modals'
 import { PROJECT_STATUS } from '@/components/admin/ui/admin-statuses'
-import { DETAILS, PROJECT } from '@/components/admin/projects/projects-data'
+// `project` — `adminProjectDetail()` adapteri natijasi (lib/adapters.js).
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Loyiha sahifasi — Figma «активен» 343:11886 / mobil 456:21576.
 // Ochiq saytdagi sahifaning o'zi: «Подать заявку» o'rniga holat, tahrirlash
 // va «⋮».
 // ─────────────────────────────────────────────────────────────────────────────
-export default function AdminProjectDetail({ project = PROJECT, details = DETAILS }) {
+export default function AdminProjectDetail({
+    project,
+    details,
+    editHref,
+    backHref = '/admin/projects',
+    decisionBar = null,
+    onPause,
+    onResume,
+    onFinish,
+    onDelete,
+}) {
     const router = useRouter()
-    const [status, setStatus] = useState('active')
     const [removing, setRemoving] = useState(false)
 
-    const state = PROJECT_STATUS[status]
+    const status = project.status || 'draft'
+    const state = PROJECT_STATUS[status] || PROJECT_STATUS.draft
+    const blocks = details || project.detailsBlocks || { intro: '', blocks: [] }
+    const href = editHref || `/admin/projects/${project.id}/edit`
 
     return (
         <>
@@ -32,12 +44,14 @@ export default function AdminProjectDetail({ project = PROJECT, details = DETAIL
                 ]}
             />
 
+            {decisionBar}
+
             <div className="flex flex-col gap-[16px] lg:gap-[24px]">
                 {/* ── Hero: rasm + asosiy kartochka (Figma 343:11890) ───────── */}
                 <div className="flex flex-col gap-[16px] lg:flex-row lg:items-stretch">
                     <div className="relative h-[280px] shrink-0 overflow-hidden rounded-[6px] bg-[#d9d9d9] lg:h-[600px] lg:w-[554px]">
                         <Image
-                            src={project.image}
+                            src={project.image || FALLBACK_COVER}
                             alt={project.title}
                             fill
                             priority
@@ -58,7 +72,7 @@ export default function AdminProjectDetail({ project = PROJECT, details = DETAIL
                                     </AdminStatus>
                                     <button
                                         type="button"
-                                        onClick={() => router.push(`/admin/projects/p-1/edit`)}
+                                        onClick={() => router.push(href)}
                                         aria-label="Редактировать"
                                         className="flex size-[32px] cursor-pointer items-center justify-center rounded-[6px] ui-icon-btn p-[4px]"
                                     >
@@ -69,10 +83,10 @@ export default function AdminProjectDetail({ project = PROJECT, details = DETAIL
                                             items={publicationMenu({
                                                 status,
                                                 onEdit: () =>
-                                                    router.push(`/admin/projects/p-1/edit`),
-                                                onPause: () => setStatus('paused'),
-                                                onResume: () => setStatus('active'),
-                                                onFinish: () => setStatus('done'),
+                                                    router.push(href),
+                                                onPause,
+                                                onResume,
+                                                onFinish,
                                                 onDelete: () => setRemoving(true),
                                             })}
                                         />
@@ -114,14 +128,18 @@ export default function AdminProjectDetail({ project = PROJECT, details = DETAIL
 
                         <div className="flex flex-col gap-[16px] lg:flex-row lg:items-center lg:justify-between">
                             <p className="text-[16px] font-bold text-black lg:text-[18px]">
-                                от 20 000 ₽
+                                {project.hourlyRate || project.budget || ''}
                             </p>
 
-                            <div className="flex items-center gap-[12px] rounded-[6px] bg-light-white p-[12px] lg:p-[16px]">
+                            <div
+                                className={`items-center gap-[12px] rounded-[6px] bg-light-white p-[12px] lg:p-[16px] ${
+                                    project.company ? 'flex' : 'hidden'
+                                }`}
+                            >
                                 <span className="relative block size-[32px] shrink-0 overflow-hidden rounded-full bg-white lg:size-[39px]">
                                     <Image
-                                        src={project.company.logo}
-                                        alt={project.company.name}
+                                        src={project.company?.logo || FALLBACK_LOGO}
+                                        alt={project.company?.name || ''}
                                         fill
                                         sizes="39px"
                                         className="object-contain"
@@ -129,10 +147,10 @@ export default function AdminProjectDetail({ project = PROJECT, details = DETAIL
                                 </span>
                                 <span className="flex min-w-0 flex-col gap-[2px]">
                                     <span className="truncate text-[14px] font-medium text-black lg:text-[16px]">
-                                        {project.company.name}
+                                        {project.company?.name}
                                     </span>
                                     <span className="truncate text-[12px] text-grey">
-                                        {project.company.more}
+                                        {project.company?.more}
                                     </span>
                                 </span>
                             </div>
@@ -146,9 +164,9 @@ export default function AdminProjectDetail({ project = PROJECT, details = DETAIL
                         Подробнее о проекте
                     </h2>
                     <p className="text-[14px] leading-[20px] text-grey lg:text-[16px] lg:leading-[22px]">
-                        {details.intro}
+                        {blocks.intro}
                     </p>
-                    {details.blocks.map((block) => (
+                    {blocks.blocks.map((block) => (
                         <div key={block.title} className="flex flex-col gap-[8px] lg:gap-[12px]">
                             <h3 className="text-[14px] font-bold text-black lg:text-[16px]">
                                 {block.title}
@@ -193,11 +211,18 @@ export default function AdminProjectDetail({ project = PROJECT, details = DETAIL
                 open={removing}
                 onClose={() => setRemoving(false)}
                 name={project.title}
-                onConfirm={() => router.push('/admin/projects')}
+                onConfirm={() => {
+                    if (onDelete) onDelete()
+                    else router.push(backHref)
+                }}
             />
         </>
     )
 }
+
+// Zakazchik logotipi bo'lmasa (Figma'da doim bor).
+const FALLBACK_LOGO = '/img/placeholder.svg'
+const FALLBACK_COVER = '/img/placeholder.svg'
 
 function Meta({ icon: Icon, children }) {
     return (

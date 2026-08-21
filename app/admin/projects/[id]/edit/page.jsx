@@ -1,8 +1,10 @@
 'use client'
 
 import React from 'react'
-import AdminProjectForm from '@/components/admin/projects/project-form'
+import { useParams } from 'next/navigation'
+import AdminProjectFormLoader from '@/components/admin/projects/[id]/edit/project-form-loader'
 
 export default function AdminEditProjectPage() {
-    return <AdminProjectForm mode="edit" />
+    const { id } = useParams()
+    return <AdminProjectFormLoader id={id} />
 }

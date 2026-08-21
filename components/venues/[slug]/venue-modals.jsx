@@ -2,8 +2,11 @@
 
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import toast from 'react-hot-toast'
 import { Calendar, ChevronDown } from 'lucide-react'
 import Modal, { ModalButton } from '@/components/ui/modal'
+import { useAction } from '@/lib/use-api'
+import * as site from '@/lib/api/site'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Площадки sahifasidagi ikkita modal:
@@ -38,7 +41,7 @@ function Field({ as: Tag = 'input', ...props }) {
 }
 
 // 1. Забронировать — nom, sana, vaqt va izoh (Figma 164:17700)
-export function BookingModal({ open, onClose, onSent }) {
+export function BookingModal({ open, onClose, onSent, venueId }) {
     const [project, setProject] = useState('')
     const [date, setDate] = useState('')
     const [time, setTime] = useState('')
@@ -49,13 +52,23 @@ export function BookingModal({ open, onClose, onSent }) {
     // va fokusda bo'lmaganda oddiy matn maydoni sifatida chiziladi.
     const [dateFocused, setDateFocused] = useState(false)
 
-    function submit() {
+    const book = useAction(site.bookVenue)
+
+    // Backend hozir faqat `shoot_date` ni qabul qiladi (POST /site/venues/{id}/book).
+    // Loyiha nomi, vaqt oralig'i va izoh uchun maydon yo'q — backend-report.md ga
+    // kiritilgan; qiymatlar hozircha yuborilmaydi.
+    async function submit() {
         if (!project.trim() || !date) return
+        const res = await book.run(venueId, { shootDate: date })
+        if (!res.success) {
+            toast.error(res.error.message)
+            return
+        }
         setProject('')
         setDate('')
         setTime('')
         setComment('')
-        onSent()
+        onSent(res.data)
     }
 
     return (
@@ -65,7 +78,7 @@ export function BookingModal({ open, onClose, onSent }) {
             title="Забронировать"
             footer={
                 <>
-                    <ModalButton onClick={submit} disabled={!project.trim() || !date}>
+                    <ModalButton onClick={submit} disabled={!project.trim() || !date || book.loading}>
                         Отправить заявку
                     </ModalButton>
                     <ModalButton variant="secondary" onClick={onClose}>

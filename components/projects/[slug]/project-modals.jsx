@@ -3,6 +3,9 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Modal, { ModalButton } from '@/components/ui/modal'
+import toast from 'react-hot-toast'
+import { useAction } from '@/lib/use-api'
+import * as site from '@/lib/api/site'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Проекты sahifasidagi ikkita modal:
@@ -15,12 +18,20 @@ import Modal, { ModalButton } from '@/components/ui/modal'
 // ─────────────────────────────────────────────────────────────────────────────
 
 // 1. Подать заявку — bitta ixtiyoriy izoh maydoni (Figma 164:17739)
-export function ApplyModal({ open, onClose, onSent }) {
+export function ApplyModal({ open, onClose, onSent, projectId }) {
     const [message, setMessage] = useState('')
+    const apply = useAction(site.applyToProject)
 
-    function submit() {
+    // POST /site/projects/{id}/apply — javobda `conversation_id` keladi,
+    // «Перейти в чат» tugmasi shu suhbatga olib boradi (backend/site.md).
+    async function submit() {
+        const res = await apply.run(projectId, message)
+        if (!res.success) {
+            toast.error(res.error.message)
+            return
+        }
         setMessage('')
-        onSent()
+        onSent(res.data)
     }
 
     return (
@@ -30,7 +41,9 @@ export function ApplyModal({ open, onClose, onSent }) {
             title="Подать заявку"
             footer={
                 <>
-                    <ModalButton onClick={submit}>Отправить отклик</ModalButton>
+                    <ModalButton onClick={submit} disabled={apply.loading}>
+                        Отправить отклик
+                    </ModalButton>
                     <ModalButton variant="secondary" onClick={onClose}>
                         Отменить
                     </ModalButton>

@@ -3,6 +3,7 @@
 import React from 'react'
 import Card from '@/components/ui/card'
 import ResourceList from '@/components/cabinet/resource-list'
+import { toProjectCard, customerProjects } from '@/components/cabinet/list-fetchers'
 import ProjectCard from '@/components/shared/project-card'
 
 const TABS = [
@@ -16,7 +17,8 @@ export default function CompanyProjects() {
     return (
         <Card title="Проекты" padded={false} className="border-0 bg-transparent">
             <ResourceList
-                endpoint="/projects/mine/"
+                fetcher={customerProjects}
+                adapt={toProjectCard}
                 tabs={TABS}
             createText="Создать проект"
             createHref="/company/projects/new"

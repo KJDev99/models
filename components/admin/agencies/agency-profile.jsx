@@ -20,28 +20,35 @@ import AdminProfileModal, {
 import { profileMenu, rowMenu } from '@/components/admin/ui/admin-menu-items'
 import { RowActionModals } from '@/components/admin/ui/admin-modals'
 import { USER_STATUS } from '@/components/admin/ui/admin-statuses'
-import { AGENCY_PROFILE } from '@/components/admin/agencies/agencies-data'
+// `profile` — `adminAgencyProfile()` adapteri natijasi (lib/adapters.js).
 import Button from '@/components/ui/button'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Agentlik profili — Figma «LUMEN AGENCY» 338:18370 / mobil 453:17040.
 // Tepasida logotip va ma'lumot kartochkasi, ostida «Исполнители» bo'limi.
 // ─────────────────────────────────────────────────────────────────────────────
-export default function AdminAgencyProfile({ profile = AGENCY_PROFILE }) {
+export default function AdminAgencyProfile({
+    profile,
+    onSave,
+    onBlock,
+    onUnblock,
+    onDelete,
+    onExecutorAction,
+}) {
     const router = useRouter()
-    const [status, setStatus] = useState(profile.status)
     const [action, setAction] = useState(null)
     const [editing, setEditing] = useState(false)
-    const [form, setForm] = useState({
-        name: profile.name,
-        manager: profile.manager,
-        field: profile.field,
-        city: profile.city,
-        about: profile.about,
-        phone: profile.phone,
-        email: profile.email,
-    })
+    const [form, setForm] = useState(() => ({
+        name: profile.name || '',
+        manager: profile.contact || '',
+        field: profile.field || '',
+        city: profile.city || '',
+        about: profile.about || '',
+        phone: profile.phone || '',
+        email: profile.email || '',
+    }))
 
+    const status = profile.status
     const state = USER_STATUS[status] || USER_STATUS.active
 
     function set(key, value) {
@@ -61,7 +68,7 @@ export default function AdminAgencyProfile({ profile = AGENCY_PROFILE }) {
                 <div className="flex flex-col gap-[16px] lg:flex-row lg:items-stretch">
                     <div className="relative h-[220px] overflow-hidden rounded-[6px] bg-white lg:h-auto lg:w-[554px] lg:shrink-0">
                         <Image
-                            src={profile.logo}
+                            src={profile.logo || FALLBACK_LOGO}
                             alt={profile.name}
                             fill
                             sizes="554px"
@@ -126,7 +133,7 @@ export default function AdminAgencyProfile({ profile = AGENCY_PROFILE }) {
                             </h2>
                             <div className="flex flex-wrap gap-[16px] text-[14px] font-medium text-grey lg:gap-[24px] lg:text-[16px]">
                                 <a
-                                    href={`tel:${profile.phone.replace(/[^+\d]/g, '')}`}
+                                    href={`tel:${(profile.phone || '').replace(/[^+\d]/g, '')}`}
                                     className="flex items-center gap-[8px] transition-colors hover:text-black"
                                 >
                                     <Phone size={24} strokeWidth={2} />
@@ -177,8 +184,9 @@ export default function AdminAgencyProfile({ profile = AGENCY_PROFILE }) {
                 />
             </div>
 
+            {editing && (
             <AdminProfileModal
-                open={editing}
+                open
                 onClose={() => setEditing(false)}
                 sections={{
                     info: (
@@ -263,18 +271,26 @@ export default function AdminAgencyProfile({ profile = AGENCY_PROFILE }) {
                         </ModalField>
                     ),
                 }}
+                onSave={async () => {
+                    await onSave?.(form)
+                    setEditing(false)
+                }}
             />
+            )}
 
             <RowActionModals
                 action={action}
                 onClose={() => setAction(null)}
-                onBlock={() => setStatus('blocked')}
-                onUnblock={() => setStatus('active')}
-                onDelete={() => router.push('/admin/agencies')}
+                onBlock={onBlock}
+                onUnblock={onUnblock}
+                onDelete={onDelete}
             />
         </>
     )
 }
+
+// Agentlik logotipi hali yuklanmagan bo'lsa (Figma'da doim bor).
+const FALLBACK_LOGO = '/img/placeholder.svg'
 
 // «Исполнители» bo'limi — Figma 338:18416.
 function AgencyExecutors({ profile, onAction, onEdit }) {

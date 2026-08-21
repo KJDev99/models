@@ -34,6 +34,19 @@ export const BLOCK_REASONS = [
     { value: 'fraud', label: 'Мошеннические действия' },
 ]
 
+// Oyna qiymatlarini `POST /admin/{role}/{id}/block` tanasiga o'giradi:
+// backend `{ measure, reason, days }` kutadi (backend/admin.md).
+export function blockPayload(form = {}) {
+    const measure = BLOCK_MEASURES.find((x) => x.value === form.measure) || BLOCK_MEASURES[0]
+    const days = { '1d': 1, '7d': 7, '30d': 30 }[measure.value] ?? null
+    const reason = BLOCK_REASONS.find((x) => x.value === form.reason)?.label || form.reason || ''
+    return {
+        measure: measure.label,
+        reason: [reason, form.comment].filter(Boolean).join('. '),
+        days,
+    }
+}
+
 // Modal ichidagi maydon sarlavhasi (Figma 345:18093).
 function Field({ label, children }) {
     return (

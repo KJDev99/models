@@ -24,17 +24,19 @@ export default function ComplaintModal({ open, onClose, target }) {
     const [sending, setSending] = useState(false)
     const [sent, setSent] = useState(false)
 
+    // POST /site/complaints — shikoyat chatdan yuboriladi, shuning uchun
+    // ayblanuvchi va suhbat identifikatorlari kerak (backend/site.md).
     async function submit() {
         setSending(true)
         const res = await report({
-            targetType: target?.type,
-            targetId: target?.id,
+            accusedId: target?.accusedId,
+            conversationId: target?.conversationId || target?.id,
             reason,
-            comment,
+            body: comment,
         })
         setSending(false)
         if (res.success) setSent(true)
-        else toast.error('Не удалось отправить жалобу')
+        else toast.error(res.error?.message || 'Не удалось отправить жалобу')
     }
 
     if (sent) {

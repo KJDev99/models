@@ -1,6 +1,8 @@
 'use client'
 
 import React, { useState } from 'react'
+import { useParams } from 'next/navigation'
+import toast from 'react-hot-toast'
 import { Trash2 } from 'lucide-react'
 import {
     AdminAddButton,
@@ -25,6 +27,12 @@ import {
     EXPERIENCE_FIELDS,
     PARAM_FIELDS,
 } from '@/components/admin/executors/executor-form-data'
+import {
+    executorActions,
+    executorBody,
+} from '@/components/admin/executors/executor-form-api'
+import { useAction } from '@/lib/use-api'
+import * as site from '@/lib/api/site'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Figma: Создать исполнителя (335:14800) / Основная информация 326 (446:15438).
@@ -38,8 +46,23 @@ export default function AdminExecutorForm({ mode = 'create', initial, scope }) {
     // Agentlik ichidan ochilganda sarlavha va yo'lakcha o'zgaradi (Figma 342:10168).
     const inAgency = scope === 'agency'
 
+    // `/admin/executors/[id]/edit` va `/admin/agencies/[id]/executors/new`
+    // ikkalasida ham segment nomi `id`.
+    const { id } = useParams()
+
     const [step, setStep] = useState(0)
     const [done, setDone] = useState(false)
+    // Yaratilgandan keyingi yozuv id'si — surat yuklash shu bilan ketadi.
+    const [savedId, setSavedId] = useState(editing ? id : null)
+
+    const actions = executorActions({
+        mode,
+        id,
+        agencyId: inAgency ? id : null,
+    })
+    const save = useAction(actions.save)
+    const upload = useAction(site.upload)
+    const addPhoto = useAction(actions.addPhoto)
     const [form, setForm] = useState(() => ({
         type: 'model',
         firstName: '',
@@ -69,12 +92,40 @@ export default function AdminExecutorForm({ mode = 'create', initial, scope }) {
         setForm((f) => ({ ...f, params: { ...f.params, [key]: value } }))
     }
 
-    function next() {
+    // Har bir qadamning oxirida yozuv serverga saqlanadi: birinchi qadam
+    // yaratadi/yangilaydi, keyingilari o'sha yozuvni to'ldiradi.
+    async function next() {
+        const res = await save.run(executorBody(form, PARAM_FIELDS))
+        if (!res.success) {
+            toast.error(res.error.message)
+            return
+        }
+        const nextId = res.data?.id || res.data?.user?.id || savedId
+        if (nextId && nextId !== savedId) setSavedId(nextId)
+
         if (step < EXECUTOR_STEPS.length - 1) {
+            toast.success('Сохранено')
             setStep(step + 1)
             return
         }
         setDone(true)
+    }
+
+    // Suratlar avval faylni yuklaydi, so'ng anketaga bog'laydi.
+    async function addPhotos(files) {
+        const urls = []
+        for (const file of files) {
+            const res = await upload.run(file)
+            if (!res.success) {
+                toast.error(res.error.message)
+                continue
+            }
+            const url = res.data?.url
+            if (!url) continue
+            urls.push(url)
+            if (savedId) await addPhoto.run(savedId, url)
+        }
+        if (urls.length) set('photos', [...form.photos, ...urls])
     }
 
     return (
@@ -106,7 +157,13 @@ export default function AdminExecutorForm({ mode = 'create', initial, scope }) {
                         steps={EXECUTOR_STEPS}
                         current={step}
                         onSubmit={next}
-                        submitLabel={step === EXECUTOR_STEPS.length - 1 ? 'Сохранить' : 'Далее'}
+                        submitLabel={
+                            save.loading
+                                ? 'Сохраняем…'
+                                : step === EXECUTOR_STEPS.length - 1
+                                  ? 'Сохранить'
+                                  : 'Далее'
+                        }
                     />
                 }
             >
@@ -405,7 +462,9 @@ export default function AdminExecutorForm({ mode = 'create', initial, scope }) {
                     >
                         <PortfolioUpload
                             photos={form.photos}
-                            onChange={(photos) => set('photos', photos)}
+                            onAdd={addPhotos}
+                            onRemove={(i) => set('photos', form.photos.filter((_, k) => k !== i))}
+                            busy={upload.loading}
                         />
                     </AdminFormSection>
                 )}
@@ -414,8 +473,8 @@ export default function AdminExecutorForm({ mode = 'create', initial, scope }) {
             <CreatedModal
                 open={done}
                 onClose={() => setDone(false)}
-                viewHref="/admin/executors/e-1"
-                listHref="/admin/executors"
+                viewHref={savedId ? `/admin/executors/${savedId}` : '/admin/executors'}
+                listHref={inAgency ? `/admin/agencies/${id}` : '/admin/executors'}
             />
         </>
     )
@@ -423,7 +482,7 @@ export default function AdminExecutorForm({ mode = 'create', initial, scope }) {
 
 // Portfolio yuklash — Figma'da adminka uchun alohida chizilmagan, sayt
 // bo'ylab ishlatiladigan yuklash qolipida.
-function PortfolioUpload({ photos, onChange }) {
+function PortfolioUpload({ photos, onAdd, onRemove, busy }) {
     return (
         <div className="flex flex-col gap-[16px]">
             <label className="flex cursor-pointer flex-col items-center justify-center gap-[8px] rounded-[6px] bg-light-white p-[24px] text-center text-[14px] text-grey transition-colors hover:bg-black/5 lg:p-[40px] lg:text-[16px]">
@@ -432,14 +491,9 @@ function PortfolioUpload({ photos, onChange }) {
                     accept="image/*"
                     multiple
                     className="hidden"
-                    onChange={(e) =>
-                        onChange([
-                            ...photos,
-                            ...Array.from(e.target.files || []).map((file) => file.name),
-                        ])
-                    }
+                    onChange={(e) => onAdd(Array.from(e.target.files || []))}
                 />
-                Перетащите файлы сюда или нажмите, чтобы выбрать
+                {busy ? 'Загружаем…' : 'Перетащите файлы сюда или нажмите, чтобы выбрать'}
                 <span className="text-[12px] text-[#aaa] lg:text-[14px]">
                     JPG или PNG, до 10 МБ каждая
                 </span>
@@ -447,15 +501,15 @@ function PortfolioUpload({ photos, onChange }) {
 
             {photos.length > 0 && (
                 <ul className="flex flex-col gap-[8px]">
-                    {photos.map((name, i) => (
+                    {photos.map((url, i) => (
                         <li
-                            key={`${name}-${i}`}
+                            key={`${url}-${i}`}
                             className="flex items-center justify-between gap-[16px] rounded-[6px] bg-light-white p-[12px] text-[14px] text-grey lg:p-[16px] lg:text-[16px]"
                         >
-                            <span className="min-w-0 flex-1 truncate">{name}</span>
+                            <span className="min-w-0 flex-1 truncate">{url}</span>
                             <button
                                 type="button"
-                                onClick={() => onChange(photos.filter((_, k) => k !== i))}
+                                onClick={() => onRemove(i)}
                                 aria-label="Удалить"
                                 className="cursor-pointer text-[#d14343] transition-opacity hover:opacity-70"
                             >

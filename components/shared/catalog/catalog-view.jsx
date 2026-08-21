@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import Container from '@/components/ui/container'
 import Breadcrumb from '@/components/ui/breadcrumb'
 import CatalogFilters from '@/components/shared/catalog/catalog-filters'
@@ -8,6 +8,9 @@ import CatalogToolbar from '@/components/shared/catalog/catalog-toolbar'
 import CatalogPagination from '@/components/shared/catalog/catalog-pagination'
 import CatalogFaq from '@/components/shared/catalog/catalog-faq'
 import { AllFiltersSheet, FieldSheet } from '@/components/shared/catalog/catalog-mobile-filters'
+import { useApi } from '@/lib/use-api'
+import * as site from '@/lib/api/site'
+import { faqItem } from '@/lib/adapters'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Katalog sahifalarining umumiy qolipi.
@@ -15,17 +18,15 @@ import { AllFiltersSheet, FieldSheet } from '@/components/shared/catalog/catalog
 // Проекты 141:8989 / 145:11176 — tuzilishi bir xil, faqat filtr maydonlari,
 // kartochka, setka ustunlari va matnlar farq qiladi.
 //
-// Sahifaga xos qismlar prop orqali beriladi:
-//   items · fields · emptyFilters · sortOptions · searchPlaceholder · faq
-//   renderCard (setka) · renderRow (ro'yxat) · matchFilters · sortItems
+// Ma'lumot backenddan keladi (backend/site.md → GET /site/…):
+//   `fetcher({ search, sort, page, pageSize, filters })` → { items, meta }
+// Filtrlash, saralash va sahifalash — server tomonida. Har o'zgarishda
+// `useApi` yangi so'rov yuboradi.
 //
-// Backend ulanganda `items` `useCatalogStore.fetch()` javobi bilan
-// almashtiriladi — saralash, sahifalash va filtrlash mantiqi o'sha holicha
-// qoladi.
+// FAQ ham backenddan: GET /site/faqs?type=<faqType>.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Raqamli chegara: bo'sh qiymat cheklamaydi. Sahifalar `matchFilters` ichida
-// ishlatadi, shuning uchun tashqariga chiqarilgan.
+// Raqamli chegara: sahifalar `buildParams` ichida ishlatadi.
 export function inRange(value, from, to) {
     if (from && value < Number(from)) return false
     if (to && value > Number(to)) return false
@@ -35,24 +36,23 @@ export function inRange(value, from, to) {
 export default function CatalogView({
     title,
     breadcrumb,
-    items,
     fields,
     emptyFilters,
     sortOptions,
     searchPlaceholder,
-    faq,
+    // FAQ turi — backend/site.md dagi `type` qiymati.
+    faqType,
     gridPageSize,
     listPageSize,
     renderCard,
     renderRow,
-    matchFilters,
-    sortItems,
+    // Ma'lumot manbayi va filtrlarni so'rov parametrlariga o'girish.
+    fetcher,
+    buildParams,
     // Проектыda setka uch ustunli (Figma 141:9060), ijrochilarda to'rtta.
     gridCols = 'lg:grid-cols-4',
     // Агентстваda ko'rinish almashtirgichi yo'q — faqat setka (Figma 155:12806).
     showViewToggle = true,
-    // Qidiruv qaysi maydon bo'yicha ketadi: anketalarda `name`, loyihalarda `title`.
-    getSearchText = (item) => item.name,
 }) {
     const [filters, setFilters] = useState(emptyFilters)
     const [searchInput, setSearchInput] = useState('')
@@ -66,18 +66,22 @@ export default function CatalogView({
 
     const pageSize = view === 'grid' ? gridPageSize : listPageSize
 
-    const found = useMemo(() => {
-        const query = search.trim().toLowerCase()
-        const list = items.filter((item) => {
-            if (query && !getSearchText(item).toLowerCase().includes(query)) return false
-            return matchFilters ? matchFilters(item, filters) : true
-        })
-        return sortItems ? sortItems(list, sort) : list
-    }, [items, filters, search, sort, matchFilters, sortItems, getSearchText])
+    // Parametrlar `useMemo` bilan barqarorlashadi — shunda `useApi` faqat
+    // haqiqiy o'zgarishda (filtr, saralash, sahifa) qayta so'rov yuboradi.
+    const params = useMemo(
+        () => buildParams({ search, sort, page, pageSize, filters }),
+        [buildParams, search, sort, page, pageSize, filters],
+    )
 
-    const totalPages = Math.max(1, Math.ceil(found.length / pageSize))
-    const currentPage = Math.min(page, totalPages)
-    const visible = found.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+    const listFetcher = useCallback(() => fetcher(params), [fetcher, params])
+    const faqFetcher = useCallback(() => site.faqs(faqType), [faqType])
+
+    const { data, loading, error, reload } = useApi(listFetcher)
+    const { data: faqData } = useApi(faqFetcher, { enabled: Boolean(faqType) })
+
+    const visible = data?.items || []
+    const totalPages = data?.meta?.pages || 1
+    const faq = useMemo(() => (faqData || []).map(faqItem), [faqData])
 
     function patchFilters(patch) {
         setFilters((v) => ({ ...v, ...patch }))
@@ -148,22 +152,22 @@ export default function CatalogView({
                             showViewToggle={showViewToggle}
                         />
 
-                        {visible.length === 0 ? (
-                            <div className="flex flex-col items-center gap-[12px] rounded-[6px] bg-white p-[40px] text-center">
-                                <p className="text-[16px] font-medium text-black lg:text-[18px]">
-                                    Ничего не найдено
-                                </p>
-                                <p className="text-[14px] text-grey lg:text-[16px]">
-                                    Попробуйте изменить параметры поиска или сбросить фильтры.
-                                </p>
-                                <button
-                                    type="button"
-                                    onClick={resetFilters}
-                                    className="mt-[4px] cursor-pointer rounded-[6px] bg-gold/15 px-[24px] py-[12px] text-[14px] font-medium text-gold transition-colors hover:bg-gold/25 lg:text-[16px]"
-                                >
-                                    Сбросить фильтры
-                                </button>
-                            </div>
+                        {error ? (
+                            <CatalogMessage
+                                title="Не удалось загрузить"
+                                text={error.message}
+                                actionLabel="Повторить"
+                                onAction={reload}
+                            />
+                        ) : loading ? (
+                            <CatalogSkeleton view={view} gridCols={gridCols} count={pageSize} />
+                        ) : visible.length === 0 ? (
+                            <CatalogMessage
+                                title="Ничего не найдено"
+                                text="Попробуйте изменить параметры поиска или сбросить фильтры."
+                                actionLabel="Сбросить фильтры"
+                                onAction={resetFilters}
+                            />
                         ) : view === 'grid' ? (
                             <div
                                 className={`grid grid-cols-1 gap-[12px] sm:grid-cols-2 lg:gap-[16px] ${gridCols}`}
@@ -176,11 +180,7 @@ export default function CatalogView({
                             </div>
                         )}
 
-                        <CatalogPagination
-                            page={currentPage}
-                            total={totalPages}
-                            onChange={setPage}
-                        />
+                        <CatalogPagination page={page} total={totalPages} onChange={setPage} />
                     </div>
                 </Container>
             </div>
@@ -206,6 +206,49 @@ export default function CatalogView({
                     onClose={() => setSheet(null)}
                 />
             )}
+        </div>
+    )
+}
+
+// Bo'sh natija va xato uchun bitta blok (Figma'da matn markazda, oq kartochka).
+function CatalogMessage({ title, text, actionLabel, onAction }) {
+    return (
+        <div className="flex flex-col items-center gap-[12px] rounded-[6px] bg-white p-[40px] text-center">
+            <p className="text-[16px] font-medium text-black lg:text-[18px]">{title}</p>
+            <p className="text-[14px] text-grey lg:text-[16px]">{text}</p>
+            {onAction && (
+                <button
+                    type="button"
+                    onClick={onAction}
+                    className="mt-[4px] cursor-pointer rounded-[6px] bg-gold/15 px-[24px] py-[12px] text-[14px] font-medium text-gold transition-colors hover:bg-gold/25 lg:text-[16px]"
+                >
+                    {actionLabel}
+                </button>
+            )}
+        </div>
+    )
+}
+
+// Yuklanish paytida kartochka o'lchamidagi kulrang joy egallovchilar.
+function CatalogSkeleton({ view, gridCols, count = 8 }) {
+    const items = Array.from({ length: Math.min(count, 12) })
+    if (view === 'grid') {
+        return (
+            <div className={`grid grid-cols-1 gap-[12px] sm:grid-cols-2 lg:gap-[16px] ${gridCols}`}>
+                {items.map((_, i) => (
+                    <div
+                        key={i}
+                        className="h-[348px] animate-pulse rounded-[6px] bg-black/5 lg:h-[400px]"
+                    />
+                ))}
+            </div>
+        )
+    }
+    return (
+        <div className="flex flex-col gap-[12px] lg:gap-[16px]">
+            {items.slice(0, 6).map((_, i) => (
+                <div key={i} className="h-[220px] animate-pulse rounded-[6px] bg-black/5" />
+            ))}
         </div>
     )
 }

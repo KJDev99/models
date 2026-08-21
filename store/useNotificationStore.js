@@ -1,9 +1,16 @@
 import { create } from 'zustand'
-import { apiToken } from '@/lib/axios'
+import * as site from '@/lib/api/site'
+import { notificationItem } from '@/lib/adapters'
 import { isAuthenticated } from '@/lib/auth'
 
-// Уведомления (Figma: уведомление 173:6099) — navbar'dagi qizil nuqta va
+// ─────────────────────────────────────────────────────────────────────────────
+// Уведомления (Figma: уведомление 173:6099) — navbar'dagi gold nuqta va
 // /notifications sahifasi shu store'dan oziqlanadi.
+//
+// Backend: GET /site/notifications → { items, unread }
+//          POST /site/notifications/read  (ids berilmasa — hammasi)
+// `ntype` qiymatlari backend/site.md da sanab o'tilgan.
+// ─────────────────────────────────────────────────────────────────────────────
 export const useNotificationStore = create((set, get) => ({
     items: [],
     unread: 0,
@@ -13,9 +20,11 @@ export const useNotificationStore = create((set, get) => ({
         if (!isAuthenticated()) return
         set({ loading: true })
         try {
-            const res = await apiToken.get('/notifications/')
-            const items = res.data?.results || res.data || []
-            set({ items, unread: items.filter((n) => !n.isRead).length })
+            const data = await site.notifications()
+            set({
+                items: (data.items || []).map(notificationItem).filter(Boolean),
+                unread: data.unread ?? 0,
+            })
         } catch {
             set({ items: [], unread: 0 })
         } finally {
@@ -24,23 +33,24 @@ export const useNotificationStore = create((set, get) => ({
     },
 
     markRead: async (id) => {
+        // Optimistik: nuqta darhol so'nadi, xato bo'lsa keyingi `fetch` tuzatadi.
         set({
             items: get().items.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
             unread: Math.max(0, get().unread - 1),
         })
         try {
-            await apiToken.post(`/notifications/${id}/read/`)
+            await site.markNotificationsRead([id])
         } catch {
-            // e'tiborsiz — keyingi fetch to'g'rilaydi
+            await get().fetch()
         }
     },
 
     markAllRead: async () => {
         set({ items: get().items.map((n) => ({ ...n, isRead: true })), unread: 0 })
         try {
-            await apiToken.post('/notifications/read-all/')
+            await site.markNotificationsRead()
         } catch {
-            // e'tiborsiz
+            await get().fetch()
         }
     },
 }))

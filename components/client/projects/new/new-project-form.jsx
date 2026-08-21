@@ -1,6 +1,8 @@
 'use client'
 
 import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import toast from 'react-hot-toast'
 import { Camera, MapPin, Minus, Plus, Upload, User, Video } from 'lucide-react'
 import Container from '@/components/ui/container'
 import { ClientBreadcrumb, ClientResult } from '@/components/client/ui/client-ui'
@@ -17,6 +19,9 @@ import {
     AdminTagInput,
     AdminTextarea,
 } from '@/components/admin/ui/admin-form'
+import { useAction } from '@/lib/use-api'
+import * as customerApi from '@/lib/api/customer'
+import * as site from '@/lib/api/site'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // «Новый проект» — Figma 208:8790 (Основная информация) · 212:3733 (Подробнее
@@ -58,16 +63,26 @@ const DURATIONS = [
 
 const STEPS = ['Основная информация', 'Подробнее о проекте', 'На модерации']
 
-export default function ClientNewProjectForm({ mode = 'create' }) {
+export default function ClientNewProjectForm({
+    mode = 'create',
+    projectId = null,
+    initialValues = null,
+}) {
     const editing = mode === 'edit'
+    const router = useRouter()
+
     const [step, setStep] = useState(0)
-    const [form, setForm] = useState({
+    // Yaratilgan loyihaning `id` si — keyingi qadamlar (muqova, submit) uchun.
+    const [createdId, setCreatedId] = useState(projectId)
+    const [coverFile, setCoverFile] = useState(null)
+    const [saving, setSaving] = useState(false)
+    const [form, setForm] = useState(() => ({
         title: '',
         category: '',
         type: '',
         description: '',
         kind: 'model',
-        requirements: ['Опыт коммерческих съёмок', 'Уверенная работа перед камерой'],
+        requirements: [],
         count: 1,
         city: '',
         address: '',
@@ -78,13 +93,100 @@ export default function ClientNewProjectForm({ mode = 'create' }) {
         rate: '',
         cover: '',
         details: '',
-    })
+        ...(initialValues || {}),
+    }))
 
     function set(key, value) {
         setForm((f) => ({ ...f, [key]: value }))
     }
 
     const sent = step === 2
+
+    const create = useAction(customerApi.createProject)
+    const update = useAction(customerApi.updateProject)
+    const setCover = useAction(customerApi.setProjectCover)
+    const submitProject = useAction(customerApi.submitProject)
+    const draftProject = useAction(customerApi.draftProject)
+    const upload = useAction(site.upload)
+
+    // Forma qiymatlarini backend maydonlariga o'giradi
+    // (Swagger «Customer: Проекты»).
+    function body() {
+        return {
+            title: form.title,
+            category: form.category || undefined,
+            project_type: form.type || undefined,
+            description: form.description || undefined,
+            details: form.details || undefined,
+            performer_specialty: form.kind,
+            model_count: Number(form.count) || 1,
+            requirement_tags: form.requirements?.length ? form.requirements : undefined,
+            city: form.city || undefined,
+            address: form.address || undefined,
+            shoot_date: form.date || undefined,
+            time_from: form.from || undefined,
+            time_to: form.to || undefined,
+            duration_label: form.duration || undefined,
+            hourly_rate_label: form.rate || undefined,
+        }
+    }
+
+    // Loyihani saqlaydi (birinchi marta yaratadi, keyin yangilaydi) va
+    // muqova tanlangan bo'lsa uni yuklaydi.
+    async function persist() {
+        let id = createdId
+        if (id) {
+            const res = await update.run(id, body())
+            if (!res.success) throw res.error
+        } else {
+            const res = await create.run(body())
+            if (!res.success) throw res.error
+            id = res.data?.id
+            setCreatedId(id)
+        }
+
+        if (coverFile && id) {
+            const uploaded = await upload.run(coverFile)
+            if (uploaded.success) await setCover.run(id, uploaded.data.url)
+        }
+        return id
+    }
+
+    async function next() {
+        if (sent) {
+            router.push('/client/dashboard')
+            return
+        }
+
+        setSaving(true)
+        try {
+            const id = await persist()
+            if (step === 1) {
+                // Ikkinchi qadamdan keyin moderatsiyaga yuboriladi.
+                const res = await submitProject.run(id)
+                if (!res.success) throw res.error
+            }
+            setStep((v) => Math.min(2, v + 1))
+        } catch (err) {
+            toast.error(err?.message || 'Не удалось сохранить проект')
+        } finally {
+            setSaving(false)
+        }
+    }
+
+    async function saveDraft() {
+        setSaving(true)
+        try {
+            const id = await persist()
+            await draftProject.run(id)
+            toast.success('Сохранено в черновик')
+            router.push('/client/dashboard')
+        } catch (err) {
+            toast.error(err?.message || 'Не удалось сохранить черновик')
+        } finally {
+            setSaving(false)
+        }
+    }
 
     return (
         <Container>
@@ -103,15 +205,20 @@ export default function ClientNewProjectForm({ mode = 'create' }) {
                             title="Создание профиля"
                             steps={STEPS}
                             current={step}
-                            onSubmit={() => setStep((s) => Math.min(2, s + 1))}
-                            submitLabel={sent ? 'Мои публикации' : 'Далее'}
+                            onSubmit={next}
+                            submitLabel={
+                                saving ? 'Сохраняем…' : sent ? 'Мои публикации' : 'Далее'
+                            }
                             secondary={
                                 sent
                                     ? {
                                           label: 'Создать новый проект',
-                                          onClick: () => setStep(0),
+                                          onClick: () => {
+                                              setCreatedId(null)
+                                              setStep(0)
+                                          },
                                       }
-                                    : { label: 'В черновик', onClick: () => setStep(0) }
+                                    : { label: 'В черновик', onClick: saveDraft }
                             }
                         />
                     }
@@ -293,9 +400,11 @@ export default function ClientNewProjectForm({ mode = 'create' }) {
                                         type="file"
                                         accept="image/*"
                                         className="hidden"
-                                        onChange={(e) =>
-                                            set('cover', e.target.files?.[0]?.name || '')
-                                        }
+                                        onChange={(e) => {
+                                            const file = e.target.files?.[0]
+                                            setCoverFile(file || null)
+                                            set('cover', file?.name || '')
+                                        }}
                                     />
                                     <Upload size={24} strokeWidth={2} className="shrink-0" />
                                     {form.cover || 'Нажмите для загрузки или перетащите файл сюда'}

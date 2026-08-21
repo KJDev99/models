@@ -1,11 +1,15 @@
 'use client'
 
-import React from 'react'
+import React, { useCallback, useMemo } from 'react'
 import Image from 'next/image'
 import { MapPin } from 'lucide-react'
 import Container from '@/components/ui/container'
 import Breadcrumb from '@/components/ui/breadcrumb'
-import { CONTACTS, SOCIALS } from '@/components/contacts/contacts-data'
+import CatalogFaq from '@/components/shared/catalog/catalog-faq'
+import { SOCIAL_ICONS, SOCIALS, normalizeSocial } from '@/components/contacts/contacts-data'
+import { useApi } from '@/lib/use-api'
+import * as site from '@/lib/api/site'
+import { contactsInfo, faqItem } from '@/lib/adapters'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Контакты sahifasi. Figma: desktop 164:14294, mobil 377:16389.
@@ -41,6 +45,23 @@ function ContactValue({ href, children }) {
 }
 
 export default function ContactsView() {
+    // Kontaktlar adminkadan boshqariladi (GET /site/contacts, backend/site.md).
+    const fetchContacts = useCallback(() => site.contacts(), [])
+    const fetchFaq = useCallback(() => site.faqs('contacts'), [])
+
+    const { data: raw } = useApi(fetchContacts)
+    const { data: faqData } = useApi(fetchFaq)
+
+    const contacts = useMemo(() => contactsInfo(raw), [raw])
+    const faq = useMemo(() => (faqData || []).map(faqItem), [faqData])
+
+    // Backend ijtimoiy tarmoqlarni `{ url, title }` ko'rinishida beradi;
+    // ikonka esa lokal fayllardan sarlavha bo'yicha tanlanadi.
+    const socials = (contacts?.socials?.length ? contacts.socials : SOCIALS).map((s) => ({
+        ...s,
+        icon: s.icon || SOCIAL_ICONS[normalizeSocial(s.label)] || SOCIAL_ICONS.default,
+    }))
+
     return (
         <div className="flex flex-col gap-[16px] bg-light-white pt-[16px] lg:pt-[24px] pb-[40px] lg:gap-[24px] lg:pb-[100px]">
             <Container className="flex flex-col gap-[16px] lg:gap-[24px]">
@@ -53,26 +74,26 @@ export default function ContactsView() {
                 {/* To'rtta kartochka — Figma 164:14756 */}
                 <div className="grid grid-cols-1 gap-[16px] sm:grid-cols-2 lg:grid-cols-4">
                     <ContactCard label="Телефон">
-                        <ContactValue href={`tel:${CONTACTS.phone.replace(/[^+\d]/g, '')}`}>
-                            {CONTACTS.phone}
+                        <ContactValue href={`tel:${(contacts?.phone || '').replace(/[^+\d]/g, '')}`}>
+                            {contacts?.phone || '—'}
                         </ContactValue>
                     </ContactCard>
 
                     <ContactCard label="Email">
-                        <ContactValue href={`mailto:${CONTACTS.email}`}>
-                            {CONTACTS.email}
+                        <ContactValue href={`mailto:${contacts?.email || ''}`}>
+                            {contacts?.email || '—'}
                         </ContactValue>
                     </ContactCard>
 
                     <ContactCard label="Адрес">
                         <p className="text-[14px] text-black lg:text-[18px] lg:leading-[26px]">
-                            {CONTACTS.address}
+                            {contacts?.address || '—'}
                         </p>
                     </ContactCard>
 
                     <ContactCard label="Социальные сети">
                         <div className="flex items-center gap-[9px] lg:gap-[12px]">
-                            {SOCIALS.map((social) => (
+                            {socials.map((social) => (
                                 <a
                                     key={social.key}
                                     href={social.href}
@@ -103,11 +124,14 @@ export default function ContactsView() {
                     <span className="flex flex-col items-center gap-[8px] text-center">
                         <MapPin size={32} strokeWidth={2} className="text-gold" />
                         <span className="px-[16px] text-[12px] leading-[16px] text-grey lg:text-[14px]">
-                            {CONTACTS.address}
+                            {contacts?.address || '—'}
                         </span>
                     </span>
                 </div>
             </Container>
+
+            {/* «Частые вопросы» — GET /site/faqs?type=contacts */}
+            <CatalogFaq items={faq} />
         </div>
     )
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import AdminProfileModal, {
     ModalAvatar,
@@ -18,15 +19,25 @@ import {
     PasswordModal,
     PhoneModal,
 } from '@/components/client/dashboard/security-modals'
+import { useAction } from '@/lib/use-api'
+import * as customerApi from '@/lib/api/customer'
+import * as site from '@/lib/api/site'
+import { useAuthStore } from '@/store/useAuthStore'
+import { formatDate } from '@/lib/format'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // «Редактировать профиль» — Figma «Заказчик» 320:8226 (1200×810).
 // Oyna karkasi adminkadagi bilan bitta komponent (338:18303), faqat
 // maydonlar заказчик uchun: тип аккаунта, имя/фамилия, город, о компании.
+//
+// Saqlash (backend/customer.md):
+//   Информация → PATCH /customer/profile/info
+//   Контакты   → PATCH /customer/profile/contacts
+//   Фото       → POST  /site/upload → POST /customer/profile/photo
 // ─────────────────────────────────────────────────────────────────────────────
 
 const ACCOUNT_TYPES = [
-    { value: 'client', label: 'Заказчик' },
+    { value: 'individual', label: 'Частное лицо' },
     { value: 'company', label: 'Компания' },
 ]
 
@@ -37,20 +48,94 @@ const SECURITY_ROWS = [
     { key: 'phone', title: 'Телефон', icon: Phone },
 ]
 
-export default function ClientProfileModal({ open, onClose, profile }) {
-    const [about, setAbout] = useState('')
+// Backend profilidan forma holatini yasaydi. «Информация … пока не заполнена» —
+// bo'sh profil uchun ko'rsatiladigan matn, uni maydonga tushirmaymiz.
+const ABOUT_PLACEHOLDER = 'Информация о компании пока не заполнена'
+
+function fromProfile(profile) {
+    return {
+        customerType: profile?.customerType || 'individual',
+        firstName: profile?.firstName || '',
+        lastName: profile?.lastName || '',
+        companyName: profile?.companyName || '',
+        inn: profile?.inn || '',
+        city: profile?.city || '',
+        about: profile?.about === ABOUT_PLACEHOLDER ? '' : profile?.about || '',
+        logo: profile?.logo || null,
+        phone: profile?.phone || '',
+        site: profile?.site || '',
+    }
+}
+
+export default function ClientProfileModal({ open, onClose, profile, onSaved }) {
+    const router = useRouter()
+    const logout = useAuthStore((s) => s.logout)
+
+    // Forma boshlang'ich qiymatlari mount paytida olinadi — oyna faqat
+    // «Редактировать» bosilganda mount bo'ladi (dashboard-view), shuning uchun
+    // effekt bilan sinxronlash shart emas.
+    const [form, setForm] = useState(() => fromProfile(profile))
     const [security, setSecurity] = useState(null)
 
-    function save() {
-        onClose()
-        toast.success('Изменения сохранены')
+    const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
+
+    const saveInfo = useAction(customerApi.updateInfo)
+    const saveContacts = useAction(customerApi.updateContacts)
+    const upload = useAction(site.upload)
+    const savePhoto = useAction(customerApi.updatePhoto)
+
+    async function submitInfo() {
+        const res = await saveInfo.run({
+            customer_type: form.customerType,
+            first_name: form.firstName || undefined,
+            last_name: form.lastName || undefined,
+            company_name: form.customerType === 'company' ? form.companyName : undefined,
+            inn: form.inn || undefined,
+            city: form.city,
+            about: form.about || undefined,
+        })
+        finish(res, 'Информация сохранена')
     }
 
-    const saveButton = (
-        <Button variant="gold" onClick={save} className="lg:w-[240px]">
-            Сохранить
-        </Button>
-    )
+    async function submitContacts() {
+        const res = await saveContacts.run({
+            phone: form.phone || undefined,
+            contact_phone: form.phone || undefined,
+            website: form.site || undefined,
+        })
+        finish(res, 'Контакты сохранены')
+    }
+
+    function finish(res, message) {
+        if (!res.success) {
+            toast.error(res.error.message)
+            return
+        }
+        toast.success(message)
+        onSaved?.()
+        onClose()
+    }
+
+    // Avatar: avval faylni yuklaymiz, so'ng URL'ni profilga bog'laymiz.
+    async function pickPhoto(file) {
+        if (!file) return
+        const uploaded = await upload.run(file)
+        if (!uploaded.success) {
+            toast.error(uploaded.error.message)
+            return
+        }
+        const url = uploaded.data?.url
+        const res = await savePhoto.run(url)
+        if (!res.success) {
+            toast.error(res.error.message)
+            return
+        }
+        setForm((f) => ({ ...f, logo: url }))
+        toast.success('Фото обновлено')
+        onSaved?.()
+    }
+
+    const busy = saveInfo.loading || saveContacts.loading
 
     return (
         <AdminProfileModal
@@ -62,28 +147,72 @@ export default function ClientProfileModal({ open, onClose, profile }) {
             sections={{
                 info: (
                     <>
-                        <ModalAvatar src={profile?.logo} />
+                        <ModalAvatar src={form.logo} onPick={pickPhoto} />
                         <ModalField label="Тип аккаунта">
-                            <ModalSelect options={ACCOUNT_TYPES} defaultValue="client" />
+                            <ModalSelect
+                                options={ACCOUNT_TYPES}
+                                value={form.customerType}
+                                onChange={set('customerType')}
+                            />
                         </ModalField>
+
+                        {form.customerType === 'company' ? (
+                            <>
+                                <ModalField label="Название компании">
+                                    <ModalInput
+                                        value={form.companyName}
+                                        onChange={set('companyName')}
+                                        placeholder="Введите название"
+                                    />
+                                </ModalField>
+                                <ModalField label="ИНН">
+                                    <ModalInput
+                                        value={form.inn}
+                                        onChange={set('inn')}
+                                        placeholder="Введите ИНН"
+                                    />
+                                </ModalField>
+                            </>
+                        ) : null}
+
                         <ModalField label="Имя">
-                            <ModalInput placeholder="Введите имя" />
+                            <ModalInput
+                                value={form.firstName}
+                                onChange={set('firstName')}
+                                placeholder="Введите имя"
+                            />
                         </ModalField>
                         <ModalField label="Фамилия">
-                            <ModalInput placeholder="Введите фамилию" />
+                            <ModalInput
+                                value={form.lastName}
+                                onChange={set('lastName')}
+                                placeholder="Введите фамилию"
+                            />
                         </ModalField>
                         <ModalField label="Город">
-                            <ModalInput defaultValue={profile?.city} placeholder="Введите город" />
+                            <ModalInput
+                                value={form.city}
+                                onChange={set('city')}
+                                placeholder="Введите город"
+                            />
                         </ModalField>
                         <ModalField label="О компании">
                             <ModalTextarea
-                                value={about}
-                                onChange={(e) => setAbout(e.target.value)}
+                                value={form.about}
+                                onChange={set('about')}
                                 max={600}
                                 placeholder="Расскажите, чем занимается ваша компания, какие проекты реализует и с кем сотрудничает."
                             />
                         </ModalField>
-                        {saveButton}
+
+                        <Button
+                            variant="gold"
+                            onClick={submitInfo}
+                            disabled={busy || !form.city.trim()}
+                            className="lg:w-[240px]"
+                        >
+                            Сохранить
+                        </Button>
                     </>
                 ),
                 contacts: (
@@ -91,21 +220,37 @@ export default function ClientProfileModal({ open, onClose, profile }) {
                         <ModalField label="Телефон">
                             <ModalInput
                                 type="tel"
-                                defaultValue={profile?.phone}
+                                value={form.phone}
+                                onChange={set('phone')}
                                 placeholder="+ 7 (000)-000-00-00"
                             />
                         </ModalField>
                         <ModalField label="Электронная почта">
+                            {/* Pochta «Безопасность» bo'limidan o'zgaradi
+                                (POST /customer/settings/email + tasdiqlash). */}
                             <ModalInput
                                 type="email"
-                                defaultValue={profile?.email}
+                                value={profile?.email || ''}
+                                readOnly
                                 placeholder="po4ta@mail.ru"
                             />
                         </ModalField>
                         <ModalField label="Сайт">
-                            <ModalInput defaultValue={profile?.site} placeholder="lime.ru" />
+                            <ModalInput
+                                value={form.site}
+                                onChange={set('site')}
+                                placeholder="lime.ru"
+                            />
                         </ModalField>
-                        {saveButton}
+
+                        <Button
+                            variant="gold"
+                            onClick={submitContacts}
+                            disabled={busy}
+                            className="lg:w-[240px]"
+                        >
+                            Сохранить
+                        </Button>
                     </>
                 ),
                 security: (
@@ -121,23 +266,16 @@ export default function ClientProfileModal({ open, onClose, profile }) {
                                 title={row.title}
                                 note={
                                     row.key === 'password'
-                                        ? 'Последнее изменение 01.07.2026'
+                                        ? profile?.passwordChangedAt
+                                            ? `Последнее изменение ${formatDate(profile.passwordChangedAt)}`
+                                            : 'Смените пароль, если давно этого не делали'
                                         : row.key === 'email'
-                                          ? profile?.email || 'lime@mail.ru'
-                                          : profile?.phone || 'lime@mail.ru'
+                                          ? profile?.email || 'Не указана'
+                                          : profile?.phone || 'Не указан'
                                 }
                                 onChange={() => setSecurity(row.key)}
                             />
                         ))}
-
-                        <div className="flex flex-col gap-[12px] lg:flex-row lg:gap-[16px]">
-                            <Button variant="gold" onClick={save} full className="lg:flex-1">
-                                Сохранить
-                            </Button>
-                            <Button variant="white" onClick={onClose} full className="lg:flex-1">
-                                Отменить
-                            </Button>
-                        </div>
                     </>
                 ),
                 delete: (
@@ -160,9 +298,12 @@ export default function ClientProfileModal({ open, onClose, profile }) {
             <PasswordModal
                 open={security === 'password'}
                 onClose={() => setSecurity(null)}
-                onDone={() => {
+                onDone={async () => {
                     setSecurity(null)
-                    toast.success('Пароль изменён')
+                    // Parol almashgach barcha refresh tokenlar bekor qilinadi.
+                    toast.success('Пароль изменён, войдите заново')
+                    await logout()
+                    router.push('/')
                 }}
             />
             <EmailModal open={security === 'email'} onClose={() => setSecurity(null)} />
@@ -172,15 +313,18 @@ export default function ClientProfileModal({ open, onClose, profile }) {
                 onDone={() => {
                     setSecurity(null)
                     toast.success('Номер изменён')
+                    onSaved?.()
                 }}
             />
             <DeleteAccountModal
                 open={security === 'delete'}
                 onClose={() => setSecurity(null)}
-                onConfirm={() => {
+                onConfirm={async () => {
                     setSecurity(null)
                     onClose()
-                    toast.success('Заявка на удаление отправлена')
+                    toast.success('Аккаунт удалён')
+                    await logout()
+                    router.push('/')
                 }}
             />
         </AdminProfileModal>

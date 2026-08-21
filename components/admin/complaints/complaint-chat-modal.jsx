@@ -1,14 +1,35 @@
 'use client'
 
-import React, { useEffect } from 'react'
+import React, { useCallback, useEffect, useMemo } from 'react'
 import { X } from 'lucide-react'
-import { COMPLAINT_CHAT } from '@/components/admin/complaints/complaints-data'
+import { useApi } from '@/lib/use-api'
+import * as adminApi from '@/lib/api/admin'
+import { chatMessage } from '@/lib/adapters'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // «Переписка участников» — Figma 344:17016 / mobil 460:27434.
 // Keng oq oyna: sarlavha, ishtirokchilar qatori va aylanadigan xabarlar.
 // ─────────────────────────────────────────────────────────────────────────────
 export default function ComplaintChatModal({ open, onClose, complaint }) {
+    // GET /admin/complaints/{id}/messages — ishtirokchilar yozishmasi
+    // (backend/admin.md). Oyna ochilgandagina so'raladi.
+    const fetcher = useCallback(
+        () => adminApi.complaintMessages(complaint?.id),
+        [complaint?.id],
+    )
+    const { data, loading, error } = useApi(fetcher, {
+        enabled: Boolean(open && complaint?.id),
+    })
+
+    // Shikoyat qilingan tomonning xabarlari o'ng tomonda ko'rsatiladi.
+    const messages = useMemo(
+        () =>
+            (data?.messages || data || [])
+                .map((m) => chatMessage(m, complaint?.accusedId))
+                .filter(Boolean),
+        [data, complaint?.accusedId],
+    )
+
     useEffect(() => {
         if (!open) return
 
@@ -60,12 +81,17 @@ export default function ComplaintChatModal({ open, onClose, complaint }) {
                     </span>
                     <span className="flex items-center gap-[8px]">
                         <span className="block size-[20px] rounded-full bg-[#7d7d7d]" />
-                        {complaint?.target}
+                        {complaint?.accused}
                     </span>
                 </div>
 
                 <div className="custom-scrollbar flex flex-col gap-[16px] overflow-y-auto pr-[4px]">
-                    {COMPLAINT_CHAT.map((message) => (
+                    {(loading || error || messages.length === 0) && (
+                        <p className="py-[24px] text-center text-[14px] text-grey lg:text-[16px]">
+                            {loading ? 'Загружаем…' : error ? error.message : 'Переписки нет'}
+                        </p>
+                    )}
+                    {messages.map((message) => (
                         <div
                             key={message.id}
                             className={`flex items-end gap-[8px] ${
@@ -80,7 +106,7 @@ export default function ComplaintChatModal({ open, onClose, complaint }) {
                             >
                                 {message.text}
                                 <span className="shrink-0 text-[12px] text-grey">
-                                    {message.time}
+                                    {messageTime(message.createdAt)}
                                 </span>
                             </span>
                         </div>
@@ -89,4 +115,12 @@ export default function ComplaintChatModal({ open, onClose, complaint }) {
             </div>
         </div>
     )
+}
+
+// «14:34» — xabar vaqti (Figma 344:17016).
+function messageTime(value) {
+    if (!value) return ''
+    const d = new Date(value)
+    if (Number.isNaN(d.getTime())) return ''
+    return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
 }

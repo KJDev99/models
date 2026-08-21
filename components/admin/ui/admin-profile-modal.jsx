@@ -34,6 +34,10 @@ export default function AdminProfileModal({
     tabs = TABS,
     sections,
     hideActionsFor = [],
+    // `onSave` berilsa — «Сохранить» serverga yozadi va faqat muvaffaqiyatda
+    // yopiladi. Berilmasa — eski xatti-harakat (shunchaki yopish).
+    onSave,
+    saving = false,
     children,
 }) {
     const [tab, setTab] = useState(tabs[0].key)
@@ -153,13 +157,20 @@ export default function AdminProfileModal({
                             <div className="flex gap-[16px]">
                                 <button
                                     type="button"
-                                    onClick={() => {
+                                    disabled={saving}
+                                    onClick={async () => {
+                                        if (onSave) {
+                                            await onSave()
+                                            return
+                                        }
                                         onClose()
                                         toast.success('Изменения сохранены')
                                     }}
-                                    className="ui-shine relative min-w-0 flex-1 cursor-pointer overflow-hidden rounded-[6px] bg-gold px-[24px] py-[12px] text-[14px] font-medium text-white transition-colors hover:bg-[#c19754] lg:py-[16px] lg:text-[18px]"
+                                    className="ui-shine relative min-w-0 flex-1 cursor-pointer overflow-hidden rounded-[6px] bg-gold px-[24px] py-[12px] text-[14px] font-medium text-white transition-colors hover:bg-[#c19754] disabled:opacity-60 lg:py-[16px] lg:text-[18px]"
                                 >
-                                    <span className="relative">Сохранить</span>
+                                    <span className="relative">
+                                        {saving ? 'Сохраняем…' : 'Сохранить'}
+                                    </span>
                                 </button>
                                 <button
                                     type="button"
@@ -228,7 +239,8 @@ export function ModalTextarea({ value, onChange, max = 600, placeholder }) {
 }
 
 // Avatar yuklash (Figma 338:18333).
-export function ModalAvatar({ src, label = 'Загрузите аватарку' }) {
+// `onPick(file)` — fayl tanlanganda chaqiriladi (yuklash chaqiruv joyida).
+export function ModalAvatar({ src, label = 'Загрузите аватарку', onPick }) {
     return (
         <ModalField label={label}>
             <div className="flex flex-col items-start gap-[16px]">
@@ -238,7 +250,16 @@ export function ModalAvatar({ src, label = 'Загрузите аватарку'
                     )}
                 </span>
                 <label className="flex cursor-pointer items-center gap-[12px] rounded-[6px] bg-white px-[16px] py-[12px] text-[14px] font-medium text-grey transition-colors hover:text-black lg:px-[24px] lg:py-[16px] lg:text-[16px]">
-                    <input type="file" accept="image/*" className="hidden" />
+                    <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            e.target.value = ''
+                            if (file) onPick?.(file)
+                        }}
+                    />
                     <Upload size={24} strokeWidth={2} className="shrink-0" />
                     Изменить фотографию
                 </label>

@@ -1,6 +1,8 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import toast from 'react-hot-toast'
 import { Camera, MapPin, Minus, Plus, Upload, User, Video } from 'lucide-react'
 import {
     AdminBreadcrumb,
@@ -17,6 +19,9 @@ import {
     AdminTextarea,
 } from '@/components/admin/ui/admin-form'
 import { CreatedModal } from '@/components/admin/ui/admin-modals'
+import { useApi, useAction } from '@/lib/use-api'
+import * as adminApi from '@/lib/api/admin'
+import * as site from '@/lib/api/site'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // «Создать проект» — Figma 338:20138 / mobil 455:21332.
@@ -54,18 +59,22 @@ const DURATIONS = [
     { value: '8', label: '8 часов' },
 ]
 
-export default function AdminProjectForm({ mode = 'create' }) {
+export default function AdminProjectForm({ mode = 'create', initialValues = null }) {
     const editing = mode === 'edit'
+    const router = useRouter()
+    const { id } = useParams()
+
     const [step, setStep] = useState(0)
     const [done, setDone] = useState(false)
-    const [form, setForm] = useState({
+    const [savedId, setSavedId] = useState(editing ? id : null)
+    const [form, setForm] = useState(() => ({
         client: '',
         title: '',
         category: '',
         type: '',
         description: '',
         kind: 'model',
-        requirements: ['Опыт коммерческих съёмок', 'Уверенная работа перед камерой'],
+        requirements: [],
         count: 1,
         city: '',
         address: '',
@@ -76,10 +85,90 @@ export default function AdminProjectForm({ mode = 'create' }) {
         rate: '',
         cover: '',
         details: '',
-    })
+        ...(initialValues || {}),
+    }))
+
+    // «Заказчик» — ro'yxat GET /admin/customers dan (backend/admin.md).
+    const customersFetcher = useCallback(() => adminApi.customers({ page_size: 100 }), [])
+    const { data: customers } = useApi(customersFetcher)
+    const clientOptions = useMemo(
+        () => [
+            { value: '', label: 'Выберите заказчика' },
+            ...((customers?.items || []).map((c) => ({
+                value: c.id,
+                label:
+                    c.company_name ||
+                    [c.first_name, c.last_name].filter(Boolean).join(' ') ||
+                    c.email,
+            }))),
+        ],
+        [customers],
+    )
+
+    const create = useAction(adminApi.createProject)
+    const update = useAction(adminApi.updateProject)
+    const upload = useAction(site.upload)
 
     function set(key, value) {
         setForm((f) => ({ ...f, [key]: value }))
+    }
+
+    // Formani `POST/PUT /admin/projects` tanasiga o'giradi.
+    function body() {
+        return {
+            owner_id: form.client || undefined,
+            title: form.title,
+            category: form.category || undefined,
+            project_type: form.type || undefined,
+            description: form.description || undefined,
+            details: form.details || undefined,
+            performer_specialty: form.kind,
+            model_count: form.count,
+            requirement_tags: form.requirements,
+            city: form.city || undefined,
+            address: form.address || undefined,
+            shoot_date: form.date || undefined,
+            time_from: form.from || undefined,
+            time_to: form.to || undefined,
+            duration_label: DURATIONS.find((d) => d.value === form.duration)?.label || undefined,
+            hourly_rate_label: form.rate || undefined,
+        }
+    }
+
+    async function persist() {
+        const res = savedId ? await update.run(savedId, body()) : await create.run(body())
+        if (!res.success) {
+            toast.error(res.error.message)
+            return null
+        }
+        const nextId = res.data?.id || savedId
+        if (nextId && nextId !== savedId) setSavedId(nextId)
+        return nextId
+    }
+
+    async function next() {
+        const projectId = await persist()
+        if (!projectId) return
+        if (step === 0) {
+            toast.success('Сохранено')
+            setStep(1)
+            return
+        }
+        setDone(true)
+    }
+
+    // Muqova: avval fayl yuklanadi, so'ng loyihaga bog'lanadi.
+    async function pickCover(file) {
+        if (!file) return
+        const res = await upload.run(file)
+        if (!res.success) {
+            toast.error(res.error.message)
+            return
+        }
+        const url = res.data?.url
+        set('cover', url)
+        const projectId = savedId || (await persist())
+        if (projectId) await update.run(projectId, { cover_url: url })
     }
 
     return (
@@ -98,8 +187,14 @@ export default function AdminProjectForm({ mode = 'create' }) {
                         title="Создание проекта"
                         steps={['Основная информация', 'Подробнее о проекте']}
                         current={step}
-                        onSubmit={() => (step === 0 ? setStep(1) : setDone(true))}
-                        submitLabel={step === 0 ? 'Далее' : 'Сохранить'}
+                        onSubmit={next}
+                        submitLabel={
+                            create.loading || update.loading
+                                ? 'Сохраняем…'
+                                : step === 0
+                                  ? 'Далее'
+                                  : 'Сохранить'
+                        }
                     />
                 }
             >
@@ -113,10 +208,10 @@ export default function AdminProjectForm({ mode = 'create' }) {
                         <AdminFormSection step={1} title="Основная информация">
                             <AdminFieldGroup>
                                 <AdminField label="Заказчик">
-                                    <AdminInput
+                                    <AdminFormSelect
                                         value={form.client}
                                         onChange={(e) => set('client', e.target.value)}
-                                        placeholder="Введите имя или название компании..."
+                                        options={clientOptions}
                                     />
                                 </AdminField>
                                 <AdminField label="Название проекта">
@@ -277,10 +372,12 @@ export default function AdminProjectForm({ mode = 'create' }) {
                                     type="file"
                                     accept="image/*"
                                     className="hidden"
-                                    onChange={(e) => set('cover', e.target.files?.[0]?.name || '')}
+                                    onChange={(e) => pickCover(e.target.files?.[0])}
                                 />
                                 <Upload size={24} strokeWidth={2} className="shrink-0" />
-                                {form.cover || 'Нажмите для загрузки или перетащите файл сюда'}
+                                {upload.loading
+                                    ? 'Загружаем…'
+                                    : form.cover || 'Нажмите для загрузки или перетащите файл сюда'}
                             </label>
                         </AdminFormSection>
                     </>
@@ -303,8 +400,11 @@ export default function AdminProjectForm({ mode = 'create' }) {
 
             <CreatedModal
                 open={done}
-                onClose={() => setDone(false)}
-                viewHref="/admin/projects/p-1"
+                onClose={() => {
+                    setDone(false)
+                    router.push('/admin/projects')
+                }}
+                viewHref={savedId ? `/admin/projects/${savedId}` : '/admin/projects'}
                 listHref="/admin/projects"
             />
         </>

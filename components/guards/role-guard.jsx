@@ -4,7 +4,7 @@ import React, { useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/use-auth'
 import { setReturnUrl } from '@/lib/auth'
-import { homeForRole } from '@/lib/roles'
+import { ROLES, homeForRole } from '@/lib/roles'
 import { SKIP_GUARDS } from '@/lib/dev-preview'
 import Spinner from '@/components/ui/spinner'
 
@@ -21,7 +21,8 @@ export default function RoleGuard({ allow = [], children }) {
         if (SKIP_GUARDS || !ready) return
         if (!authed) {
             setReturnUrl(pathname)
-            router.replace('/auth/login')
+            // Adminkaning o'z kirish sahifasi bor (backend/admin.md).
+            router.replace(allow.includes(ROLES.ADMIN) ? '/admin/login' : '/auth/login')
             return
         }
         if (!allow.includes(role)) {

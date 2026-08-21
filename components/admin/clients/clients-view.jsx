@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
+import toast from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
 import { Eye } from 'lucide-react'
 import {
@@ -14,38 +15,51 @@ import {
 import Button from '@/components/ui/button'
 import AdminTable from '@/components/admin/ui/admin-table'
 import { rowMenu } from '@/components/admin/ui/admin-menu-items'
-import { RowActionModals } from '@/components/admin/ui/admin-modals'
+import { RowActionModals, blockPayload } from '@/components/admin/ui/admin-modals'
 import { USER_STATUS } from '@/components/admin/ui/admin-statuses'
-import {
-    CLIENTS,
-    CLIENTS_PAGE_SIZE,
-    CLIENT_STATUS_FILTER,
-} from '@/components/admin/clients/clients-data'
+import { CLIENTS_PAGE_SIZE, CLIENT_STATUS_FILTER } from '@/components/admin/clients/clients-data'
+import { useApi, useAction } from '@/lib/use-api'
+import * as adminApi from '@/lib/api/admin'
+import { adminUserRow } from '@/lib/adapters'
 
 // Figma: Заказчики (336:15164 / 446:16179)
 export default function AdminClients() {
     const router = useRouter()
-    const [list, setList] = useState(CLIENTS)
     const [query, setQuery] = useState('')
     const [status, setStatus] = useState('')
     const [page, setPage] = useState(1)
     const [action, setAction] = useState(null)
 
-    const filtered = useMemo(() => {
-        const q = query.trim().toLowerCase()
-        return list.filter((row) => {
-            if (status && row.status !== status) return false
-            if (!q) return true
-            return `${row.name} ${row.email}`.toLowerCase().includes(q)
-        })
-    }, [list, query, status])
+    // Qidiruv, filtr va sahifalash — server tomonida (backend/admin.md).
+    const fetcher = useCallback(
+        () =>
+            adminApi.customers({
+                q: query || undefined,
+                status: status || undefined,
+                page,
+                page_size: CLIENTS_PAGE_SIZE,
+            }),
+        [query, status, page],
+    )
+    const { data, loading, error, reload } = useApi(fetcher)
 
-    const pages = Math.max(1, Math.ceil(filtered.length / CLIENTS_PAGE_SIZE))
-    const current = Math.min(page, pages)
-    const rows = filtered.slice((current - 1) * CLIENTS_PAGE_SIZE, current * CLIENTS_PAGE_SIZE)
+    const rows = useMemo(() => (data?.items || []).map(adminUserRow), [data])
+    const pages = data?.meta?.pages || 1
+    const current = data?.meta?.page || page
 
-    function patch(row, changes) {
-        setList((all) => all.map((item) => (item.id === row.id ? { ...item, ...changes } : item)))
+    const block = useAction(adminApi.blockCustomer)
+    const unblock = useAction(adminApi.unblockCustomer)
+    const remove = useAction(adminApi.deleteCustomer)
+
+    // Har bir amaldan keyin ro'yxat serverdan qayta o'qiladi.
+    async function run(promise, message) {
+        const res = await promise
+        if (!res.success) {
+            toast.error(res.error.message)
+            return
+        }
+        toast.success(message)
+        reload()
     }
 
     return (
@@ -85,7 +99,8 @@ export default function AdminClients() {
                 }
             >
                 <AdminTable
-                    rows={rows}
+                    rows={loading ? [] : rows}
+                    empty={loading ? 'Загружаем…' : error ? error.message : 'Заказчики не найдены'}
                     actionsWidth="lg:w-[64px]"
                     columns={[
                         { key: 'name', label: 'Пользователь' },
@@ -117,10 +132,6 @@ export default function AdminClients() {
                                     items={rowMenu({
                                         status: row.status,
                                         onEdit: () => router.push(`/admin/clients/${row.id}`),
-                                        onToggle: () =>
-                                            patch(row, {
-                                                status: row.status === 'paused' ? 'active' : 'paused',
-                                            }),
                                         onBlock: () => setAction({ type: 'block', row }),
                                         onUnblock: () => setAction({ type: 'unblock', row }),
                                         onDelete: () => setAction({ type: 'delete', row }),
@@ -137,9 +148,14 @@ export default function AdminClients() {
             <RowActionModals
                 action={action}
                 onClose={() => setAction(null)}
-                onBlock={(row) => patch(row, { status: 'blocked' })}
-                onUnblock={(row) => patch(row, { status: 'active' })}
-                onDelete={(row) => setList((all) => all.filter((item) => item.id !== row.id))}
+                onBlock={(row, form) =>
+                    run(
+                        block.run(row.id, blockPayload(form)),
+                        'Пользователь заблокирован',
+                    )
+                }
+                onUnblock={(row) => run(unblock.run(row.id), 'Пользователь разблокирован')}
+                onDelete={(row) => run(remove.run(row.id), 'Пользователь удалён')}
             />
         </>
     )

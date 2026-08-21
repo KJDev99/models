@@ -1,6 +1,8 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import toast from 'react-hot-toast'
 import { MapPin, Upload } from 'lucide-react'
 import {
     AdminBreadcrumb,
@@ -17,6 +19,10 @@ import {
     AdminTextarea,
 } from '@/components/admin/ui/admin-form'
 import { CreatedModal } from '@/components/admin/ui/admin-modals'
+import { useApi, useAction } from '@/lib/use-api'
+import * as adminApi from '@/lib/api/admin'
+import * as site from '@/lib/api/site'
+import { num } from '@/components/executor/questionnaire/questionnaire-api'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // «Создать площадку» — Figma «Площадки» 343:11570 / mobil 456:23264.
@@ -37,15 +43,19 @@ const YES_NO = [
     { value: 'no', label: 'Нет' },
 ]
 
-export default function AdminVenueForm({ mode = 'create' }) {
+export default function AdminVenueForm({ mode = 'create', initialValues = null }) {
     const editing = mode === 'edit'
+    const router = useRouter()
+    const { id } = useParams()
+
     const [done, setDone] = useState(false)
-    const [form, setForm] = useState({
+    const [savedId, setSavedId] = useState(editing ? id : null)
+    const [form, setForm] = useState(() => ({
         owner: '',
         name: '',
         type: '',
         about: '',
-        suitable: ['Портретной съёмки', 'Рекламной съёмки'],
+        suitable: [],
         area: '',
         height: '',
         capacity: '',
@@ -60,10 +70,101 @@ export default function AdminVenueForm({ mode = 'create' }) {
         extra: '',
         equipment: '',
         photos: '',
-    })
+        ...(initialValues || {}),
+    }))
+
+    // «Владелец» — ro'yxat GET /admin/customers dan (backend/admin.md).
+    const customersFetcher = useCallback(() => adminApi.customers({ page_size: 100 }), [])
+    const { data: customers } = useApi(customersFetcher)
+    const ownerOptions = useMemo(
+        () => [
+            { value: '', label: 'Выберите владельца' },
+            ...(customers?.items || []).map((c) => ({
+                value: c.id,
+                label:
+                    c.company_name ||
+                    [c.first_name, c.last_name].filter(Boolean).join(' ') ||
+                    c.email,
+            })),
+        ],
+        [customers],
+    )
+
+    const create = useAction(adminApi.createVenue)
+    const update = useAction(adminApi.updateVenue)
+    const upload = useAction(site.upload)
+    const addPhoto = useAction(adminApi.addVenuePhoto)
 
     function set(key, value) {
         setForm((f) => ({ ...f, [key]: value }))
+    }
+
+    // Formani `POST/PUT /admin/venues` tanasiga o'giradi.
+    function body() {
+        const price = (label, value) =>
+            value?.trim() ? { rental_type: label, price_label: value.trim() } : null
+
+        return {
+            owner_id: form.owner || undefined,
+            name: form.name,
+            venue_type: TYPES.find((t) => t.value === form.type)?.label || undefined,
+            category: form.type || undefined,
+            description: form.about || undefined,
+            suitable_for: form.suitable,
+            area_m2: num(form.area),
+            ceiling_height_m: num(form.height),
+            capacity: num(form.capacity),
+            halls_count: num(form.halls),
+            natural_light: form.light === 'yes',
+            parking: form.parking === 'yes',
+            city: form.city || undefined,
+            address: form.address || undefined,
+            equipment_description: form.equipment || undefined,
+            prices: [
+                price('Будни', form.weekday),
+                price('Выходные', form.weekend),
+                price('Съёмочный день', form.day),
+                price('Дополнительный час', form.extra),
+            ].filter(Boolean),
+        }
+    }
+
+    async function persist() {
+        const res = savedId ? await update.run(savedId, body()) : await create.run(body())
+        if (!res.success) {
+            toast.error(res.error.message)
+            return null
+        }
+        const nextId = res.data?.id || savedId
+        if (nextId && nextId !== savedId) setSavedId(nextId)
+        return nextId
+    }
+
+    async function submit() {
+        const venueId = await persist()
+        if (venueId) setDone(true)
+    }
+
+    // Suratlar: birinchisi muqova, qolganlari galereyaga tushadi.
+    async function pickPhotos(files) {
+        if (!files.length) return
+        const venueId = savedId || (await persist())
+        if (!venueId) return
+
+        let ok = 0
+        for (const [i, file] of files.entries()) {
+            const res = await upload.run(file)
+            if (!res.success) {
+                toast.error(res.error.message)
+                continue
+            }
+            const url = res.data?.url
+            if (!url) continue
+            if (i === 0 && !form.photos) await update.run(venueId, { cover_url: url })
+            await addPhoto.run(venueId, { url, album: 'Общие' })
+            ok += 1
+        }
+        if (ok) set('photos', `${ok} фото загружено`)
     }
 
     return (
@@ -82,8 +183,10 @@ export default function AdminVenueForm({ mode = 'create' }) {
                         title="Создание площадки"
                         steps={['Основная информация', 'Характеристики', 'Фотографии']}
                         current={0}
-                        onSubmit={() => setDone(true)}
-                        submitLabel="Сохранить"
+                        onSubmit={submit}
+                        submitLabel={
+                            create.loading || update.loading ? 'Сохраняем…' : 'Сохранить'
+                        }
                     />
                 }
             >
@@ -95,8 +198,9 @@ export default function AdminVenueForm({ mode = 'create' }) {
                 <AdminFormSection step={1} title="Основная информация">
                     <AdminFieldGroup>
                         <AdminField label="Владелец">
-                            <AdminInput
+                            <AdminFormSelect
                                 value={form.owner}
+                                options={ownerOptions}
                                 onChange={(e) => set('owner', e.target.value)}
                                 placeholder="Введите имя или название компании..."
                             />
@@ -260,20 +364,23 @@ export default function AdminVenueForm({ mode = 'create' }) {
                             accept="image/*"
                             multiple
                             className="hidden"
-                            onChange={(e) =>
-                                set('photos', `${e.target.files?.length || 0} фото выбрано`)
-                            }
+                            onChange={(e) => pickPhotos(Array.from(e.target.files || []))}
                         />
                         <Upload size={24} strokeWidth={2} className="shrink-0" />
-                        {form.photos || 'Нажмите для загрузки или перетащите файл сюда'}
+                        {upload.loading
+                            ? 'Загружаем…'
+                            : form.photos || 'Нажмите для загрузки или перетащите файл сюда'}
                     </label>
                 </AdminFormSection>
             </AdminFormLayout>
 
             <CreatedModal
                 open={done}
-                onClose={() => setDone(false)}
-                viewHref="/admin/venues/v-1"
+                onClose={() => {
+                    setDone(false)
+                    router.push('/admin/venues')
+                }}
+                viewHref={savedId ? `/admin/venues/${savedId}` : '/admin/venues'}
                 listHref="/admin/venues"
             />
         </>

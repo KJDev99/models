@@ -1,6 +1,8 @@
 'use client'
 
 import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import toast from 'react-hot-toast'
 import Image from 'next/image'
 import { MapPin, Upload, X } from 'lucide-react'
 import Container from '@/components/ui/container'
@@ -19,6 +21,9 @@ import {
     AdminTagInput,
     AdminTextarea,
 } from '@/components/admin/ui/admin-form'
+import { useAction } from '@/lib/use-api'
+import * as customerApi from '@/lib/api/customer'
+import * as site from '@/lib/api/site'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // «Новая площадка» — Figma 227:5938 (Основная информация) · 229:6503
@@ -58,17 +63,26 @@ const YES_NO = [
 
 const STEPS = ['Основная информация', 'Фотографии', 'На модерации']
 
-export default function ClientNewVenueForm({ mode = 'create' }) {
+export default function ClientNewVenueForm({
+    mode = 'create',
+    venueId = null,
+    initialValues = null,
+}) {
     const editing = mode === 'edit'
+    const router = useRouter()
+
     const [step, setStep] = useState(0)
-    const [form, setForm] = useState({
+    const [createdId, setCreatedId] = useState(venueId)
+    const [cover, setCover] = useState(null)
+    const [saving, setSaving] = useState(false)
+    const [form, setForm] = useState(() => ({
         title: '',
         category: '',
         type: '',
         description: '',
         city: '',
         address: '',
-        suits: ['Портретная съёмка', 'Каталог', 'Реклама'],
+        suits: [],
         area: '',
         height: '',
         capacity: '',
@@ -80,18 +94,141 @@ export default function ClientNewVenueForm({ mode = 'create' }) {
         parking: 'yes',
         cargo: 'yes',
         equipment: '',
-    })
-    const [prices, setPrices] = useState([{ kind: '', value: '' }])
-    const [albums, setAlbums] = useState([
-        { name: '', photos: ['/img/venues/venue.jpg', '/img/venues/venue.jpg'] },
-        { name: '', photos: [] },
-    ])
+        ...(initialValues?.form || {}),
+    }))
+    const [prices, setPrices] = useState(
+        () => initialValues?.prices || [{ kind: '', value: '' }],
+    )
+    // Surat elementi: { file, preview } — yangi tanlangan, { url } — serverdagi.
+    const [albums, setAlbums] = useState(() => initialValues?.albums || [{ name: '', photos: [] }])
 
     function set(key, value) {
         setForm((f) => ({ ...f, [key]: value }))
     }
 
     const sent = step === 2
+
+    const create = useAction(customerApi.createVenue)
+    const update = useAction(customerApi.updateVenue)
+    const addPhoto = useAction(customerApi.addVenuePhoto)
+    const submitVenue = useAction(customerApi.submitVenue)
+    const draftVenue = useAction(customerApi.draftVenue)
+    const upload = useAction(site.upload)
+
+    // «Да» / «Есть» → true (Figma'dagi tanlovlar backendda mantiqiy maydonlar).
+    const yes = (v) => (v === 'yes' ? true : v === 'no' ? false : undefined)
+    const num = (v) => {
+        if (v === '' || v === null || v === undefined) return undefined
+        const n = Number(String(v).replace(',', '.'))
+        return Number.isNaN(n) ? undefined : n
+    }
+
+    // Forma qiymatlarini backend maydonlariga o'giradi
+    // (Swagger «Customer: Площадки»).
+    function body() {
+        return {
+            name: form.title,
+            category: form.category || undefined,
+            venue_type: form.type || undefined,
+            description: form.description || undefined,
+            city: form.city || undefined,
+            address: form.address || undefined,
+            suitable_for: form.suits?.length ? form.suits : undefined,
+            area_m2: num(form.area),
+            ceiling_height_m: num(form.height),
+            capacity: num(form.capacity),
+            halls_count: num(form.halls),
+            min_rental_label: form.minRent || undefined,
+            floor: num(form.floor),
+            natural_light: yes(form.daylight),
+            elevator: yes(form.lift),
+            parking: yes(form.parking),
+            freight_entrance: yes(form.cargo),
+            equipment_description: form.equipment || undefined,
+            prices: prices
+                .filter((x) => x.kind?.trim() && x.value?.trim())
+                .map((x) => ({ rental_type: x.kind.trim(), price_label: x.value.trim() })),
+        }
+    }
+
+    async function persist() {
+        let id = createdId
+        if (id) {
+            const res = await update.run(id, body())
+            if (!res.success) throw res.error
+        } else {
+            const res = await create.run(body())
+            if (!res.success) throw res.error
+            id = res.data?.id
+            setCreatedId(id)
+        }
+        return id
+    }
+
+    // Muqova `album`siz, albom suratlari nomi bilan yuboriladi
+    // (backend/customer.md → POST /customer/venues/{id}/photos).
+    async function uploadPhotos(id) {
+        if (cover?.file) {
+            const uploaded = await upload.run(cover.file)
+            if (uploaded.success) await addPhoto.run(id, { url: uploaded.data.url })
+        }
+        for (const album of albums) {
+            for (const photo of album.photos) {
+                if (!photo?.file) continue
+                const uploaded = await upload.run(photo.file)
+                if (!uploaded.success) continue
+                await addPhoto.run(id, {
+                    url: uploaded.data.url,
+                    album: album.name?.trim() || undefined,
+                })
+            }
+        }
+    }
+
+    async function next() {
+        if (sent) {
+            router.push('/client/dashboard')
+            return
+        }
+
+        setSaving(true)
+        try {
+            const id = await persist()
+            if (step === 1) {
+                await uploadPhotos(id)
+                const res = await submitVenue.run(id)
+                if (!res.success) throw res.error
+            }
+            setStep((v) => Math.min(2, v + 1))
+        } catch (err) {
+            toast.error(err?.message || 'Не удалось сохранить площадку')
+        } finally {
+            setSaving(false)
+        }
+    }
+
+    async function saveDraft() {
+        setSaving(true)
+        try {
+            const id = await persist()
+            await draftVenue.run(id)
+            toast.success('Сохранено в черновик')
+            router.push('/client/dashboard')
+        } catch (err) {
+            toast.error(err?.message || 'Не удалось сохранить черновик')
+        } finally {
+            setSaving(false)
+        }
+    }
+
+    // Fayl tanlash — ko'rsatish uchun `preview`, yuklash «Далее» bosilganda.
+    function pickFiles(files, apply) {
+        const list = Array.from(files || []).map((file) => ({
+            file,
+            preview: URL.createObjectURL(file),
+        }))
+        if (list.length) apply(list)
+    }
 
     return (
         <Container>
@@ -110,12 +247,20 @@ export default function ClientNewVenueForm({ mode = 'create' }) {
                             title="Создание площадки"
                             steps={STEPS}
                             current={step}
-                            onSubmit={() => setStep((s) => Math.min(2, s + 1))}
-                            submitLabel={sent ? 'Мои публикации' : 'Далее'}
+                            onSubmit={next}
+                            submitLabel={
+                                saving ? 'Сохраняем…' : sent ? 'Мои публикации' : 'Далее'
+                            }
                             secondary={
                                 sent
-                                    ? { label: 'Создать новую площадку', onClick: () => setStep(0) }
-                                    : { label: 'В черновик', onClick: () => setStep(0) }
+                                    ? {
+                                          label: 'Создать новую площадку',
+                                          onClick: () => {
+                                              setCreatedId(null)
+                                              setStep(0)
+                                          },
+                                      }
+                                    : { label: 'В черновик', onClick: saveDraft }
                             }
                             tertiary={
                                 step === 1 ? { label: 'Назад', onClick: () => setStep(0) } : null
@@ -364,7 +509,12 @@ export default function ClientNewVenueForm({ mode = 'create' }) {
                                     label="Обложка площадки"
                                     hint="Эта фотография будет отображаться в каталоге и на странице площадки."
                                 >
-                                    <UploadBox />
+                                    <UploadBox
+                                        onPick={(files) =>
+                                            pickFiles(files, (list) => setCover(list[0]))
+                                        }
+                                        label={cover?.file?.name}
+                                    />
                                 </AdminField>
 
                                 {albums.map((album, i) => (
@@ -404,7 +554,23 @@ export default function ClientNewVenueForm({ mode = 'create' }) {
                                             placeholder="Например: Белый зал"
                                         />
 
-                                        <UploadBox />
+                                        <UploadBox
+                                            multiple
+                                            onPick={(files) =>
+                                                pickFiles(files, (list) =>
+                                                    setAlbums((all) =>
+                                                        all.map((a, j) =>
+                                                            j === i
+                                                                ? {
+                                                                      ...a,
+                                                                      photos: [...a.photos, ...list],
+                                                                  }
+                                                                : a,
+                                                        ),
+                                                    ),
+                                                )
+                                            }
+                                        />
 
                                         {album.photos.length > 0 && (
                                             <div className="flex flex-wrap gap-[12px] lg:gap-[16px]">
@@ -414,11 +580,12 @@ export default function ClientNewVenueForm({ mode = 'create' }) {
                                                         className="relative block size-[64px] overflow-hidden rounded-[6px] bg-[#d9d9d9] lg:size-[80px]"
                                                     >
                                                         <Image
-                                                            src={photo}
+                                                            src={photo.preview || photo.url}
                                                             alt=""
                                                             fill
                                                             sizes="80px"
                                                             className="object-cover"
+                                                            unoptimized={Boolean(photo.preview)}
                                                         />
                                                         <button
                                                             type="button"
@@ -466,12 +633,23 @@ export default function ClientNewVenueForm({ mode = 'create' }) {
 }
 
 // Fayl yuklash maydoni (Figma 227:6084).
-function UploadBox() {
+// Fayllar darhol yuborilmaydi — «Далее» bosilganda birga yuklanadi.
+function UploadBox({ multiple = false, onPick, label }) {
     return (
         <label className="flex cursor-pointer items-center gap-[12px] self-start rounded-[6px] bg-light-white px-[16px] py-[12px] text-[14px] font-medium text-grey transition-colors hover:text-black lg:px-[24px] lg:py-[16px] lg:text-[16px]">
-            <input type="file" accept="image/*" multiple className="hidden" />
+            <input
+                type="file"
+                accept="image/*"
+                multiple={multiple}
+                className="hidden"
+                onChange={(e) => {
+                    const files = e.target.files
+                    e.target.value = ''
+                    onPick?.(files)
+                }}
+            />
             <Upload size={24} strokeWidth={2} className="shrink-0" />
-            Нажмите для загрузки или перетащите файл сюда
+            {label || 'Нажмите для загрузки или перетащите файл сюда'}
         </label>
     )
 }

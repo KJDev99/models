@@ -2,10 +2,17 @@
 
 import React, { useState } from 'react'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
+import toast from 'react-hot-toast'
 import { Upload, X } from 'lucide-react'
 import Container from '@/components/ui/container'
 import { CabinetBreadcrumb, CabinetResult } from '@/components/shared/cabinet/cabinet-ui'
-import { MODEL_IMAGE } from '@/components/models/models-data'
+import { PLACEHOLDER } from '@/lib/assets'
+import {
+    experienceItems,
+    performerActions,
+    profileBody,
+} from '@/components/executor/questionnaire/questionnaire-api'
 import {
     AdminAddButton,
     AdminField,
@@ -120,6 +127,16 @@ const INFO_SELECTS = {
 export default function ExecutorQuestionnaireForm({
     initialStep = 0,
     initialType = 'model',
+    // Endpoint to'plami — o'z anketasi yoki agentlikning «Добавить исполнителя».
+    actions = performerActions,
+    // Agentlik anketa qo'shganda backend email yoki telefon talab qiladi
+    // (POST /agency/performers → 409 «Укажите email или телефон»). Figma'da
+    // bu maydonlar chizilmagan, shuning uchun faqat shu oqimda ko'rsatiladi.
+    contactFields = false,
+    // Yakunlangach qayerga o'tish.
+    doneHref = '/executor/dashboard',
+    // Boshlang'ich qiymatlar (kabinetdan yuklangan anketa).
+    initialValues = null,
     title = 'Заполнить профиль',
     description = 'Заполните основную информацию о себе. После отправки профиль пройдет модерацию и станет доступен заказчикам в каталоге исполнителей.',
     aboutPlaceholder = 'Расскажите о себе, опыте работы и направлениях, в которых вы снимаетесь.',
@@ -128,43 +145,117 @@ export default function ExecutorQuestionnaireForm({
     resultText = 'Мы проверим данные и портфолио.\nПосле одобрения профиль появится в каталоге исполнителей.',
     doneLabel = 'Перейти в личный кабинет',
 }) {
-    const [step, setStep] = useState(initialStep)
-    const [type, setType] = useState(initialType)
+    const router = useRouter()
 
-    const [form, setForm] = useState({
-        firstName: 'Катерина',
-        lastName: 'Журавлева',
-        city: 'Санкт-Петербург',
+    const [step, setStep] = useState(initialStep)
+    const [type, setType] = useState(initialValues?.type || initialType)
+    const [saving, setSaving] = useState(false)
+
+    const [form, setForm] = useState(() => ({
+        firstName: '',
+        lastName: '',
+        city: '',
         about: '',
-        directions: ['Реклама', 'Каталог'],
-        height: '170 см',
-        weight: '55 кг',
-        chest: '84 см',
-        waist: '61 см',
-        hips: '90 см',
+        directions: [],
+        height: '',
+        weight: '',
+        chest: '',
+        waist: '',
+        hips: '',
         clothes: '',
         shoes: '',
         hair: '',
         eyes: '',
-        passport: 'yes',
-        travel: 'yes',
+        passport: '',
+        travel: '',
         specialization: '',
-    })
-    const [experience, setExperience] = useState(['', '', '', ''])
+        email: '',
+        phone: '',
+        ...(initialValues?.form || {}),
+    }))
+    const [experience, setExperience] = useState(
+        () => initialValues?.experience || ['', '', '', ''],
+    )
     // Фотограф / видеограф «Информация» bo'limidagi tanlovlar — nomi bo'yicha.
-    const [info, setInfo] = useState({})
-    const [prices, setPrices] = useState([{ kind: '', value: '' }])
-    const [projects, setProjects] = useState([
-        { year: '', title: '', brand: '', role: '' },
-        { year: '', title: '', brand: '', role: '' },
-    ])
-    const [albums, setAlbums] = useState([
-        { name: 'Фотосессии', photos: [MODEL_IMAGE, MODEL_IMAGE] },
-        { name: '', photos: [] },
-    ])
+    const [info, setInfo] = useState(() => initialValues?.info || {})
+    const [prices, setPrices] = useState(() => initialValues?.prices || [{ kind: '', value: '' }])
+    const [projects, setProjects] = useState(
+        () =>
+            initialValues?.projects || [
+                { year: '', title: '', brand: '', role: '' },
+                { year: '', title: '', brand: '', role: '' },
+            ],
+    )
+    // Surat elementi: { file, preview } — yangi tanlangan, yoki { url } — server.
+    const [mainPhoto, setMainPhoto] = useState(() => initialValues?.mainPhoto || null)
+    const [albums, setAlbums] = useState(() => initialValues?.albums || [{ name: '', photos: [] }])
 
     function set(key, value) {
         setForm((f) => ({ ...f, [key]: value }))
+    }
+
+    // ── Saqlash ─────────────────────────────────────────────────────────────
+
+    // Har qadamda o'z endpointi chaqiriladi (backend/performer.md).
+    async function saveStep(asDraft) {
+        setSaving(true)
+        try {
+            if (step === 0) {
+                await actions.saveProfile(
+                    profileBody({ type, form, experience, info, prices }),
+                    asDraft,
+                )
+            } else if (step === 1) {
+                await actions.saveExperience(experienceItems(projects))
+            } else if (step === 2) {
+                await savePortfolio()
+                await actions.submit()
+            }
+            return true
+        } catch (err) {
+            toast.error(err?.api?.message || 'Не удалось сохранить')
+            return false
+        } finally {
+            setSaving(false)
+        }
+    }
+
+    // Yangi tanlangan fayllar yuklanadi; serverda turganlari o'tkazib yuboriladi.
+    async function savePortfolio() {
+        if (mainPhoto?.file) {
+            const uploaded = await actions.upload(mainPhoto.file)
+            await actions.setPhoto(uploaded.url)
+        }
+        for (const album of albums) {
+            for (const photo of album.photos) {
+                if (!photo?.file) continue
+                const uploaded = await actions.upload(photo.file)
+                await actions.addPhoto(uploaded.url, album.name?.trim() || undefined)
+            }
+        }
+    }
+
+    async function next() {
+        if (sent) {
+            router.push(doneHref)
+            return
+        }
+        const ok = await saveStep(false)
+        if (ok) setStep((s) => Math.min(3, s + 1))
+    }
+
+    async function saveDraft() {
+        const ok = await saveStep(true)
+        if (ok) toast.success('Сохранено в черновик')
+    }
+
+    // Fayl tanlash — brauzerda darhol ko'rsatish uchun `preview` yasaladi.
+    function pickFiles(files, apply) {
+        const list = Array.from(files || []).map((file) => ({
+            file,
+            preview: URL.createObjectURL(file),
+        }))
+        if (list.length) apply(list)
     }
 
     // `info` — тур bo'yicha uchinchi bo'lim: модель uchun «Параметры»,
@@ -191,11 +282,9 @@ export default function ExecutorQuestionnaireForm({
                             title="Создание профиля"
                             steps={STEPS}
                             current={step}
-                            onSubmit={() => setStep((s) => Math.min(3, s + 1))}
-                            submitLabel={sent ? doneLabel : 'Далее'}
-                            secondary={
-                                sent ? null : { label: 'В черновик', onClick: () => setStep(0) }
-                            }
+                            onSubmit={next}
+                            submitLabel={saving ? 'Сохраняем…' : sent ? doneLabel : 'Далее'}
+                            secondary={sent ? null : { label: 'В черновик', onClick: saveDraft }}
                             tertiary={
                                 step === 1 || step === 2
                                     ? { label: 'Назад', onClick: () => setStep(step - 1) }
@@ -207,11 +296,8 @@ export default function ExecutorQuestionnaireForm({
                     {sent ? (
                         <CabinetResult
                             image="/img/executor/questionnaire/moderation.png"
-                            title="Анкета успешно отправлена на модерацию"
-                            text={
-                                'Мы проверим данные и портфолио.\n' +
-                                'После одобрения профиль появится в каталоге исполнителей.'
-                            }
+                            title={resultTitle}
+                            text={resultText}
                         />
                     ) : (
                         <AdminFormHeader title={title} description={description} />
@@ -267,6 +353,30 @@ export default function ExecutorQuestionnaireForm({
                                             placeholder="Введите направление и нажмите Enter"
                                         />
                                     </AdminField>
+
+                                    {contactFields && (
+                                        <AdminFieldRow>
+                                            <AdminField
+                                                label="Электронная почта"
+                                                hint="Нужна для входа исполнителя в кабинет"
+                                            >
+                                                <AdminInput
+                                                    type="email"
+                                                    value={form.email}
+                                                    onChange={(e) => set('email', e.target.value)}
+                                                    placeholder="Введите почту"
+                                                />
+                                            </AdminField>
+                                            <AdminField label="Телефон">
+                                                <AdminInput
+                                                    type="tel"
+                                                    value={form.phone}
+                                                    onChange={(e) => set('phone', e.target.value)}
+                                                    placeholder="+ 7 (000)-000-00-00"
+                                                />
+                                            </AdminField>
+                                        </AdminFieldRow>
+                                    )}
                                 </AdminFieldGroup>
                             </AdminFormSection>
 
@@ -617,14 +727,24 @@ export default function ExecutorQuestionnaireForm({
                                     <div className="flex flex-col items-start gap-[12px] lg:gap-[16px]">
                                         <span className="relative block size-[100px] overflow-hidden rounded-[6px] bg-light-white lg:size-[120px]">
                                             <Image
-                                                src={MODEL_IMAGE}
+                                                src={
+                                                    mainPhoto?.preview ||
+                                                    mainPhoto?.url ||
+                                                    PLACEHOLDER
+                                                }
                                                 alt=""
                                                 fill
                                                 sizes="120px"
                                                 className="object-cover"
+                                                unoptimized={Boolean(mainPhoto?.preview)}
                                             />
                                         </span>
-                                        <UploadBox label="Изменить фотографию" />
+                                        <UploadBox
+                                            label="Изменить фотографию"
+                                            onPick={(files) =>
+                                                pickFiles(files, (list) => setMainPhoto(list[0]))
+                                            }
+                                        />
                                     </div>
                                 </AdminField>
 
@@ -665,7 +785,23 @@ export default function ExecutorQuestionnaireForm({
                                             placeholder="Например: Белый зал"
                                         />
 
-                                        <UploadBox />
+                                        <UploadBox
+                                            multiple
+                                            onPick={(files) =>
+                                                pickFiles(files, (list) =>
+                                                    setAlbums((all) =>
+                                                        all.map((a, j) =>
+                                                            j === i
+                                                                ? {
+                                                                      ...a,
+                                                                      photos: [...a.photos, ...list],
+                                                                  }
+                                                                : a,
+                                                        ),
+                                                    ),
+                                                )
+                                            }
+                                        />
 
                                         {album.photos.length > 0 && (
                                             <div className="flex flex-wrap gap-[12px] lg:gap-[16px]">
@@ -675,11 +811,12 @@ export default function ExecutorQuestionnaireForm({
                                                         className="relative block size-[64px] overflow-hidden rounded-[6px] bg-[#d9d9d9] lg:size-[80px]"
                                                     >
                                                         <Image
-                                                            src={photo}
+                                                            src={photo.preview || photo.url}
                                                             alt=""
                                                             fill
                                                             sizes="80px"
                                                             className="object-cover"
+                                                            unoptimized={Boolean(photo.preview)}
                                                         />
                                                         <button
                                                             type="button"
@@ -744,10 +881,25 @@ function ProjectField({ label, placeholder, value, onChange }) {
 }
 
 // Fayl yuklash maydoni (Figma 265:13931).
-function UploadBox({ label = 'Нажмите для загрузки или перетащите файл сюда' }) {
+// Fayllar darhol yuborilmaydi — «Далее» bosilganda birga yuklanadi.
+function UploadBox({
+    label = 'Нажмите для загрузки или перетащите файл сюда',
+    multiple = false,
+    onPick,
+}) {
     return (
         <label className="flex cursor-pointer items-center gap-[12px] self-start rounded-[6px] bg-light-white px-[16px] py-[12px] text-[14px] font-medium text-grey transition-colors hover:text-black lg:px-[24px] lg:py-[16px] lg:text-[16px]">
-            <input type="file" accept="image/*" multiple className="hidden" />
+            <input
+                type="file"
+                accept="image/*"
+                multiple={multiple}
+                className="hidden"
+                onChange={(e) => {
+                    const files = e.target.files
+                    e.target.value = ''
+                    onPick?.(files)
+                }}
+            />
             <Upload size={24} strokeWidth={2} className="shrink-0" />
             {label}
         </label>

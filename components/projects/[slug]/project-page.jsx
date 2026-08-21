@@ -1,15 +1,17 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import Image from 'next/image'
 import { MapPin } from 'lucide-react'
 import Container from '@/components/ui/container'
 import Breadcrumb from '@/components/ui/breadcrumb'
 import ProjectCard from '@/components/projects/project-card'
-import { PROJECTS } from '@/components/projects/projects-data'
 import ProjectSummary from '@/components/projects/[slug]/project-summary'
 import { ApplyModal, ApplySentModal } from '@/components/projects/[slug]/project-modals'
-import { DETAILS, PROJECT } from '@/components/projects/[slug]/project-detail-data'
+import DetailState from '@/components/shared/detail/detail-state'
+import { useApi } from '@/lib/use-api'
+import * as site from '@/lib/api/site'
+import { projectDetail } from '@/lib/adapters'
 import { AuthRequiredModal } from '@/components/shared/detail/detail-modals'
 import { useAuth } from '@/lib/use-auth'
 
@@ -40,12 +42,30 @@ export default function ProjectPage({ slug }) {
     const [applyModal, setApplyModal] = useState(false)
     const [sentModal, setSentModal] = useState(false)
 
-    const project = { ...PROJECT, slug: slug || PROJECT.slug }
+    const fetcher = useCallback(() => site.project(slug), [slug])
+    const { data: raw, loading, error, reload } = useApi(fetcher, { enabled: Boolean(slug) })
+
+    const project = useMemo(() => projectDetail(raw), [raw])
+    const DETAILS = project?.detailsBlocks || { intro: '', blocks: [] }
 
     // Mehmon bo'lsa — avval «Требуется вход» oynasi (Figma 164:18768).
-    function apply() {
+    const apply = useCallback(() => {
         if (authed) setApplyModal(true)
         else setAuthModal(true)
+    }, [authed])
+
+    if (loading || error || !project) {
+        return (
+            <DetailState
+                loading={loading}
+                error={error}
+                onRetry={reload}
+                breadcrumb={[
+                    { name: 'Главная', href: '/' },
+                    { name: 'Проекты', href: '/projects' },
+                ]}
+            />
+        )
     }
 
     const breadcrumb = [
@@ -54,8 +74,8 @@ export default function ProjectPage({ slug }) {
         { name: project.title },
     ]
 
-    // «Другие проекты» — katalogdan dastlabki 4 ta e'lon.
-    const others = PROJECTS.slice(0, 4)
+    // «Другие проекты» — backend `related` maydonida beradi.
+    const others = (project.related || []).slice(0, 4)
 
     return (
         <div className="flex flex-col gap-[24px] bg-light-white pt-[16px] lg:pt-[24px] pb-[40px] lg:gap-[50px] lg:pb-[100px]">
@@ -167,6 +187,7 @@ export default function ProjectPage({ slug }) {
             <ApplyModal
                 open={applyModal}
                 onClose={() => setApplyModal(false)}
+                projectId={project.id}
                 onSent={() => {
                     setApplyModal(false)
                     setSentModal(true)

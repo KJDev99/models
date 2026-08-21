@@ -7,9 +7,14 @@ import toast from 'react-hot-toast'
 import { useAuthModalStore } from '@/store/useAuthModalStore'
 import { useAuthStore } from '@/store/useAuthStore'
 import { ROLES, homeForRole } from '@/lib/roles'
+import { ERROR_CODES } from '@/lib/api-error'
+import { popReturnUrl } from '@/lib/auth'
+import { oauthStartUrl } from '@/lib/api/auth'
 import {
     AuthButton,
+    AuthError,
     AuthField,
+    AuthFieldError,
     AuthPasswordField,
     AuthPhoneField,
     AuthSelect,
@@ -39,7 +44,8 @@ import {
 //   profile   ЗНАКОМСТВО            85:4848 · 85:5241 · 85:5592
 //   blocked   АККАУНТ ЗАБЛОКИРОВАН  345:18815
 //
-// Orqaga tugmasi qadamlar tarixidan foydalanadi.
+// Backend oqimi (backend/auth.md): «Далее» → POST /auth/identify → challenge
+// token; keyin login bo'lsa /auth/login, register bo'lsa /auth/register/{kind}.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const EMPTY_PROFILE = {
@@ -66,10 +72,12 @@ export default function AuthModal() {
 }
 
 function AuthFlow({ startStep, onClose: closeAuth }) {
+    const identify = useAuthStore((s) => s.identify)
     const login = useAuthStore((s) => s.login)
     const register = useAuthStore((s) => s.register)
-    const chooseRole = useAuthStore((s) => s.chooseRole)
+    const resetFlow = useAuthStore((s) => s.resetFlow)
     const loading = useAuthStore((s) => s.loading)
+    const displayIdentifier = useAuthStore((s) => s.displayIdentifier)
 
     const router = useRouter()
 
@@ -81,11 +89,21 @@ function AuthFlow({ startStep, onClose: closeAuth }) {
     const [profileTab, setProfileTab] = useState('person')
     const [profile, setProfile] = useState(EMPTY_PROFILE)
     const [blocked, setBlocked] = useState(BLOCKED_FALLBACK)
+    const [error, setError] = useState(null)
 
     const step = history[history.length - 1]
 
-    const go = useCallback((next) => setHistory((h) => [...h, next]), [])
-    const back = useCallback(() => setHistory((h) => (h.length > 1 ? h.slice(0, -1) : h)), [])
+    // Oyna yopilganda oqim holati (challenge token) tozalanadi.
+    useEffect(() => () => resetFlow(), [resetFlow])
+
+    const go = useCallback((next) => {
+        setError(null)
+        setHistory((h) => [...h, next])
+    }, [])
+    const back = useCallback(() => {
+        setError(null)
+        setHistory((h) => (h.length > 1 ? h.slice(0, -1) : h))
+    }, [])
 
     const setField = (key) => (e) => setProfile((p) => ({ ...p, [key]: e.target.value }))
 
@@ -108,67 +126,155 @@ function AuthFlow({ startStep, onClose: closeAuth }) {
         return 'Аккаунт заблокирован'
     }, [step, role])
 
+    // Backend telefonni maskada ham qabul qiladi; «+ 7» prefiksi UI'da alohida.
+    function identifierValue() {
+        return method === 'phone' ? `+7 ${contact}`.trim() : contact.trim()
+    }
+
+    function showBlocked(apiError) {
+        const d = apiError.details || {}
+        setBlocked({
+            description: apiError.message || BLOCKED_FALLBACK.description,
+            measure: d.measure || BLOCKED_FALLBACK.measure,
+            reason: d.reason || BLOCKED_FALLBACK.reason,
+            title: d.title,
+            blockedUntil: d.blocked_until,
+        })
+        go('blocked')
+    }
+
+    // ── «Далее» — identify ──────────────────────────────────────────────────
+    async function submitIdentify(intent) {
+        setError(null)
+        const res = await identify({
+            role,
+            intent,
+            identifierType: method,
+            value: identifierValue(),
+        })
+
+        if (res.success) {
+            // Backend keyingi qadamni o'zi aytadi (password | register).
+            go(res.data.next_step === 'password' ? 'password' : 'profile')
+            return
+        }
+
+        const { code, message } = res.error
+        if (code === ERROR_CODES.ACCOUNT_BLOCKED) {
+            showBlocked(res.error)
+            return
+        }
+        // Login'da profil topilmasa — ro'yxatdan o'tishga yo'naltiramiz.
+        if (code === ERROR_CODES.USER_NOT_FOUND) {
+            setError('Профиль не найден. Зарегистрируйтесь.')
+            return
+        }
+        if (code === ERROR_CODES.USER_ALREADY_EXISTS) {
+            setError('Профиль уже зарегистрирован. Войдите в аккаунт.')
+            return
+        }
+        setError(message)
+    }
+
+    // ── «Войти» — parol ─────────────────────────────────────────────────────
     async function submitLogin() {
-        const res = await login({ login: contact, password })
+        setError(null)
+        const res = await login(password)
+
         if (res.success) {
             toast.success('Вы вошли в аккаунт')
             closeAuth()
-            router.push(homeForRole(res.user?.role || role))
+            router.push(popReturnUrl() || homeForRole(res.user?.role))
             return
         }
-        if (res.blocked) {
-            setBlocked({ ...BLOCKED_FALLBACK, ...(res.error?.block || {}) })
-            go('blocked')
+
+        const { code, message } = res.error
+        if (code === ERROR_CODES.ACCOUNT_BLOCKED) {
+            showBlocked(res.error)
             return
         }
-        toast.error('Неверный логин или пароль')
+        // Challenge muddati tugagan — telefon/pochta oynasiga qaytaramiz.
+        if (code === ERROR_CODES.CHALLENGE_EXPIRED) {
+            toast.error(message)
+            back()
+            return
+        }
+        setError(message)
     }
 
+    // ── «Продолжить» — ro'yxatdan o'tish ────────────────────────────────────
     async function submitProfile() {
+        setError(null)
         if (profile.password !== profile.repeat) {
-            toast.error('Пароли не совпадают')
+            setError('Пароли не совпадают')
             return
         }
 
-        const payload = {
-            role,
-            login: contact,
-            method,
-            password: profile.password,
+        const common = {
             city: profile.city,
-            ...(role === ROLES.AGENCY
-                ? { name: profile.company, contactName: profile.contactName }
-                : role === ROLES.EXECUTOR
-                  ? {
-                        type: profileTab,
-                        firstName: profile.firstName,
-                        lastName: profile.lastName,
-                        gender: profile.gender,
-                    }
-                  : profileTab === 'company'
-                    ? { name: profile.company, contactName: profile.contactName }
-                    : { firstName: profile.firstName, lastName: profile.lastName }),
+            password: profile.password,
+            password_confirm: profile.repeat,
         }
 
-        const res = await register(payload)
+        let kind = 'customer'
+        let payload
+
+        if (role === ROLES.AGENCY) {
+            kind = 'agency'
+            payload = {
+                ...common,
+                agency_name: profile.company,
+                representative_name: profile.contactName,
+            }
+        } else if (role === ROLES.EXECUTOR) {
+            kind = 'performer'
+            payload = {
+                ...common,
+                performer_specialty: profileTab,
+                first_name: profile.firstName,
+                last_name: profile.lastName,
+                gender: profile.gender || 'not_specified',
+            }
+        } else if (profileTab === 'company') {
+            payload = {
+                ...common,
+                customer_type: 'company',
+                company_name: profile.company,
+                // Vakil ismi — backendda alohida maydon yo'q, `first_name`ga tushadi.
+                first_name: profile.contactName,
+            }
+        } else {
+            payload = {
+                ...common,
+                customer_type: 'individual',
+                first_name: profile.firstName,
+                last_name: profile.lastName,
+            }
+        }
+
+        const res = await register(kind, payload)
         if (!res.success) {
-            toast.error('Не удалось завершить регистрацию')
+            setError(res.error.message)
             return
         }
-
-        // Rol tanlangan bo'lsa serverga alohida yuboriladi (Знакомство).
-        const finalRole = role === ROLES.CLIENT && profileTab === 'company' ? ROLES.COMPANY : role
-        await chooseRole(finalRole)
 
         toast.success('Аккаунт создан')
         closeAuth()
-        router.push(homeForRole(finalRole))
+        router.push(popReturnUrl() || homeForRole(res.user?.role))
     }
 
+    // OAuth — brauzer backend start manziliga o'tadi, qaytishda
+    // /auth/oauth/success sahifasi tokenlarni oladi.
     function pickService(service) {
-        const base = process.env.NEXT_PUBLIC_API_URL || ''
-        window.location.assign(`${base}/auth/oauth/${service}/`)
+        window.location.assign(
+            oauthStartUrl(service, {
+                role: role === ROLES.EXECUTOR ? 'performer' : role === ROLES.AGENCY ? 'agency' : 'customer',
+                intent: step === 'register' || history.includes('register') ? 'register' : 'login',
+            }),
+        )
     }
+
+    const fieldErrors = useAuthStore.getState().error?.fields || {}
 
     return (
         <AuthShell
@@ -235,6 +341,7 @@ function AuthFlow({ startStep, onClose: closeAuth }) {
                         onChange={(key) => {
                             setMethod(key)
                             setContact('')
+                            setError(null)
                         }}
                     />
 
@@ -252,10 +359,13 @@ function AuthFlow({ startStep, onClose: closeAuth }) {
                         />
                     )}
 
+                    <AuthFieldError>{fieldErrors.phone || fieldErrors.email}</AuthFieldError>
+                    <AuthError>{error}</AuthError>
+
                     <div className="flex flex-col gap-[12px] lg:gap-[16px]">
                         <AuthButton
-                            onClick={() => go(step === 'login' ? 'password' : 'profile')}
-                            disabled={!contact.trim()}
+                            onClick={() => submitIdentify(step === 'login' ? 'login' : 'register')}
+                            disabled={!contact.trim() || loading}
                         >
                             Далее
                         </AuthButton>
@@ -269,7 +379,9 @@ function AuthFlow({ startStep, onClose: closeAuth }) {
                 <>
                     <p className="text-center text-[14px] text-grey lg:text-[16px]">
                         {method === 'phone' ? 'От профиля с номером ' : 'От профиля с почтой '}
-                        <span className="font-medium text-black">{contact}</span>
+                        <span className="font-medium text-black">
+                            {displayIdentifier || identifierValue()}
+                        </span>
                     </p>
 
                     <AuthPasswordField
@@ -277,6 +389,8 @@ function AuthFlow({ startStep, onClose: closeAuth }) {
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="Введите пароль"
                     />
+
+                    <AuthError>{error}</AuthError>
 
                     <AuthButton onClick={submitLogin} disabled={!password || loading}>
                         Войти
@@ -327,11 +441,15 @@ function AuthFlow({ startStep, onClose: closeAuth }) {
                                             : 'Название компании'
                                     }
                                 />
+                                <AuthFieldError>
+                                    {fieldErrors.agency_name || fieldErrors.company_name}
+                                </AuthFieldError>
                                 <AuthField
                                     value={profile.contactName}
                                     onChange={setField('contactName')}
                                     placeholder="Имя представителя"
                                 />
+                                <AuthFieldError>{fieldErrors.representative_name}</AuthFieldError>
                             </>
                         ) : (
                             <>
@@ -340,11 +458,13 @@ function AuthFlow({ startStep, onClose: closeAuth }) {
                                     onChange={setField('firstName')}
                                     placeholder="Введите имя"
                                 />
+                                <AuthFieldError>{fieldErrors.first_name}</AuthFieldError>
                                 <AuthField
                                     value={profile.lastName}
                                     onChange={setField('lastName')}
                                     placeholder="Введите фамилию"
                                 />
+                                <AuthFieldError>{fieldErrors.last_name}</AuthFieldError>
                             </>
                         )}
 
@@ -361,6 +481,7 @@ function AuthFlow({ startStep, onClose: closeAuth }) {
                             onChange={setField('city')}
                             placeholder="Город"
                         />
+                        <AuthFieldError>{fieldErrors.city}</AuthFieldError>
 
                         <AuthPasswordField
                             value={profile.password}
@@ -372,7 +493,12 @@ function AuthFlow({ startStep, onClose: closeAuth }) {
                             onChange={setField('repeat')}
                             placeholder="Повторите пароль"
                         />
+                        <AuthFieldError>
+                            {fieldErrors.password || fieldErrors.password_confirm}
+                        </AuthFieldError>
                     </div>
+
+                    <AuthError>{error}</AuthError>
 
                     <AuthButton
                         onClick={submitProfile}

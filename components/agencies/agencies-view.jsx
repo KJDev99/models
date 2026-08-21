@@ -4,11 +4,10 @@ import React from 'react'
 import CatalogView from '@/components/shared/catalog/catalog-view'
 import AgencyCard from '@/components/agencies/agency-card'
 import {
-    AGENCIES,
-    AGENCIES_FAQ,
     GRID_PAGE_SIZE,
     SORT_OPTIONS,
 } from '@/components/agencies/agencies-data'
+import { agencyParams, fetchAgencies } from '@/components/shared/catalog/catalog-fetchers'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Агентства katalogi.
@@ -21,28 +20,21 @@ import {
 
 const BREADCRUMB = [{ name: 'Главная', href: '/' }, { name: 'Агентства' }]
 
-function sortItems(list, sort) {
-    if (sort === 'name-asc') return [...list].sort((a, b) => a.name.localeCompare(b.name, 'ru'))
-    if (sort === 'executors-desc') return [...list].sort((a, b) => b.executors - a.executors)
-    if (sort === 'new') return [...list].reverse()
-    return list
-}
-
 export default function AgenciesView() {
     return (
         <CatalogView
             title="Агентства"
             breadcrumb={BREADCRUMB}
-            items={AGENCIES}
             fields={[]}
             emptyFilters={{}}
             sortOptions={SORT_OPTIONS}
             searchPlaceholder="Название агенство / ключевые слова"
-            faq={AGENCIES_FAQ}
+            faqType="agencies"
             gridPageSize={GRID_PAGE_SIZE}
             listPageSize={GRID_PAGE_SIZE}
             showViewToggle={false}
-            sortItems={sortItems}
+            fetcher={fetchAgencies}
+            buildParams={agencyParams}
             renderCard={(agency) => (
                 <AgencyCard key={agency.id} agency={agency} className="h-full" />
             )}

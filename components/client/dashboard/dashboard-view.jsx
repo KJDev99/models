@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Globe, ImageIcon, Mail, Phone, SquarePen } from 'lucide-react'
@@ -12,12 +12,9 @@ import { ClientPage, ClientTitle } from '@/components/client/ui/client-ui'
 import AdminPublications from '@/components/admin/ui/admin-publications'
 import ClientProfileModal from '@/components/client/dashboard/profile-modal'
 import { publicationMenu } from '@/components/admin/ui/admin-menu-items'
-import {
-    COMPANY_PROFILE,
-    EMPTY_PROFILE,
-    PUBLICATIONS,
-    PUBLICATION_TABS,
-} from '@/components/client/dashboard/dashboard-data'
+import { useApi } from '@/lib/use-api'
+import * as customerApi from '@/lib/api/customer'
+import { customerProfile, publicationsFrom } from '@/lib/adapters'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // «Личный кабинет» — Figma «Пустой профиль» 260:12521 va
@@ -26,10 +23,27 @@ import {
 // Chapda 554px rasm, o'ngda oq kartochka (nomi, shahri, tavsifi, kontaktlari,
 // 4 ta hisoblagich va ikkita tugma). Ostida «Мои публикации».
 // ─────────────────────────────────────────────────────────────────────────────
-export default function ClientDashboard({ empty = false }) {
-    const profile = empty ? EMPTY_PROFILE : COMPANY_PROFILE
-    const items = empty ? [] : PUBLICATIONS
+export default function ClientDashboard() {
     const [editing, setEditing] = useState(false)
+
+    // GET /customer/cabinet — profil, hisoblagichlar va publikatsiyalar
+    // bitta so'rovda keladi (backend/customer.md).
+    const fetcher = useCallback(() => customerApi.cabinet(), [])
+    const { data, loading, reload } = useApi(fetcher)
+
+    const profile = useMemo(() => customerProfile(data), [data])
+    const publications = useMemo(() => publicationsFrom(data, { base: '/client' }), [data])
+    const items = publications.items
+
+    if (loading || !profile) {
+        return (
+            <Container>
+                <div className="my-[24px] flex flex-col gap-[16px] lg:my-[40px] lg:gap-[24px]">
+                    <div className="h-[240px] animate-pulse rounded-[6px] bg-black/5 lg:h-[600px]" />
+                </div>
+            </Container>
+        )
+    }
 
     return (
         <Container>
@@ -76,15 +90,23 @@ export default function ClientDashboard({ empty = false }) {
                             <ProfileSection title="Контакты">
                                 {profile.phone || profile.email || profile.site ? (
                                     <div className="flex flex-col gap-[12px] lg:flex-row lg:flex-wrap lg:items-center lg:gap-[24px]">
-                                        <Contact icon={Phone} href={`tel:${profile.phone}`}>
-                                            {profile.phone}
-                                        </Contact>
-                                        <Contact icon={Mail} href={`mailto:${profile.email}`}>
-                                            {profile.email}
-                                        </Contact>
-                                        <Contact icon={Globe} href={`https://${profile.site}`}>
-                                            {profile.site}
-                                        </Contact>
+                                        {/* Backend to'ldirilmagan maydonni bo'sh qaytaradi —
+                                            bunday qatorni umuman chizmaymiz. */}
+                                        {profile.phone && (
+                                            <Contact icon={Phone} href={`tel:${profile.phone}`}>
+                                                {profile.phone}
+                                            </Contact>
+                                        )}
+                                        {profile.email && (
+                                            <Contact icon={Mail} href={`mailto:${profile.email}`}>
+                                                {profile.email}
+                                            </Contact>
+                                        )}
+                                        {profile.site && (
+                                            <Contact icon={Globe} href={`https://${profile.site}`}>
+                                                {profile.site}
+                                            </Contact>
+                                        )}
                                     </div>
                                 ) : (
                                     <p className="text-[14px] text-grey lg:text-[16px]">
@@ -147,18 +169,23 @@ export default function ClientDashboard({ empty = false }) {
                     </section>
                 ) : (
                     <AdminPublications
-                        tabs={PUBLICATION_TABS}
+                        tabs={publications.tabs}
                         items={items}
                         menuItems={publicationMenu}
                     />
                 )}
             </ClientPage>
 
-            <ClientProfileModal
-                open={editing}
-                onClose={() => setEditing(false)}
-                profile={profile}
-            />
+            {/* Oyna faqat ochilganda mount bo'ladi — shunda forma har safar
+                joriy profil bilan boshlanadi. */}
+            {editing && (
+                <ClientProfileModal
+                    open
+                    onClose={() => setEditing(false)}
+                    profile={profile}
+                    onSaved={reload}
+                />
+            )}
         </Container>
     )
 }

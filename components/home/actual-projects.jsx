@@ -7,7 +7,9 @@ import { ArrowUpRight } from 'lucide-react'
 import Button from '@/components/ui/button'
 import Container from '@/components/ui/container'
 import ProjectCard from '@/components/projects/project-card'
-import { PROJECTS } from '@/components/home/home-data'
+import { useApi } from '@/lib/use-api'
+import * as site from '@/lib/api/site'
+import { projectCard } from '@/lib/adapters'
 
 import 'swiper/css'
 import 'swiper/css/free-mode'
@@ -17,7 +19,16 @@ import 'swiper/css/free-mode'
 // Desktop: 4 ta teng kartochka bir qatorda, sarlavha yonida «Все проекты».
 // Mobil: gorizontal svayp, tugma pastda to'liq kenglikda.
 // ─────────────────────────────────────────────────────────────────────────────
+// Eng yangi e'lonlar (backend/site.md → GET /site/projects?sort=new).
+const fetchProjects = () => site.projects({ sort: 'new', page_size: 4 })
+
 export default function ActualProjects() {
+    const { data } = useApi(fetchProjects)
+    const projects = (data?.items || []).map(projectCard)
+
+    // Backendda e'lon bo'lmasa butun blok chizilmaydi.
+    if (projects.length === 0) return null
+
     return (
         <Container as="section" className="flex flex-col gap-[16px] lg:gap-[32px]">
             <header className="flex items-center justify-between gap-[16px]">
@@ -51,7 +62,7 @@ export default function ActualProjects() {
                     spaceBetween={12}
                     className="w-full"
                 >
-                    {PROJECTS.map((project) => (
+                    {projects.map((project) => (
                         // `.swiper-slide{width:100%}` ni yengish uchun ikki klassli selektor
                         <SwiperSlide
                             key={project.id}
@@ -65,7 +76,7 @@ export default function ActualProjects() {
 
             {/* Desktop — 4 ta ustun */}
             <div className="hidden gap-[16px] lg:flex">
-                {PROJECTS.map((project) => (
+                {projects.map((project) => (
                     <ProjectCard key={project.id} project={project} className="min-w-0 flex-1" />
                 ))}
             </div>

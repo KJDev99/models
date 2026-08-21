@@ -1,6 +1,8 @@
 'use client'
 
 import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import toast from 'react-hot-toast'
 import {
     AdminBreadcrumb,
     AdminField,
@@ -15,13 +17,18 @@ import {
     AdminTextarea,
 } from '@/components/admin/ui/admin-form'
 import { CreatedModal } from '@/components/admin/ui/admin-modals'
+import { useAction } from '@/lib/use-api'
+import * as adminApi from '@/lib/api/admin'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // «Создать заказчика» — Figma'da alohida freym chizilmagan, «Создать
 // исполнителя» (335:14800) qolipida, zakazchik maydonlari bilan.
 // ─────────────────────────────────────────────────────────────────────────────
 export default function AdminClientForm() {
+    const router = useRouter()
     const [done, setDone] = useState(false)
+    const [savedId, setSavedId] = useState(null)
+    const create = useAction(adminApi.createCustomer)
     const [form, setForm] = useState({
         type: 'person',
         name: '',
@@ -42,6 +49,29 @@ export default function AdminClientForm() {
 
     const company = form.type === 'company'
 
+    // POST /admin/customers (backend/admin.md).
+    async function submit() {
+        const res = await create.run({
+            customer_type: company ? 'company' : 'individual',
+            company_name: company ? form.company : undefined,
+            first_name: company ? undefined : form.name,
+            last_name: company ? undefined : form.surname,
+            business_field: form.field || undefined,
+            city: form.city || undefined,
+            about: form.about || undefined,
+            email: form.email,
+            phone: form.phone || undefined,
+            website: form.site || undefined,
+            password: form.password,
+        })
+        if (!res.success) {
+            toast.error(res.error.message)
+            return
+        }
+        setSavedId(res.data?.id || res.data?.user?.id || null)
+        setDone(true)
+    }
+
     return (
         <>
             <AdminBreadcrumb
@@ -58,8 +88,8 @@ export default function AdminClientForm() {
                         title="Создание профиля"
                         steps={['Основная информация', 'Данные для входа']}
                         current={0}
-                        onSubmit={() => setDone(true)}
-                        submitLabel="Сохранить"
+                        onSubmit={submit}
+                        submitLabel={create.loading ? 'Сохраняем…' : 'Сохранить'}
                     />
                 }
             >
@@ -174,8 +204,11 @@ export default function AdminClientForm() {
 
             <CreatedModal
                 open={done}
-                onClose={() => setDone(false)}
-                viewHref="/admin/clients/c-2"
+                onClose={() => {
+                    setDone(false)
+                    router.push('/admin/clients')
+                }}
+                viewHref={savedId ? `/admin/clients/${savedId}` : '/admin/clients'}
                 listHref="/admin/clients"
             />
         </>

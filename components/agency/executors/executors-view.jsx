@@ -3,6 +3,7 @@
 import React from 'react'
 import Card from '@/components/ui/card'
 import ResourceList from '@/components/cabinet/resource-list'
+import { toExecutorCard, agencyPerformers } from '@/components/cabinet/list-fetchers'
 import ExecutorCard from '@/components/shared/executor-card'
 
 const TABS = [
@@ -16,7 +17,8 @@ export default function AgencyExecutors() {
     return (
         <Card title="Исполнители агентства" padded={false} className="border-0 bg-transparent">
             <ResourceList
-                endpoint="/agencies/mine/executors/"
+                fetcher={agencyPerformers}
+                adapt={toExecutorCard}
                 tabs={TABS}
             createText="Добавить исполнителя"
             createHref="/agency/executors/new"

@@ -26,9 +26,14 @@ export default function ConversationView({ id, basePath = '/chat' }) {
         fetchChats()
     }, [fetchChats])
 
+    const reset = useChatStore((s) => s.reset)
+
     useEffect(() => {
-        if (id) openChat(id)
-    }, [id, openChat])
+        if (!id) return undefined
+        openChat(id)
+        // Sahifadan chiqilganda WebSocket yopiladi.
+        return () => reset()
+    }, [id, openChat, reset])
 
     const chat = chats.find((c) => String(c.id) === String(id))
 
@@ -71,7 +76,11 @@ export default function ConversationView({ id, basePath = '/chat' }) {
             <ComplaintModal
                 open={complaintOpen}
                 onClose={() => setComplaintOpen(false)}
-                target={{ type: 'chat', id, name: chat?.companion?.name }}
+                target={{
+                    conversationId: id,
+                    accusedId: chat?.peerId,
+                    name: chat?.companion?.name,
+                }}
             />
         </Container>
     )

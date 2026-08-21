@@ -1,8 +1,10 @@
 'use client'
 
 import React from 'react'
-import ClientNewVenueForm from '@/components/client/venues/new/new-venue-form'
+import { useParams } from 'next/navigation'
+import ClientEditVenue from '@/components/client/venues/[id]/edit/edit-venue-form'
 
 export default function ClientEditVenuePage() {
-    return <ClientNewVenueForm mode="edit" />
+    const { id } = useParams()
+    return <ClientEditVenue id={id} />
 }

@@ -238,3 +238,20 @@ export function AuthSocialBar({ onPick }) {
         </button>
     )
 }
+
+// Umumiy xato matni — backend `error.message` ni rus tilida beradi
+// (backend/auth.md), shuning uchun to'g'ridan-to'g'ri ko'rsatiladi.
+export function AuthError({ children }) {
+    if (!children) return null
+    return (
+        <p role="alert" className="text-center text-[14px] text-danger lg:text-[16px]">
+            {children}
+        </p>
+    )
+}
+
+// Maydon ostidagi qizil xato (VALIDATION_ERROR → error.details).
+export function AuthFieldError({ children }) {
+    if (!children) return null
+    return <p className="text-[12px] text-danger lg:text-[14px]">{children}</p>
+}

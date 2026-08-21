@@ -77,9 +77,12 @@ export default function DetailReviews({ rating, reviews, step, onLeaveReview }) 
                     </span>
                 </div>
 
-                {/* Desktopda matnli tugma, mobilda faqat ikonka (Figma 360:24036) */}
+                {/* Desktopda matnli tugma, mobilda faqat ikonka (Figma 360:24036).
+                    Sharh qoldirish huquqi bo'lmagan joyda (masalan, agentlik o'z
+                    ijrochisini ko'rayotganda) tugma umuman chizilmaydi. */}
                 <button
                     type="button"
+                    hidden={!onLeaveReview}
                     onClick={onLeaveReview}
                     aria-label="Оставить отзыв"
                     className="hidden cursor-pointer items-center justify-center rounded-[6px] border border-gold px-[24px] py-[16px] text-[18px] font-medium whitespace-nowrap text-gold transition-colors hover:bg-gold hover:text-white lg:flex"
@@ -89,6 +92,7 @@ export default function DetailReviews({ rating, reviews, step, onLeaveReview }) 
 
                 <button
                     type="button"
+                    hidden={!onLeaveReview}
                     onClick={onLeaveReview}
                     aria-label="Оставить отзыв"
                     className="flex size-[40px] shrink-0 cursor-pointer items-center justify-center rounded-[6px] border border-gold text-gold transition-colors hover:bg-gold hover:text-white lg:hidden"

@@ -9,7 +9,7 @@ import { AdminRowMenu, AdminStatus } from '@/components/admin/ui/admin-ui'
 import { profileMenu } from '@/components/admin/ui/admin-menu-items'
 import { RowActionModals } from '@/components/admin/ui/admin-modals'
 import { USER_STATUS } from '@/components/admin/ui/admin-statuses'
-import { EXECUTOR_PROFILE } from '@/components/admin/executors/executor-profile-data'
+// `profile` — `adminExecutorProfile()` adapteri natijasi (lib/adapters.js).
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Ijrochi anketasi. Ikki joyda ishlatiladi:
@@ -17,15 +17,28 @@ import { EXECUTOR_PROFILE } from '@/components/admin/executors/executor-profile-
 //   /admin/moderation/[id]     — Figma «Анкета» 344:14840 (tepasida qaror paneli)
 // Mobil: Figma «Анкета 320» 446:15743.
 // ─────────────────────────────────────────────────────────────────────────────
-export default function AdminExecutorProfile({ profile = EXECUTOR_PROFILE, decisionBar = null }) {
+export default function AdminExecutorProfile({
+    profile,
+    decisionBar = null,
+    editHref,
+    onBlock,
+    onUnblock,
+    onDelete,
+}) {
     const router = useRouter()
     const [action, setAction] = useState(null)
-    const [status, setStatus] = useState(profile.status)
     const [shot, setShot] = useState(0)
     const [tab, setTab] = useState('all')
     const [shown, setShown] = useState(8)
 
+    const status = profile.status
     const state = USER_STATUS[status] || USER_STATUS.active
+    const href = editHref || `/admin/executors/${profile.id}/edit`
+    // Portfolio albom bo'yicha filtrlanadi (`portfolioFromMedia()` kalitlari).
+    const shots =
+        tab === 'all'
+            ? profile.portfolio
+            : (profile.portfolioItems?.[tab] || []).map((x) => x.image)
 
     return (
         <>
@@ -74,7 +87,7 @@ export default function AdminExecutorProfile({ profile = EXECUTOR_PROFILE, decis
 
                         <div className="relative h-[280px] w-full overflow-hidden rounded-[6px] bg-[#d9d9d9] lg:h-[600px] lg:w-[425px]">
                             <Image
-                                src={profile.gallery[shot]}
+                                src={profile.gallery[shot] || PLACEHOLDER}
                                 alt={profile.name}
                                 fill
                                 priority
@@ -96,7 +109,7 @@ export default function AdminExecutorProfile({ profile = EXECUTOR_PROFILE, decis
                                     <button
                                         type="button"
                                         onClick={() =>
-                                            router.push(`/admin/executors/${profile.id}/edit`)
+                                            router.push(href)
                                         }
                                         aria-label="Редактировать"
                                         className="flex size-[32px] cursor-pointer items-center justify-center rounded-[6px] ui-icon-btn p-[4px]"
@@ -108,9 +121,7 @@ export default function AdminExecutorProfile({ profile = EXECUTOR_PROFILE, decis
                                             items={profileMenu({
                                                 status,
                                                 onSettings: () =>
-                                                    router.push(
-                                                        `/admin/executors/${profile.id}/edit`
-                                                    ),
+                                                    router.push(href),
                                                 onBlock: () =>
                                                     setAction({ type: 'block', row: profile }),
                                                 onUnblock: () =>
@@ -125,10 +136,10 @@ export default function AdminExecutorProfile({ profile = EXECUTOR_PROFILE, decis
 
                             <div className="flex flex-col gap-[12px]">
                                 <div className="flex flex-wrap items-center gap-[16px] text-[14px] font-medium text-grey lg:text-[16px]">
-                                    <Meta icon={Calendar}>{profile.age}</Meta>
-                                    <Meta icon={Ruler}>{profile.height}</Meta>
-                                    <Meta icon={Weight}>{profile.weight}</Meta>
-                                    <Meta icon={MapPin}>{profile.city}</Meta>
+                                    {profile.age && <Meta icon={Calendar}>{profile.age}</Meta>}
+                                    {profile.height && <Meta icon={Ruler}>{profile.height}</Meta>}
+                                    {profile.weight && <Meta icon={Weight}>{profile.weight}</Meta>}
+                                    {profile.city && <Meta icon={MapPin}>{profile.city}</Meta>}
                                 </div>
 
                                 <div className="flex flex-wrap gap-[12px]">
@@ -153,7 +164,11 @@ export default function AdminExecutorProfile({ profile = EXECUTOR_PROFILE, decis
                             </p>
                         </div>
 
-                        <div className="flex flex-col gap-[16px]">
+                        <div
+                            className={`flex flex-col gap-[16px] ${
+                                profile.experience.length ? '' : 'hidden'
+                            }`}
+                        >
                             <h2 className="text-[16px] font-bold text-black lg:text-[18px]">
                                 Опыт работы
                             </h2>
@@ -262,7 +277,7 @@ export default function AdminExecutorProfile({ profile = EXECUTOR_PROFILE, decis
                     </div>
 
                     <div className="grid grid-cols-2 gap-[12px] lg:grid-cols-4 lg:gap-[16px]">
-                        {profile.portfolio.slice(0, shown).map((src, i) => (
+                        {shots.slice(0, shown).map((src, i) => (
                             <span
                                 key={i}
                                 className="relative block h-[140px] overflow-hidden rounded-[6px] bg-[#d9d9d9] lg:h-[250px]"
@@ -278,7 +293,7 @@ export default function AdminExecutorProfile({ profile = EXECUTOR_PROFILE, decis
                         ))}
                     </div>
 
-                    {shown < profile.portfolio.length && (
+                    {shown < shots.length && (
                         <button
                             type="button"
                             onClick={() => setShown(shown + 8)}
@@ -305,13 +320,16 @@ export default function AdminExecutorProfile({ profile = EXECUTOR_PROFILE, decis
             <RowActionModals
                 action={action}
                 onClose={() => setAction(null)}
-                onBlock={() => setStatus('blocked')}
-                onUnblock={() => setStatus('active')}
-                onDelete={() => router.push('/admin/executors')}
+                onBlock={onBlock}
+                onUnblock={onUnblock}
+                onDelete={onDelete}
             />
         </>
     )
 }
+
+// Rasm hali yuklanmagan anketalar uchun (Figma'da doim rasm bor).
+const PLACEHOLDER = '/img/models/model.jpg'
 
 function Meta({ icon: Icon, children }) {
     return (

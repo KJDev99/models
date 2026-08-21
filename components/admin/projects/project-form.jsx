@@ -19,6 +19,7 @@ import {
     AdminTextarea,
 } from '@/components/admin/ui/admin-form'
 import { CreatedModal } from '@/components/admin/ui/admin-modals'
+import PhotoThumb, { PhotoThumbs } from '@/components/admin/ui/photo-thumb'
 import { useApi, useAction } from '@/lib/use-api'
 import * as adminApi from '@/lib/api/admin'
 import * as site from '@/lib/api/site'
@@ -372,13 +373,21 @@ export default function AdminProjectForm({ mode = 'create', initialValues = null
                                     type="file"
                                     accept="image/*"
                                     className="hidden"
-                                    onChange={(e) => pickCover(e.target.files?.[0])}
+                                    onChange={(e) => {
+                                        const file = e.target.files?.[0]
+                                        e.target.value = ''
+                                        pickCover(file)
+                                    }}
                                 />
                                 <Upload size={24} strokeWidth={2} className="shrink-0" />
                                 {upload.loading
                                     ? 'Загружаем…'
-                                    : form.cover || 'Нажмите для загрузки или перетащите файл сюда'}
+                                    : form.cover
+                                      ? 'Заменить обложку'
+                                      : 'Нажмите для загрузки или перетащите файл сюда'}
                             </label>
+
+                            <PhotoThumb src={form.cover} onRemove={() => set('cover', '')} />
                         </AdminFormSection>
                     </>
                 ) : (

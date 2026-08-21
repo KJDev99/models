@@ -19,6 +19,7 @@ import {
     AdminTextarea,
 } from '@/components/admin/ui/admin-form'
 import { CreatedModal } from '@/components/admin/ui/admin-modals'
+import PhotoThumb, { PhotoThumbs } from '@/components/admin/ui/photo-thumb'
 import { useApi, useAction } from '@/lib/use-api'
 import * as adminApi from '@/lib/api/admin'
 import * as site from '@/lib/api/site'
@@ -50,6 +51,8 @@ export default function AdminVenueForm({ mode = 'create', initialValues = null }
 
     const [done, setDone] = useState(false)
     const [savedId, setSavedId] = useState(editing ? id : null)
+    // Yuklangan suratlar manzillari — eskiz sifatida ko'rsatiladi.
+    const [photos, setPhotos] = useState(() => initialValues?.photoUrls || [])
     const [form, setForm] = useState(() => ({
         owner: '',
         name: '',
@@ -151,7 +154,7 @@ export default function AdminVenueForm({ mode = 'create', initialValues = null }
         const venueId = savedId || (await persist())
         if (!venueId) return
 
-        let ok = 0
+        const added = []
         for (const [i, file] of files.entries()) {
             const res = await upload.run(file)
             if (!res.success) {
@@ -160,11 +163,15 @@ export default function AdminVenueForm({ mode = 'create', initialValues = null }
             }
             const url = res.data?.url
             if (!url) continue
-            if (i === 0 && !form.photos) await update.run(venueId, { cover_url: url })
+            // Birinchi surat — muqova (agar hali qo'yilmagan bo'lsa).
+            if (i === 0 && !photos.length) await update.run(venueId, { cover_url: url })
             await addPhoto.run(venueId, { url, album: 'Общие' })
-            ok += 1
+            added.push(url)
         }
-        if (ok) set('photos', `${ok} фото загружено`)
+        if (added.length) {
+            setPhotos((list) => [...list, ...added])
+            toast.success(`Загружено фото: ${added.length}`)
+        }
     }
 
     return (
@@ -364,13 +371,33 @@ export default function AdminVenueForm({ mode = 'create', initialValues = null }
                             accept="image/*"
                             multiple
                             className="hidden"
-                            onChange={(e) => pickPhotos(Array.from(e.target.files || []))}
+                            onChange={(e) => {
+                                const files = Array.from(e.target.files || [])
+                                e.target.value = ''
+                                pickPhotos(files)
+                            }}
                         />
                         <Upload size={24} strokeWidth={2} className="shrink-0" />
                         {upload.loading
                             ? 'Загружаем…'
-                            : form.photos || 'Нажмите для загрузки или перетащите файл сюда'}
+                            : photos.length
+                              ? 'Добавить ещё'
+                              : 'Нажмите для загрузки или перетащите файл сюда'}
                     </label>
+
+                    {photos.length > 0 && (
+                        <PhotoThumbs>
+                            {photos.map((url, i) => (
+                                <PhotoThumb
+                                    key={`${url}-${i}`}
+                                    src={url}
+                                    onRemove={() =>
+                                        setPhotos((list) => list.filter((_, k) => k !== i))
+                                    }
+                                />
+                            ))}
+                        </PhotoThumbs>
+                    )}
                 </AdminFormSection>
             </AdminFormLayout>
 

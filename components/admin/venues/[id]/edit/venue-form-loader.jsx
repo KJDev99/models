@@ -48,6 +48,7 @@ function toFormValues(v) {
         day: priceOf(v.prices, 'Съёмочный день'),
         extra: priceOf(v.prices, 'Дополнительный час'),
         equipment: v.equipment_description || '',
-        photos: v.cover_url ? 'Обложка загружена' : '',
+        // Eskizlar uchun manzillar ro'yxati.
+        photoUrls: (v.media || []).map((m) => m.url).filter(Boolean),
     }
 }

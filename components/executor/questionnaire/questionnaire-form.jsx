@@ -895,9 +895,13 @@ function UploadBox({
                 multiple={multiple}
                 className="hidden"
                 onChange={(e) => {
-                    const files = e.target.files
+                    // `input.value` ni tozalash `e.target.files` ni ham
+                    // bo'shatadi — shuning uchun avval massivga ko'chiramiz,
+                    // keyin inputni tozalaymiz (bir xil faylni qayta tanlash
+                    // uchun kerak).
+                    const files = Array.from(e.target.files || [])
                     e.target.value = ''
-                    onPick?.(files)
+                    if (files.length) onPick?.(files)
                 }}
             />
             <Upload size={24} strokeWidth={2} className="shrink-0" />

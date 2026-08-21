@@ -248,8 +248,12 @@ export function AdminFormSteps({
     secondary,
     tertiary,
 }) {
+    // Desktopda ustun kontent bilan birga oqmaydi — scroll paytida joyida
+    // qotib turadi. Yuqoridan chekinish `--aside-top` orqali beriladi: ochiq
+    // saytda yopishqoq heder balandligi, adminkada oddiy 24px (globals.css).
+    // Ustunning o'zi ekrandan baland bo'lsa — ichida scroll bo'ladi.
     return (
-        <aside className="flex w-full flex-col gap-[24px] rounded-[6px] bg-white p-[12px] lg:w-[412px] lg:shrink-0 lg:p-[24px]">
+        <aside className="flex w-full flex-col gap-[24px] rounded-[6px] bg-white p-[12px] lg:sticky lg:top-[var(--aside-top)] lg:max-h-[calc(100svh-var(--aside-top)-24px)] lg:w-[412px] lg:shrink-0 lg:overflow-y-auto lg:p-[24px]">
             <p className="text-[14px] leading-[20px] text-grey lg:text-[18px] lg:leading-[24px]">
                 {title}
             </p>

@@ -22,6 +22,7 @@ import {
 import { useAction } from '@/lib/use-api'
 import * as customerApi from '@/lib/api/customer'
 import * as site from '@/lib/api/site'
+import PhotoThumb, { PhotoThumbs } from '@/components/admin/ui/photo-thumb'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // «Новый проект» — Figma 208:8790 (Основная информация) · 212:3733 (Подробнее
@@ -75,6 +76,8 @@ export default function ClientNewProjectForm({
     // Yaratilgan loyihaning `id` si — keyingi qadamlar (muqova, submit) uchun.
     const [createdId, setCreatedId] = useState(projectId)
     const [coverFile, setCoverFile] = useState(null)
+    // Tanlangan fayl darhol ko'rinishi uchun blob manzili.
+    const [coverPreview, setCoverPreview] = useState('')
     const [saving, setSaving] = useState(false)
     const [form, setForm] = useState(() => ({
         title: '',
@@ -395,20 +398,36 @@ export default function ClientNewProjectForm({
                             </AdminFormSection>
 
                             <AdminFormSection step={4} title="Обложка">
-                                <label className="flex cursor-pointer items-center gap-[12px] self-start rounded-[6px] bg-light-white px-[16px] py-[12px] text-[14px] font-medium text-grey transition-colors hover:text-black lg:px-[24px] lg:py-[16px] lg:text-[16px]">
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        className="hidden"
-                                        onChange={(e) => {
-                                            const file = e.target.files?.[0]
-                                            setCoverFile(file || null)
-                                            set('cover', file?.name || '')
+                                <div className="flex flex-col gap-[12px] lg:gap-[16px]">
+                                    <label className="flex cursor-pointer items-center gap-[12px] self-start rounded-[6px] bg-light-white px-[16px] py-[12px] text-[14px] font-medium text-grey transition-colors hover:text-black lg:px-[24px] lg:py-[16px] lg:text-[16px]">
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0]
+                                                e.target.value = ''
+                                                if (!file) return
+                                                setCoverFile(file)
+                                                setCoverPreview(URL.createObjectURL(file))
+                                                set('cover', file.name)
+                                            }}
+                                        />
+                                        <Upload size={24} strokeWidth={2} className="shrink-0" />
+                                        {coverPreview || form.cover
+                                            ? 'Заменить обложку'
+                                            : 'Нажмите для загрузки или перетащите файл сюда'}
+                                    </label>
+
+                                    <PhotoThumb
+                                        src={coverPreview || form.cover}
+                                        onRemove={() => {
+                                            setCoverFile(null)
+                                            setCoverPreview('')
+                                            set('cover', '')
                                         }}
                                     />
-                                    <Upload size={24} strokeWidth={2} className="shrink-0" />
-                                    {form.cover || 'Нажмите для загрузки или перетащите файл сюда'}
-                                </label>
+                                </div>
                             </AdminFormSection>
                         </>
                     )}

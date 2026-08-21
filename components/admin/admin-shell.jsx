@@ -25,7 +25,10 @@ export default function AdminShell({ children }) {
     const withNav = ADMIN_NAV.some((item) => item.href === pathname)
 
     return (
-        <div className="flex min-h-screen flex-col bg-light-white pb-[16px] lg:pb-[100px]">
+        <div
+            data-shell="admin"
+            className="flex min-h-screen flex-col bg-light-white pb-[16px] lg:pb-[100px]"
+        >
             <AdminHeader />
 
             {/* Heder bilan kontent orasida 24px (Figma 321:12633 — gap-[24px]).

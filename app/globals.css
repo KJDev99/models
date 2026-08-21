@@ -43,6 +43,20 @@
     line-height: 1.219;
   }
 
+  /* Forma sahifalaridagi o'ng ustun (`AdminFormSteps`) scrollda qotib turadi.
+     Ochiq saytda heder `sticky top-0` bo'lgani uchun ustun uning ostidan
+     boshlanishi kerak: desktop heder = 64px logotip + 2x24px + 1px chegara = 113px, ustiga
+     24px oraliq. Mobil versiyada ustun stacked bo'ladi va sticky ishlamaydi,
+     shuning uchun faqat `lg:` da qo'llanadi. */
+  :root {
+    --aside-top: 137px;
+  }
+
+  /* Adminkaning hederi yopishqoq emas — ustun yuqoriga yaqinroq turadi. */
+  [data-shell='admin'] {
+    --aside-top: 24px;
+  }
+
   body {
     background: var(--color-white);
     color: var(--color-black);

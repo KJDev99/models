@@ -21,6 +21,7 @@ import {
     AdminTextarea,
 } from '@/components/admin/ui/admin-form'
 import { CreatedModal } from '@/components/admin/ui/admin-modals'
+import PhotoThumb, { PhotoThumbs } from '@/components/admin/ui/photo-thumb'
 import {
     EXECUTOR_STEPS,
     EXECUTOR_TYPES,
@@ -491,7 +492,11 @@ function PortfolioUpload({ photos, onAdd, onRemove, busy }) {
                     accept="image/*"
                     multiple
                     className="hidden"
-                    onChange={(e) => onAdd(Array.from(e.target.files || []))}
+                    onChange={(e) => {
+                        const files = Array.from(e.target.files || [])
+                        e.target.value = ''
+                        if (files.length) onAdd(files)
+                    }}
                 />
                 {busy ? 'Загружаем…' : 'Перетащите файлы сюда или нажмите, чтобы выбрать'}
                 <span className="text-[12px] text-[#aaa] lg:text-[14px]">
@@ -500,24 +505,11 @@ function PortfolioUpload({ photos, onAdd, onRemove, busy }) {
             </label>
 
             {photos.length > 0 && (
-                <ul className="flex flex-col gap-[8px]">
+                <PhotoThumbs>
                     {photos.map((url, i) => (
-                        <li
-                            key={`${url}-${i}`}
-                            className="flex items-center justify-between gap-[16px] rounded-[6px] bg-light-white p-[12px] text-[14px] text-grey lg:p-[16px] lg:text-[16px]"
-                        >
-                            <span className="min-w-0 flex-1 truncate">{url}</span>
-                            <button
-                                type="button"
-                                onClick={() => onRemove(i)}
-                                aria-label="Удалить"
-                                className="cursor-pointer text-[#d14343] transition-opacity hover:opacity-70"
-                            >
-                                <Trash2 size={20} strokeWidth={2} />
-                            </button>
-                        </li>
+                        <PhotoThumb key={`${url}-${i}`} src={url} onRemove={() => onRemove(i)} />
                     ))}
-                </ul>
+                </PhotoThumbs>
             )}
         </div>
     )

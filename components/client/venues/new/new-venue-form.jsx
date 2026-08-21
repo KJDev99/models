@@ -509,12 +509,37 @@ export default function ClientNewVenueForm({
                                     label="Обложка площадки"
                                     hint="Эта фотография будет отображаться в каталоге и на странице площадки."
                                 >
-                                    <UploadBox
-                                        onPick={(files) =>
-                                            pickFiles(files, (list) => setCover(list[0]))
-                                        }
-                                        label={cover?.file?.name}
-                                    />
+                                    <div className="flex flex-col gap-[12px] lg:gap-[16px]">
+                                        <UploadBox
+                                            onPick={(files) =>
+                                                pickFiles(files, (list) => setCover(list[0]))
+                                            }
+                                            label={cover ? 'Заменить обложку' : undefined}
+                                        />
+
+                                        {/* Tanlangan muqova darhol ko'rinadi —
+                                            albomdagi kabi eskiz + o'chirish. */}
+                                        {cover && (
+                                            <span className="relative block size-[64px] overflow-hidden rounded-[6px] bg-[#d9d9d9] lg:size-[80px]">
+                                                <Image
+                                                    src={cover.preview || cover.url}
+                                                    alt=""
+                                                    fill
+                                                    sizes="80px"
+                                                    className="object-cover"
+                                                    unoptimized={Boolean(cover.preview)}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setCover(null)}
+                                                    aria-label="Удалить обложку"
+                                                    className="absolute inset-0 flex cursor-pointer items-center justify-center bg-black/30 text-white opacity-0 transition-opacity hover:opacity-100"
+                                                >
+                                                    <X size={20} strokeWidth={2} />
+                                                </button>
+                                            </span>
+                                        )}
+                                    </div>
                                 </AdminField>
 
                                 {albums.map((album, i) => (
@@ -643,9 +668,13 @@ function UploadBox({ multiple = false, onPick, label }) {
                 multiple={multiple}
                 className="hidden"
                 onChange={(e) => {
-                    const files = e.target.files
+                    // `input.value` ni tozalash `e.target.files` ni ham
+                    // bo'shatadi — shuning uchun avval massivga ko'chiramiz,
+                    // keyin inputni tozalaymiz (bir xil faylni qayta tanlash
+                    // uchun kerak).
+                    const files = Array.from(e.target.files || [])
                     e.target.value = ''
-                    onPick?.(files)
+                    if (files.length) onPick?.(files)
                 }}
             />
             <Upload size={24} strokeWidth={2} className="shrink-0" />

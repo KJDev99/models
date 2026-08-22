@@ -106,7 +106,7 @@ export default function AdminAgencies() {
                         { key: 'name', label: 'Агентства' },
                         { key: 'manager', label: 'Представитель' },
                         { key: 'email', label: 'Email' },
-                        { key: 'date', label: 'Дата' },
+                        { key: 'date', label: 'Дата', width: 'lg:w-[145px]' },
                         {
                             key: 'status',
                             label: 'Статус',

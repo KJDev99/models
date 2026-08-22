@@ -111,9 +111,9 @@ export default function AdminExecutors() {
                     actionsWidth="lg:w-[64px]"
                     columns={[
                         { key: 'name', label: 'Пользователь' },
-                        { key: 'type', label: 'Тип', width: 'lg:w-[150px]' },
+                        { key: 'type', label: 'Тип', width: 'lg:w-[130px]' },
                         { key: 'email', label: 'Email' },
-                        { key: 'date', label: 'Дата регистрации' },
+                        { key: 'date', label: 'Дата регистрации', width: 'lg:w-[180px]' },
                         {
                             key: 'status',
                             label: 'Статус',

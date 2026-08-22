@@ -63,9 +63,9 @@ export default function AdminDashboard() {
                     rows={requests}
                     columns={[
                         { key: 'name', label: 'Пользователь' },
-                        { key: 'type', label: 'Тип' },
+                        { key: 'type', label: 'Тип', width: 'lg:w-[130px]' },
                         { key: 'email', label: 'Email' },
-                        { key: 'date', label: 'Дата создания' },
+                        { key: 'date', label: 'Дата создания', width: 'lg:w-[150px]' },
                         {
                             key: 'status',
                             label: 'Статус',
@@ -105,9 +105,9 @@ export default function AdminDashboard() {
                     actionsWidth="lg:w-[24px]"
                     columns={[
                         { key: 'name', label: 'Пользователь' },
-                        { key: 'type', label: 'Тип' },
+                        { key: 'type', label: 'Тип', width: 'lg:w-[130px]' },
                         { key: 'email', label: 'Email' },
-                        { key: 'date', label: 'Дата регистрации' },
+                        { key: 'date', label: 'Дата регистрации', width: 'lg:w-[180px]' },
                     ]}
                     actions={(row) => [
                         { key: 'view', icon: Eye, label: 'Открыть', href: row.href },

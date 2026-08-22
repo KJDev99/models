@@ -104,9 +104,9 @@ export default function AdminClients() {
                     actionsWidth="lg:w-[64px]"
                     columns={[
                         { key: 'name', label: 'Пользователь' },
-                        { key: 'type', label: 'Тип' },
+                        { key: 'type', label: 'Тип', width: 'lg:w-[130px]' },
                         { key: 'email', label: 'Email' },
-                        { key: 'date', label: 'Дата' },
+                        { key: 'date', label: 'Дата', width: 'lg:w-[145px]' },
                         {
                             key: 'status',
                             label: 'Статус',

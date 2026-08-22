@@ -41,7 +41,7 @@ export default function AdminTable({
                 {columns.map((col) => (
                     <span
                         key={col.key}
-                        className={`text-[18px] font-medium text-black ${
+                        className={`truncate text-[18px] font-medium text-black ${
                             col.width ? `${col.width} shrink-0` : 'min-w-0 flex-1'
                         }`}
                     >
@@ -62,21 +62,36 @@ export default function AdminTable({
                         key={rowKey(row, i)}
                         className="flex flex-col gap-[12px] border-b border-[#e5e5e5] p-[12px] lg:flex-row lg:items-center lg:gap-[16px] lg:p-[16px]"
                     >
-                        {columns.map((col) => (
-                            <div
-                                key={col.key}
-                                className={`flex items-center gap-[16px] lg:block ${
-                                    col.hideOnMobile ? 'hidden lg:flex' : ''
-                                } ${col.width ? `${col.width} lg:shrink-0` : 'lg:min-w-0 lg:flex-1'}`}
-                            >
-                                <span className="min-w-0 flex-1 text-[12px] font-medium text-black lg:hidden">
-                                    {col.label}
-                                </span>
-                                <div className="min-w-0 flex-1 text-[12px] text-grey lg:flex-none lg:text-[16px]">
-                                    {col.render ? col.render(row) : row[col.key]}
+                        {columns.map((col) => {
+                            const value = col.render ? col.render(row) : row[col.key]
+                            return (
+                                <div
+                                    key={col.key}
+                                    className={`flex items-center gap-[16px] lg:block ${
+                                        col.hideOnMobile ? 'hidden lg:flex' : ''
+                                    } ${col.width ? `${col.width} lg:shrink-0` : 'lg:min-w-0 lg:flex-1'}`}
+                                >
+                                    <span className="shrink-0 text-[12px] font-medium text-black lg:hidden">
+                                        {col.label}
+                                    </span>
+                                    {/* Mobilda qiymat o'ngga tiqiladi va `AdminStatus`
+                                        nishoni o'z eniga yig'iladi (Figma 440:19109),
+                                        shuning uchun tashqi qatlam — `flex justify-end`.
+                                        Desktopda esa oddiy blok: uzun qiymat (asosan
+                                        pochta) qo'shni ustunga chiqib ketmasin deb
+                                        `truncate` bilan «…» ga kesiladi, to'lig'i
+                                        sichqoncha ostidagi izohda qoladi. */}
+                                    <div className="flex min-w-0 flex-1 justify-end lg:block lg:flex-none">
+                                        <span
+                                            title={typeof value === 'string' ? value : undefined}
+                                            className="min-w-0 break-all text-right text-[12px] text-grey lg:block lg:truncate lg:break-normal lg:text-left lg:text-[16px]"
+                                        >
+                                            {value}
+                                        </span>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            )
+                        })}
 
                         {rowActions.length > 0 && (
                             <div

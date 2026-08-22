@@ -97,9 +97,9 @@ export default function AdminModeration() {
                     rows={loading ? [] : rows}
                     columns={[
                         { key: 'name', label: 'Пользователь' },
-                        { key: 'type', label: 'Тип' },
+                        { key: 'type', label: 'Тип', width: 'lg:w-[130px]' },
                         { key: 'email', label: 'Email' },
-                        { key: 'date', label: 'Дата создания' },
+                        { key: 'date', label: 'Дата создания', width: 'lg:w-[150px]' },
                         {
                             key: 'status',
                             label: 'Статус',

@@ -45,9 +45,8 @@ export default function ChatWindow({
             const res = await site.upload(file)
             const url = res?.url
             if (!url) throw new Error('Файл не загрузился')
-            // Backend `body` ni majburiy qilgan (`minLength: 1`), shuning uchun
-            // izohsiz rasm uchun fayl nomi yuboriladi (hisobot, 21-band).
-            await onSend?.(text.trim() || file.name, url)
+            // Izohsiz rasm ham yuboriladi — backend `body` ni ixtiyoriy qildi.
+            await onSend?.(text.trim(), url)
             setText('')
         } catch (err) {
             toast.error(err?.message || 'Не удалось отправить файл')

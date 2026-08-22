@@ -108,9 +108,13 @@ export const FILTER_FIELDS = [
         kind: 'select',
         label: 'Категория',
         placeholder: 'Все категории',
+        // `dict` — GET /site/dictionaries dagi kalit. Javob kelgach quyidagi
+        // ro'yxat backendникi bilan almashadi (`lib/dictionaries.js`).
+        // Modellarda «Категория» `work_directions` bo'yicha qidiriladi.
+        dict: 'work_directions',
         options: [
             { value: '', label: 'Все категории' },
-            { value: 'fashion', label: 'Fashion' },
+            { value: 'fashion', label: 'Фэшн' },
             { value: 'commercial', label: 'Коммерческая' },
             { value: 'catalog', label: 'Каталог' },
             { value: 'advertising', label: 'Реклама' },
@@ -121,6 +125,7 @@ export const FILTER_FIELDS = [
         kind: 'select',
         label: 'Тип проекта',
         placeholder: 'Любой проект',
+        dict: 'project_types',
         options: [
             { value: '', label: 'Любой проект' },
             { value: 'photo', label: 'Фотосъёмка' },

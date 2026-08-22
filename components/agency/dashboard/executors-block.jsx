@@ -5,7 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Eye, LayoutGrid, List, MessageCircle, SquarePen } from 'lucide-react'
 import { AdminRowMenu, AdminSearch, AdminSelect, AdminStatus } from '@/components/admin/ui/admin-ui'
-import { USER_STATUS } from '@/components/admin/ui/admin-statuses'
+import { USER_STATUS, userStatus } from '@/components/admin/ui/admin-statuses'
 import { CabinetTitle } from '@/components/shared/cabinet/cabinet-ui'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -191,7 +191,7 @@ function Counters({ item, className = '' }) {
 
 // Setkadagi kartochka (Figma 270:20599).
 function ExecutorCard({ executor, menuItems }) {
-    const state = USER_STATUS[executor.status]
+    const state = userStatus(executor.status)
 
     return (
         <article className="group relative flex h-[350px] w-full flex-col justify-between overflow-hidden rounded-[6px] bg-[#d9d9d9] p-[12px] lg:h-[400px] lg:p-[16px]">
@@ -246,7 +246,7 @@ function ExecutorCard({ executor, menuItems }) {
 
 // Ro'yxat ko'rinishi — Figma'da chizilmagan, kabinetdagi qatorlar uslubida.
 function ExecutorRow({ executor, menuItems }) {
-    const state = USER_STATUS[executor.status]
+    const state = userStatus(executor.status)
 
     return (
         <article className="flex flex-col gap-[12px] rounded-[6px] bg-white p-[12px] lg:flex-row lg:items-center lg:gap-[16px] lg:p-[16px]">

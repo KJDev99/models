@@ -14,12 +14,7 @@ import {
     AdminStatus,
 } from '@/components/admin/ui/admin-ui'
 import { DeleteModal } from '@/components/admin/ui/admin-modals'
-import {
-    RATING_FILTER,
-    REVIEWS_PAGE_SIZE,
-    REVIEW_STATUS,
-    REVIEW_STATUS_FILTER,
-} from '@/components/admin/reviews/reviews-data'
+import { RATING_FILTER, REVIEWS_PAGE_SIZE, REVIEW_STATUS_FILTER, reviewStatus } from '@/components/admin/reviews/reviews-data'
 import { useApi, useAction } from '@/lib/use-api'
 import * as adminApi from '@/lib/api/admin'
 import { adminReviewRow } from '@/lib/adapters'
@@ -139,7 +134,7 @@ export default function AdminReviews() {
 // «Скрыть отзыв» / «Опубликовать» va «Удалить» (Figma 343:14250 / 343:14276).
 function ReviewCard({ review, onToggle, onDelete }) {
     const hidden = review.status === 'hidden'
-    const state = REVIEW_STATUS[review.status]
+    const state = reviewStatus(review.status)
 
     return (
         <article className="flex flex-col gap-[12px] rounded-[6px] border border-black/8 p-[12px] lg:gap-[16px] lg:p-[16px]">

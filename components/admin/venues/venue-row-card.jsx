@@ -16,10 +16,11 @@ import {
     Users,
 } from 'lucide-react'
 import { AdminRowMenu, AdminStatus } from '@/components/admin/ui/admin-ui'
-import { PROJECT_STATUS } from '@/components/admin/ui/admin-statuses'
+import { projectStatus } from '@/components/admin/ui/admin-statuses'
 
 import 'swiper/css'
 import 'swiper/css/free-mode'
+import { pricePerHour } from '@/lib/format'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Adminkadagi maydon qatori — Figma «Площадки» 342:10467.
@@ -41,8 +42,8 @@ export default function AdminVenueRow({ venue, menuItems }) {
     const next = useCallback(() => swiper?.slideNext(), [swiper])
 
     const href = `/admin/venues/${venue.id}`
-    const price = `от ${venue.pricePerHour.toLocaleString('ru-RU')} ₽/час`
-    const state = PROJECT_STATUS[venue.status]
+    const price = pricePerHour(venue.pricePerHour)
+    const state = projectStatus(venue.status)
 
     return (
         <article className="flex flex-col gap-[16px] rounded-[6px] bg-white p-[12px] lg:p-[24px]">

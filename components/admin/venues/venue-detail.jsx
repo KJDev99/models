@@ -9,6 +9,7 @@ import { AdminRowMenu, AdminStatus } from '@/components/admin/ui/admin-ui'
 import { publicationMenu } from '@/components/admin/ui/admin-menu-items'
 import { DeleteModal } from '@/components/admin/ui/admin-modals'
 import { PROJECT_STATUS } from '@/components/admin/ui/admin-statuses'
+import { pricePerHour } from '@/lib/format'
 // Ma'lumot va rasm albomlari chaqiruv joyidan beriladi (backend adapteri orqali).
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -103,7 +104,7 @@ export default function AdminVenueDetail({
                             <Meta icon={Users}>до {venue.capacity} чел.</Meta>
                             <Meta icon={MapPin}>{venue.city}</Meta>
                             <Meta icon={Banknote}>
-                                от {venue.pricePerHour.toLocaleString('ru-RU')} ₽/час
+                                {pricePerHour(venue.pricePerHour)}
                             </Meta>
                         </div>
 

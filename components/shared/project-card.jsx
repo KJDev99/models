@@ -42,7 +42,10 @@ export default function ProjectCard({ project, basePath = '/projects', showStatu
                     )}
 
                     <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-sm text-grey">
-                        <span>{[city, formatDate(startDate)].filter(Boolean).join(' • ')}</span>
+                        {/* Sana bo'lmasa `formatDate` «—» qaytaradi — taklif
+                            ro'yxatida (`GET /performer/invites`) sana kelmaydi,
+                            shunda shahar yonida yolg'iz chiziqcha turmasin. */}
+                        <span>{[city, startDate && formatDate(startDate)].filter(Boolean).join(' • ')}</span>
                         {fee != null && <span className="text-base text-black">{formatPrice(fee)}</span>}
                     </div>
                 </div>

@@ -179,7 +179,9 @@ export function ReviewModal({ open, onClose, targetId, venueId, onSent }) {
         }
         setRating(1)
         setText('')
-        toast.success('Отзыв отправлен на модерацию')
+        // Sharh darhol saytga chiqmaydi — backend `message` ni o'zi beradi
+        // (status `pending_review`, backend javobi «Отзывы» bo'limi).
+        toast.success(res.data?.message || 'Отзыв отправлен на модерацию')
         onSent?.()
         onClose()
     }

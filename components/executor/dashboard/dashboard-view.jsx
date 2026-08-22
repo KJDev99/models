@@ -14,7 +14,7 @@ import {
 } from 'lucide-react'
 import Container from '@/components/ui/container'
 import { AdminStatus } from '@/components/admin/ui/admin-ui'
-import { PROJECT_STATUS } from '@/components/admin/ui/admin-statuses'
+import { projectStatus } from '@/components/admin/ui/admin-statuses'
 import DetailGallery from '@/components/shared/detail/detail-gallery'
 import DetailPortfolio from '@/components/shared/detail/detail-portfolio'
 import ModelSummary from '@/components/models/[slug]/model-summary'
@@ -73,7 +73,7 @@ export default function ExecutorDashboard({ openSettings = false }) {
 
     const status = executor.status
     const filled = executor.filled
-    const state = PROJECT_STATUS[status]
+    const state = projectStatus(status)
     const EXECUTOR = executor
 
     const actions = (

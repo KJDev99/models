@@ -12,6 +12,7 @@ import AdminProfileModal, {
 } from '@/components/admin/ui/admin-profile-modal'
 import Button from '@/components/ui/button'
 import { CabinetSecurityRow } from '@/components/shared/cabinet/cabinet-ui'
+import { useSecurityNote } from '@/components/shared/cabinet/use-security-info'
 import { Lock, Mail, Phone } from 'lucide-react'
 import {
     DeleteAccountModal,
@@ -23,7 +24,7 @@ import { useAction } from '@/lib/use-api'
 import * as customerApi from '@/lib/api/customer'
 import * as site from '@/lib/api/site'
 import { useAuthStore } from '@/store/useAuthStore'
-import { formatDate } from '@/lib/format'
+import { ROLES } from '@/lib/roles'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // «Редактировать профиль» — Figma «Заказчик» 320:8226 (1200×810).
@@ -58,6 +59,8 @@ function fromProfile(profile) {
         firstName: profile?.firstName || '',
         lastName: profile?.lastName || '',
         companyName: profile?.companyName || '',
+        field: profile?.field || '',
+        representative: profile?.representative || '',
         inn: profile?.inn || '',
         city: profile?.city || '',
         about: profile?.about === ABOUT_PLACEHOLDER ? '' : profile?.about || '',
@@ -81,6 +84,13 @@ export default function ClientProfileModal({ open, onClose, profile, onSaved }) 
 
     const saveInfo = useAction(customerApi.updateInfo)
     const saveContacts = useAction(customerApi.updateContacts)
+
+    // «Безопасность» qatorlari: niqoblangan pochta/telefon va parol sanasi
+    // GET /customer/settings dan keladi.
+    const noteFor = useSecurityNote(
+        form.customerType === 'company' ? ROLES.COMPANY : ROLES.CLIENT,
+        profile,
+    )
     const upload = useAction(site.upload)
     const savePhoto = useAction(customerApi.updatePhoto)
 
@@ -90,6 +100,11 @@ export default function ClientProfileModal({ open, onClose, profile, onSaved }) 
             first_name: form.firstName || undefined,
             last_name: form.lastName || undefined,
             company_name: form.customerType === 'company' ? form.companyName : undefined,
+            // Kompaniya uchun ikkita qo'shimcha maydon (backend javobi, 16-band).
+            sphere_of_activity:
+                form.customerType === 'company' ? form.field || undefined : undefined,
+            representative_name:
+                form.customerType === 'company' ? form.representative || undefined : undefined,
             inn: form.inn || undefined,
             city: form.city,
             about: form.about || undefined,
@@ -163,6 +178,20 @@ export default function ClientProfileModal({ open, onClose, profile, onSaved }) 
                                         value={form.companyName}
                                         onChange={set('companyName')}
                                         placeholder="Введите название"
+                                    />
+                                </ModalField>
+                                <ModalField label="Сфера деятельности">
+                                    <ModalInput
+                                        value={form.field}
+                                        onChange={set('field')}
+                                        placeholder="Например, российский бренд одежды"
+                                    />
+                                </ModalField>
+                                <ModalField label="Имя представителя">
+                                    <ModalInput
+                                        value={form.representative}
+                                        onChange={set('representative')}
+                                        placeholder="Введите имя"
                                     />
                                 </ModalField>
                                 <ModalField label="ИНН">
@@ -264,15 +293,7 @@ export default function ClientProfileModal({ open, onClose, profile, onSaved }) 
                                 key={row.key}
                                 icon={row.icon}
                                 title={row.title}
-                                note={
-                                    row.key === 'password'
-                                        ? profile?.passwordChangedAt
-                                            ? `Последнее изменение ${formatDate(profile.passwordChangedAt)}`
-                                            : 'Смените пароль, если давно этого не делали'
-                                        : row.key === 'email'
-                                          ? profile?.email || 'Не указана'
-                                          : profile?.phone || 'Не указан'
-                                }
+                                note={noteFor(row.key)}
                                 onChange={() => setSecurity(row.key)}
                             />
                         ))}

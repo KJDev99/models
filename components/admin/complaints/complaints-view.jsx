@@ -14,11 +14,7 @@ import AdminModal, {
     AdminModalText,
 } from '@/components/admin/ui/admin-modal'
 import ComplaintChatModal from '@/components/admin/complaints/complaint-chat-modal'
-import {
-    COMPLAINTS_PAGE_SIZE,
-    COMPLAINT_FILTER,
-    COMPLAINT_STATUS,
-} from '@/components/admin/complaints/complaints-data'
+import { COMPLAINTS_PAGE_SIZE, COMPLAINT_FILTER, complaintStatus } from '@/components/admin/complaints/complaints-data'
 import { useApi, useAction } from '@/lib/use-api'
 import * as adminApi from '@/lib/api/admin'
 import { adminComplaintRow } from '@/lib/adapters'
@@ -82,7 +78,7 @@ export default function AdminComplaints() {
                         </p>
                     )}
                     {rows.map((complaint) => {
-                        const state = COMPLAINT_STATUS[complaint.status]
+                        const state = complaintStatus(complaint.status)
                         const pending = complaint.status === 'pending'
 
                         return (

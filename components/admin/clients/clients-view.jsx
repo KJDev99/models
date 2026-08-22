@@ -16,7 +16,7 @@ import Button from '@/components/ui/button'
 import AdminTable from '@/components/admin/ui/admin-table'
 import { rowMenu } from '@/components/admin/ui/admin-menu-items'
 import { RowActionModals, blockPayload } from '@/components/admin/ui/admin-modals'
-import { USER_STATUS } from '@/components/admin/ui/admin-statuses'
+import { userStatus } from '@/components/admin/ui/admin-statuses'
 import { CLIENTS_PAGE_SIZE, CLIENT_STATUS_FILTER } from '@/components/admin/clients/clients-data'
 import { useApi, useAction } from '@/lib/use-api'
 import * as adminApi from '@/lib/api/admin'
@@ -112,8 +112,8 @@ export default function AdminClients() {
                             label: 'Статус',
                             width: 'lg:w-[133px]',
                             render: (row) => (
-                                <AdminStatus tone={USER_STATUS[row.status].tone}>
-                                    {USER_STATUS[row.status].label}
+                                <AdminStatus tone={userStatus(row.status).tone}>
+                                    {userStatus(row.status).label}
                                 </AdminStatus>
                             ),
                         },

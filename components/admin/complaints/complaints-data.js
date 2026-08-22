@@ -19,6 +19,11 @@ export const COMPLAINT_STATUS = {
     rejected: { label: 'Отклонена', tone: 'danger' },
 }
 
+// Backend yangi holat qo'shsa, kartochka yiqilmasligi kerak.
+export function complaintStatus(status) {
+    return COMPLAINT_STATUS[status] || { label: status || '—', tone: 'muted' }
+}
+
 export const COMPLAINT_FILTER = [
     { value: '', label: 'Все жалобы' },
     { value: 'pending', label: 'На рассмотрении' },

@@ -5,7 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Eye, LayoutGrid, List, MessageCircle, SquarePen } from 'lucide-react'
 import { AdminRowMenu, AdminSearch, AdminSelect, AdminStatus } from '@/components/admin/ui/admin-ui'
-import { PROJECT_STATUS } from '@/components/admin/ui/admin-statuses'
+import { PROJECT_STATUS, projectStatus } from '@/components/admin/ui/admin-statuses'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // «Мои публикации» bloki — Figma «Профиль компании - проекты» 338:16522.
@@ -135,7 +135,7 @@ export default function AdminPublications({ tabs, items, emptyTitle, emptyText, 
 
 // Setkadagi kartochka (Figma 338:16552).
 function PublicationCard({ item, menuItems }) {
-    const state = PROJECT_STATUS[item.status]
+    const state = projectStatus(item.status)
 
     return (
         <article className="flex flex-col overflow-hidden rounded-[6px]">
@@ -185,7 +185,7 @@ function PublicationCard({ item, menuItems }) {
 
 // Ro'yxat ko'rinishi (Figma «редактировать профиль» 338:17056 fonida).
 function PublicationRow({ item, menuItems }) {
-    const state = PROJECT_STATUS[item.status]
+    const state = projectStatus(item.status)
 
     return (
         <article className="flex flex-col gap-[12px] rounded-[6px] bg-white p-[12px] lg:flex-row lg:items-center lg:gap-[16px] lg:p-[16px]">

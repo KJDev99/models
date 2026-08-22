@@ -18,3 +18,18 @@ export const PROJECT_STATUS = {
     rejected: { label: 'Отклонен', tone: 'danger' },
     done: { label: 'Завершен', tone: 'info' },
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Xavfsiz qidiruv. Backend yangi holat qo'shsa yoki `status` bo'sh kelsa,
+// to'g'ridan-to'g'ri `USER_STATUS[x].tone` o'qish sahifani yiqitadi —
+// shuning uchun kartochkalarda faqat shu funksiyalar ishlatiladi.
+// ─────────────────────────────────────────────────────────────────────────────
+const FALLBACK = { label: '—', tone: 'muted' }
+
+export function userStatus(status) {
+    return USER_STATUS[status] || FALLBACK
+}
+
+export function projectStatus(status) {
+    return PROJECT_STATUS[status] || FALLBACK
+}

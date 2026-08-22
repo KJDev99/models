@@ -11,6 +11,7 @@ import { useFavoritesStore } from '@/store/useFavoritesStore'
 
 import 'swiper/css'
 import 'swiper/css/free-mode'
+import { pricePerHour } from '@/lib/format'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Ro'yxat («список») ko'rinishidagi maydon qatori.
@@ -39,7 +40,7 @@ export default function VenueRowCard({ venue }) {
     const next = useCallback(() => swiper?.slideNext(), [swiper])
 
     const href = `/venues/${venue.slug}`
-    const price = `от ${venue.pricePerHour.toLocaleString('ru-RU')} ₽/час`
+    const price = pricePerHour(venue.pricePerHour)
 
     function onLike() {
         toggle({

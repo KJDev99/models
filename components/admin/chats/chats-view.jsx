@@ -164,6 +164,15 @@ export default function AdminChats() {
                 <section
                     className={`min-w-0 flex-1 flex-col ${openOnMobile ? 'flex' : 'hidden lg:flex'}`}
                 >
+                    {/* Suhbatlar hali yo'q — Figma'da bo'sh holat matni. */}
+                    {!active ? (
+                        <div className="flex flex-1 items-center justify-center p-[24px]">
+                            <p className="text-center text-[14px] text-grey lg:text-[16px]">
+                                {listLoading ? 'Загружаем…' : 'Выберите чат, чтобы открыть переписку'}
+                            </p>
+                        </div>
+                    ) : (
+                    <>
                     <div className="flex items-center gap-[12px] border-b border-black/8 p-[12px] lg:gap-[16px] lg:p-[24px]">
                         <button
                             type="button"
@@ -194,7 +203,7 @@ export default function AdminChats() {
                         </span>
 
                         <Link
-                            href="/admin/executors/e-1"
+                            href={active.peerId ? `/admin/executors/${active.peerId}` : '/admin/executors'}
                             className="hidden items-center justify-center rounded-[6px] border border-gold px-[16px] py-[8px] text-[14px] font-medium whitespace-nowrap text-gold transition-colors hover:bg-gold hover:text-white sm:flex lg:px-[24px] lg:py-[12px]"
                         >
                             Посмотреть профиль
@@ -298,6 +307,8 @@ export default function AdminChats() {
                             <ArrowUp size={24} strokeWidth={2} />
                         </button>
                     </div>
+                    </>
+                    )}
                 </section>
             </div>
 

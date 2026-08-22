@@ -10,6 +10,7 @@ import CatalogFaq from '@/components/shared/catalog/catalog-faq'
 import { AllFiltersSheet, FieldSheet } from '@/components/shared/catalog/catalog-mobile-filters'
 import { useApi } from '@/lib/use-api'
 import * as site from '@/lib/api/site'
+import { useDictionaries, withDictionary } from '@/lib/use-dictionaries'
 import { faqItem } from '@/lib/adapters'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -36,7 +37,7 @@ export function inRange(value, from, to) {
 export default function CatalogView({
     title,
     breadcrumb,
-    fields,
+    fields: staticFields,
     emptyFilters,
     sortOptions,
     searchPlaceholder,
@@ -54,6 +55,11 @@ export default function CatalogView({
     // Агентстваda ko'rinish almashtirgichi yo'q — faqat setka (Figma 155:12806).
     showViewToggle = true,
 }) {
+    // Filtr variantlari backend lug'atidan olinadi (GET /site/dictionaries) —
+    // shunda yuboriladigan qiymat har doim API kutgani bilan mos tushadi.
+    const dict = useDictionaries()
+    const fields = useMemo(() => withDictionary(staticFields, dict), [staticFields, dict])
+
     const [filters, setFilters] = useState(emptyFilters)
     const [searchInput, setSearchInput] = useState('')
     const [search, setSearch] = useState('')

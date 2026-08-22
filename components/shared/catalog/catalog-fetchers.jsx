@@ -8,17 +8,28 @@ import { agencyCard, meta, projectCard, venueCard } from '@/lib/adapters'
 // Modul darajasida e'lon qilingan — funksiya identifikatori barqaror bo'lishi
 // React hook bog'liqliklari uchun muhim (`performer-catalog.jsx` bilan bir xil).
 //
-// Backend parametrlari (Swagger «Site: Каталог»):
-//   venues   — q · city · area_min · area_max · price_min · price_max · sort
-//   projects — q · city · age_min · age_max · height_min · gender · sort
-//   agencies — q · city  (saralash va boshqa filtrlar yo'q)
+// Backend parametrlari (Swagger «Site: Каталог», backend javobi 21.08.2026):
+//   venues   — q · city · area_min · area_max · price_min · price_max
+//              venue_type · capacity_max · project_type · sort
+//   projects — q · city · age_min · age_max · height_min · gender · category
+//              looking_for · performers_count · price_min · price_max
+//              date_from · date_to · sort
+//   agencies — q · city · sort
 // ─────────────────────────────────────────────────────────────────────────────
 
-const SUPPORTED_SORT = new Set(['popular', 'new'])
+const VENUE_SORT = new Set(['popular', 'new', 'views', 'price-asc', 'price-desc'])
+const PROJECT_SORT = new Set([
+    'popular',
+    'new',
+    'views',
+    'date-asc',
+    'date-desc',
+    'price-asc',
+    'price-desc',
+])
+const AGENCY_SORT = new Set(['popular', 'new', 'name-asc', 'performers-desc'])
 
-function sortParam(sort) {
-    return SUPPORTED_SORT.has(sort) ? sort : undefined
-}
+const pick = (set) => (sort) => (set.has(sort) ? sort : undefined)
 
 // ── Площадки ────────────────────────────────────────────────────────────────
 export function venueParams({ search, sort, page, pageSize, filters }) {
@@ -29,7 +40,10 @@ export function venueParams({ search, sort, page, pageSize, filters }) {
         area_max: filters.areaTo || undefined,
         price_min: filters.priceFrom || undefined,
         price_max: filters.priceTo || undefined,
-        sort: sortParam(sort),
+        venue_type: filters.venueType || undefined,
+        capacity_max: filters.capacity || undefined,
+        project_type: filters.projectType || undefined,
+        sort: pick(VENUE_SORT)(sort),
         page,
         page_size: pageSize,
     }
@@ -41,6 +55,14 @@ export const fetchVenues = async (params) => {
 }
 
 // ── Проекты ─────────────────────────────────────────────────────────────────
+// «Кого ищем» Figma'da ko'plikda, backendda birlikda (`model` / `photographer` /
+// `videographer`). «Площадки» varianti backendda yo'q — u yuborilmaydi.
+const LOOKING_FOR = {
+    models: 'model',
+    photographers: 'photographer',
+    videographers: 'videographer',
+}
+
 export function projectParams({ search, sort, page, pageSize, filters }) {
     return {
         q: search || undefined,
@@ -49,7 +71,14 @@ export function projectParams({ search, sort, page, pageSize, filters }) {
         age_max: filters.ageTo || undefined,
         height_min: filters.heightFrom || undefined,
         gender: filters.gender || undefined,
-        sort: sortParam(sort),
+        category: filters.category || undefined,
+        looking_for: LOOKING_FOR[filters.lookingFor] || undefined,
+        performers_count: filters.performers || undefined,
+        price_min: filters.priceFrom || undefined,
+        price_max: filters.priceTo || undefined,
+        date_from: filters.dateFrom || undefined,
+        date_to: filters.dateTo || undefined,
+        sort: pick(PROJECT_SORT)(sort),
         page,
         page_size: pageSize,
     }
@@ -61,10 +90,11 @@ export const fetchProjects = async (params) => {
 }
 
 // ── Агентства ───────────────────────────────────────────────────────────────
-export function agencyParams({ search, page, pageSize, filters }) {
+export function agencyParams({ search, sort, page, pageSize, filters }) {
     return {
         q: search || undefined,
         city: filters?.city || undefined,
+        sort: pick(AGENCY_SORT)(sort),
         page,
         page_size: pageSize,
     }

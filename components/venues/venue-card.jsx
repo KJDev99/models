@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Heart } from 'lucide-react'
 import { FAVORITE_TYPES } from '@/lib/favorites'
 import { useFavoritesStore } from '@/store/useFavoritesStore'
+import { pricePerHour } from '@/lib/format'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Setka ko'rinishidagi maydon kartochkasi.
@@ -74,7 +75,7 @@ export default function VenueCard({ venue, className = '' }) {
                         {venue.area} м²
                     </span>
                     <span className="flex items-center justify-center rounded-[6px] bg-black/20 px-[12px] py-[8px] text-[12px] font-medium text-white backdrop-blur-[2.5px] lg:text-[14px]">
-                        от {venue.pricePerHour.toLocaleString('ru-RU')} ₽/час
+                        {pricePerHour(venue.pricePerHour)}
                     </span>
                 </div>
             </div>

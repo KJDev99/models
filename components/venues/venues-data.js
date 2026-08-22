@@ -60,9 +60,11 @@ export const FILTER_FIELDS = [
         kind: 'select',
         label: 'Тип площадки',
         placeholder: 'Все площадки',
+        // To'liq ro'yxat GET /site/dictionaries → `venue_types` dan keladi.
+        dict: 'venue_types',
         options: [
             { value: '', label: 'Все площадки' },
-            { value: 'photo', label: 'Фотостудия' },
+            { value: 'studio', label: 'Фотостудия' },
             { value: 'loft', label: 'Лофт' },
             { value: 'interior', label: 'Интерьерная студия' },
             { value: 'cyclorama', label: 'Циклорама' },
@@ -73,6 +75,7 @@ export const FILTER_FIELDS = [
         kind: 'select',
         label: 'Тип проекта',
         placeholder: 'Любой проект',
+        dict: 'suitable_for',
         options: [
             { value: '', label: 'Любой проект' },
             { value: 'photo', label: 'Фотосъёмка' },

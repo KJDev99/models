@@ -7,17 +7,35 @@ import { meta, performerCard } from '@/lib/adapters'
 // Модели / Фотографы / Видеографы — bitta backend endpointi (GET /site/performers),
 // farqi faqat `specialty`. Filtrlarni so'rov parametrlariga o'girish ham bir xil.
 //
-// Backend qo'llab-quvvatlaydigan parametrlar (Swagger «Site: Каталог»):
+// Backend qo'llab-quvvatlaydigan parametrlar (Swagger «Site: Каталог»,
+// backend javobi 21.08.2026):
 //   specialty · q · city · age_min · age_max · height_min · height_max
-//   price_min · price_max · sort · page · page_size
-//
-// Figma'dagi «Вес», «Пол», «Опыт», «Категория», «Тип проекта», «Выезд»
-// filtrlari backendda hali yo'q — ular yuborilmaydi (backend-report.md ga
-// kiritilgan).
+//   weight_min · weight_max · gender · experience_min · category
+//   project_type · can_travel · price_min · price_max · sort · page · page_size
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Backend faqat `popular` va `new` ni ajratadi, qolgani standart tartib.
-const SUPPORTED_SORT = new Set(['popular', 'new'])
+// Backend qabul qiladigan `sort` qiymatlari. Noma'lumi `new` ga tushadi,
+// shuning uchun ro'yxatda yo'q qiymat umuman yuborilmaydi.
+const SUPPORTED_SORT = new Set([
+    'popular',
+    'new',
+    'views',
+    'age-asc',
+    'age-desc',
+    'experience-asc',
+    'experience-desc',
+    'price-asc',
+    'price-desc',
+    'rating',
+    'name-asc',
+])
+
+// «Выезд в другие города» — Figma'da uchta holat, backendda mantiqiy qiymat.
+function travelParam(value) {
+    if (value === 'yes') return true
+    if (value === 'no') return false
+    return undefined
+}
 
 export function performerParams({ search, sort, page, pageSize, filters }) {
     return {
@@ -27,6 +45,13 @@ export function performerParams({ search, sort, page, pageSize, filters }) {
         age_max: filters.ageTo || undefined,
         height_min: filters.heightFrom || undefined,
         height_max: filters.heightTo || undefined,
+        weight_min: filters.weightFrom || undefined,
+        weight_max: filters.weightTo || undefined,
+        gender: filters.gender || undefined,
+        experience_min: filters.experience || undefined,
+        category: filters.category || undefined,
+        project_type: filters.projectType || undefined,
+        can_travel: travelParam(filters.travel),
         price_min: filters.priceFrom || undefined,
         price_max: filters.priceTo || undefined,
         sort: SUPPORTED_SORT.has(sort) ? sort : undefined,

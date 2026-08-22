@@ -56,7 +56,7 @@ export default function AdminClientForm() {
             company_name: company ? form.company : undefined,
             first_name: company ? undefined : form.name,
             last_name: company ? undefined : form.surname,
-            business_field: form.field || undefined,
+            sphere_of_activity: form.field || undefined,
             city: form.city || undefined,
             about: form.about || undefined,
             email: form.email,

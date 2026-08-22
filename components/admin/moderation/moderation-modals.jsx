@@ -14,7 +14,10 @@ import AdminModal, {
 // Figma: «Опубликовать профиль?» 344:16122 · «Отклонить профиль» 344:15552.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function ApproveModal({ open, onClose, name, onConfirm }) {
+// Natija haqidagi xabarni chaqiruvchi chiqaradi (so'rov muvaffaqiyatli
+// tugagandan keyin), shuning uchun oynaning o'zi `toast` ko'rsatmaydi —
+// aks holda xatolikda ham «опубликован» yozuvi chiqib ketardi.
+export function ApproveModal({ open, onClose, onConfirm }) {
     return (
         <AdminModal open={open} onClose={onClose} title="Опубликовать профиль?">
             <AdminModalText>
@@ -27,7 +30,6 @@ export function ApproveModal({ open, onClose, name, onConfirm }) {
                     onClick={() => {
                         onConfirm?.()
                         onClose()
-                        toast.success(name ? `Профиль «${name}» опубликован` : 'Профиль опубликован')
                     }}
                 >
                     Опубликовать
@@ -40,7 +42,7 @@ export function ApproveModal({ open, onClose, name, onConfirm }) {
     )
 }
 
-export function RejectModal({ open, onClose, name, onConfirm }) {
+export function RejectModal({ open, onClose, onConfirm }) {
     const [reason, setReason] = useState('')
 
     function submit() {
@@ -51,7 +53,6 @@ export function RejectModal({ open, onClose, name, onConfirm }) {
         onConfirm?.(reason)
         onClose()
         setReason('')
-        toast.success(name ? `Профиль «${name}» отклонён` : 'Профиль отклонён')
     }
 
     return (
@@ -80,13 +81,11 @@ export function ModerationDecisionModals({ decision, onClose, onApprove, onRejec
             <ApproveModal
                 open={decision?.type === 'approve'}
                 onClose={onClose}
-                name={decision?.row?.name}
                 onConfirm={() => onApprove?.(decision.row)}
             />
             <RejectModal
                 open={decision?.type === 'reject'}
                 onClose={onClose}
-                name={decision?.row?.name}
                 onConfirm={(reason) => onReject?.(decision.row, reason)}
             />
         </>

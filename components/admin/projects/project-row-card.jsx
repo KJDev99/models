@@ -5,7 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Banknote, Calendar, Eye, MapPin, MessageCircle, SquarePen, User } from 'lucide-react'
 import { AdminRowMenu, AdminStatus } from '@/components/admin/ui/admin-ui'
-import { PROJECT_STATUS } from '@/components/admin/ui/admin-statuses'
+import { projectStatus } from '@/components/admin/ui/admin-statuses'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Adminkadagi loyiha qatori — Figma «Проекты» 338:19284.
@@ -28,7 +28,7 @@ export default function AdminProjectRow({ project, menuItems }) {
     const href = `/admin/projects/${project.id}`
     const shown = project.requirements.slice(0, VISIBLE_REQUIREMENTS)
     const rest = project.requirements.length - shown.length
-    const state = PROJECT_STATUS[project.status]
+    const state = projectStatus(project.status)
 
     return (
         <article className="flex flex-col gap-[16px] rounded-[6px] bg-white p-[12px] lg:p-[24px]">

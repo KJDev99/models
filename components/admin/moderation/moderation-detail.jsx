@@ -50,7 +50,6 @@ export default function AdminModerationDetail({ id }) {
     const photos = useMemo(() => portfolioFromMedia(data?.media), [data])
 
     const item = profile || project || venue
-    const name = profile?.name || project?.title || venue?.name || ''
 
     if (loading || error || !item) {
         return loading ? (
@@ -129,13 +128,11 @@ export default function AdminModerationDetail({ id }) {
             <ApproveModal
                 open={decision === 'approve'}
                 onClose={() => setDecision(null)}
-                name={name}
                 onConfirm={() => decide('approve')}
             />
             <RejectModal
                 open={decision === 'reject'}
                 onClose={() => setDecision(null)}
-                name={name}
                 onConfirm={(comment) => decide('reject', comment)}
             />
         </>

@@ -45,7 +45,7 @@ export default function AdminAgencyForm() {
         const res = await create.run({
             agency_name: form.name,
             representative_name: form.manager || undefined,
-            business_field: form.field || undefined,
+            sphere_of_activity: form.field || undefined,
             city: form.city || undefined,
             about: form.about || undefined,
             email: form.email,

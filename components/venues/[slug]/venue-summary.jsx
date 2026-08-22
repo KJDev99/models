@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Banknote, Expand, Heart, MapPin, Users } from 'lucide-react'
 import { FAVORITE_TYPES } from '@/lib/favorites'
 import { useFavoritesStore } from '@/store/useFavoritesStore'
+import { pricePerHour } from '@/lib/format'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Maydonning asosiy kartochkasi — Figma 138:8364 (770×600, oq, radius 6, p-24).
@@ -44,7 +45,7 @@ export default function VenueSummary({ venue, onBook }) {
     const items = useFavoritesStore((s) => s.items)
     const liked = items.some((i) => i.type === FAVORITE_TYPES.VENUE && i.id === venue.slug)
 
-    const price = `от ${venue.pricePerHour.toLocaleString('ru-RU')} ₽/час`
+    const price = pricePerHour(venue.pricePerHour)
 
     function onLike() {
         toggle({

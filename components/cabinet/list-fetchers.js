@@ -19,6 +19,9 @@ import { fullName, mapStatus, shootDate } from '@/lib/adapters'
 const page = (p) => ({ page: p.page, page_size: p.limit })
 
 // Eski tab qiymatlari → backend holatlari (`mapStatus`ning teskarisi).
+// `new` va `declined` — «Приглашения» tab'lari; `GET /customer/applications`
+// faqat `pending|accepted|rejected` ni biladi va noma'lum qiymatda 500 beradi
+// (hisobot №2, «Отклики»), shuning uchun ular shu yerda o'giriladi.
 const API_STATUS = {
     moderation: 'pending_review',
     hidden: 'hidden',
@@ -27,6 +30,8 @@ const API_STATUS = {
     active: 'active',
     rejected: 'rejected',
     draft: 'draft',
+    new: 'pending',
+    declined: 'rejected',
 }
 
 function status(value) {
@@ -52,10 +57,13 @@ export function performerProjects(p) {
     return performerApi.applications({ ...page(p), status: status(p.status) })
 }
 
-// Agentlik uchun alohida «loyihalarim» ro'yxati yo'q — ochiq katalog
-// ko'rsatiladi (backend hisoboti, 18-band).
 export function agencyProjects(p) {
-    return site.projects({ ...page(p) })
+    return agencyApi.projects({ ...page(p), status: status(p.status) })
+}
+
+// «Приглашения» — GET /agency/invites.
+export function agencyInvites(p) {
+    return agencyApi.invites({ ...page(p), status: status(p.status) })
 }
 
 // ── Ijrochilar ──────────────────────────────────────────────────────────────
@@ -96,6 +104,11 @@ export function performerApplications(p) {
     return performerApi.applications({ ...page(p), status: status(p.status) })
 }
 
+// «Приглашения» — GET /performer/invites.
+export function performerInvites(p) {
+    return performerApi.invites({ ...page(p), status: status(p.status) })
+}
+
 // ── Kartochkalarga moslashtirish ────────────────────────────────────────────
 
 // Eski `ProjectCard` maydonlari: { title, city, fee, startDate, cover, company }
@@ -114,6 +127,29 @@ export function toProjectCard(item) {
         company: p.owner ? { name: fullName(p.owner) } : null,
         status: mapStatus(item.status || p.status),
         responsesCount: p.responses_count ?? null,
+    }
+}
+
+// «Приглашения» elementi — taklifning o'zi, ichida loyihaning qisqa ma'lumoti.
+// Manba: GET /performer/invites yoki GET /agency/invites.
+export function toInviteCard(item) {
+    if (!item) return null
+    return {
+        // `id` — taklifning identifikatori (accept/reject shu bo'yicha),
+        // havola esa loyihaga olib boradi.
+        id: item.id,
+        slug: item.project_slug || item.project_id,
+        title: item.title || '',
+        city: item.city || '',
+        cover: item.cover_url || null,
+        fee: null,
+        startDate: null,
+        company: item.first_name || item.last_name
+            ? { name: [item.first_name, item.last_name].filter(Boolean).join(' ') }
+            : null,
+        inviteStatus: item.status || 'pending',
+        status: mapStatus(item.status),
+        specialty: item.specialty || null,
     }
 }
 

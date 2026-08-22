@@ -354,11 +354,15 @@ export default function ExecutorQuestionnaireForm({
                                         />
                                     </AdminField>
 
+                                    {/* Makette bu maydonlar yo'q, lekin ular
+                                        orqali ijrochiga o'z kabineti ochiladi.
+                                        Backend ularni majburiy qilmaydi
+                                        (backend javobi, 17-band). */}
                                     {contactFields && (
                                         <AdminFieldRow>
                                             <AdminField
                                                 label="Электронная почта"
-                                                hint="Нужна для входа исполнителя в кабинет"
+                                                hint="Необязательно — нужна, если исполнителю нужен свой вход в кабинет"
                                             >
                                                 <AdminInput
                                                     type="email"

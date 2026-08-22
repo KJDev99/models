@@ -3,7 +3,7 @@
 import React from 'react'
 import Card from '@/components/ui/card'
 import ResourceList from '@/components/cabinet/resource-list'
-import { toProjectCard, performerApplications } from '@/components/cabinet/list-fetchers'
+import { toInviteCard, agencyInvites } from '@/components/cabinet/list-fetchers'
 import ProjectCard from '@/components/shared/project-card'
 
 const TABS = [
@@ -16,12 +16,12 @@ export default function AgencyInvites() {
     return (
         <Card title="Приглашения" padded={false} className="border-0 bg-transparent">
             <ResourceList
-                fetcher={performerApplications}
-                adapt={toProjectCard}
+                fetcher={agencyInvites}
+                adapt={toInviteCard}
                 tabs={TABS}
                 columns="grid-cols-1 md:grid-cols-2"
                 emptyTitle="Приглашений нет"
-                emptyDescription="Здесь появятся приглашения в проекты и отклики."
+                emptyDescription="Здесь появятся приглашения заказчиков вашим исполнителям."
                 renderItem={(item) => <ProjectCard key={item.id} project={item} basePath="/projects" />}
             />
         </Card>

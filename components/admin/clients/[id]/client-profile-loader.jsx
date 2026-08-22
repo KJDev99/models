@@ -60,8 +60,7 @@ export default function AdminClientProfileLoader({ id }) {
                     company_name: isCompany ? form.name : null,
                     first_name: isCompany ? undefined : first || undefined,
                     last_name: isCompany ? undefined : rest.join(' ') || undefined,
-                    // «Сфера деятельности» — CustomerWriteRequest'da bunday
-                    // maydon yo'q, backendga so'rov yuborildi (hisobot 15-band).
+                    sphere_of_activity: form.field || null,
                     city: form.city || null,
                     about: form.about || null,
                     phone: form.phone || null,

@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import { Eye, Lock, Mail, Phone, Shield, Trash2 } from 'lucide-react'
 import AdminProfileModal from '@/components/admin/ui/admin-profile-modal'
 import { CabinetSecurityRow } from '@/components/shared/cabinet/cabinet-ui'
+import { useSecurityNote } from '@/components/shared/cabinet/use-security-info'
 import {
     DeleteAccountModal,
     EmailModal,
@@ -15,7 +16,7 @@ import { useRouter } from 'next/navigation'
 import { useAction } from '@/lib/use-api'
 import * as performerApi from '@/lib/api/performer'
 import { useAuthStore } from '@/store/useAuthStore'
-import { formatDate } from '@/lib/format'
+import { ROLES } from '@/lib/roles'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // «Настройка профиля» — Figma 265:14993 / 334:14236, mobil 434:16923.
@@ -48,6 +49,9 @@ export default function ExecutorProfileSettingsModal({ open, onClose, profile, o
 
     const setHiddenApi = useAction(performerApi.setHidden)
 
+    // Pochta va telefon niqoblangan holda GET /performer/settings dan keladi.
+    const noteFor = useSecurityNote(ROLES.EXECUTOR, profile)
+
     async function toggleHidden() {
         const next = !hidden
         const res = await setHiddenApi.run(next)
@@ -58,16 +62,6 @@ export default function ExecutorProfileSettingsModal({ open, onClose, profile, o
         setHidden(next)
         toast.success(next ? 'Профиль скрыт' : 'Профиль снова виден')
         onSaved?.()
-    }
-
-    function noteFor(key) {
-        if (key === 'password') {
-            return profile?.passwordChangedAt
-                ? `Последнее изменение ${formatDate(profile.passwordChangedAt)}`
-                : 'Смените пароль, если давно этого не делали'
-        }
-        if (key === 'email') return profile?.email || 'Не указана'
-        return profile?.phone || 'Не указан'
     }
 
     return (

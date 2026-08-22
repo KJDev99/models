@@ -9,7 +9,7 @@ import toast from 'react-hot-toast'
 import Container from '@/components/ui/container'
 import { CabinetBreadcrumb } from '@/components/shared/cabinet/cabinet-ui'
 import { AdminRowMenu, AdminStatus } from '@/components/admin/ui/admin-ui'
-import { USER_STATUS } from '@/components/admin/ui/admin-statuses'
+import { USER_STATUS, userStatus } from '@/components/admin/ui/admin-statuses'
 import { rowMenu } from '@/components/admin/ui/admin-menu-items'
 import { DeleteModal } from '@/components/admin/ui/admin-modals'
 import DetailGallery from '@/components/shared/detail/detail-gallery'
@@ -70,7 +70,7 @@ export default function AgencyExecutorDetail({ id }) {
     // va `paused` beradi, qolganlari «Активен».
     const mapped = mapStatus(model.status)
     const status = USER_STATUS[mapped] ? mapped : 'active'
-    const state = USER_STATUS[status]
+    const state = userStatus(status)
     const editHref = `/agency/executors/${id}/edit`
 
     async function toggle() {

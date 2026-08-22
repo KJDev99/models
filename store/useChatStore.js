@@ -91,14 +91,14 @@ export const useChatStore = create((set, get) => ({
 
     sendMessage: async (text, attachmentUrl = null) => {
         const id = get().activeId
-        // Backend `body` ni majburiy qilgan, shuning uchun matn har doim
-        // bo'lishi kerak (rasm uchun chaqiruv joyida fayl nomi beriladi).
-        if (!id || !text?.trim()) return { success: false }
+        // Matn yoki fayl — kamida bittasi bo'lishi kerak (backend javobi, 21-band).
+        const body = text?.trim() || ''
+        if (!id || (!body && !attachmentUrl)) return { success: false }
 
         set({ sending: true })
         try {
             const created = await roleApi().sendMessage(id, {
-                body: text?.trim() || '',
+                body: body || null,
                 attachmentUrl,
             })
             const me = getUser()?.id

@@ -17,12 +17,10 @@ import * as site from '@/lib/api/site'
 //   2) POST /performer/portfolio    → { url, album }
 // O'chirish: DELETE /performer/portfolio/{media_id}.
 //
-// Ro'yxat `GET /performer/cabinet` → `media` dan olinadi:
-// `GET /performer/portfolio` hozir 500 qaytaradi (backend hisoboti, 20-band).
-// Backend tuzatilgach `performerApi.portfolio()` ga qaytarish kifoya.
+// Ro'yxat: GET /performer/portfolio → { items, albums, meta }.
 // ─────────────────────────────────────────────────────────────────────────────
 export default function ExecutorPortfolio() {
-    const fetcher = useCallback(() => performerApi.cabinet(), [])
+    const fetcher = useCallback(() => performerApi.portfolio({ page_size: 30 }), [])
     const { data, loading, error, reload } = useApi(fetcher)
 
     const upload = useAction(site.upload)
@@ -31,8 +29,7 @@ export default function ExecutorPortfolio() {
 
     const [busy, setBusy] = useState(false)
 
-    // Kabinet javobida `media` — barcha portfolio kadrlari.
-    const photos = (data?.media || [])
+    const photos = (data?.items || [])
         .filter((m) => m?.url)
         .map((m) => ({ id: m.id, url: m.url }))
 

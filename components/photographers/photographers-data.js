@@ -82,13 +82,14 @@ export const FILTER_FIELDS = [
         kind: 'select',
         label: 'Категория',
         placeholder: 'Все категории',
+        dict: 'categories_photographer',
         options: [
             { value: '', label: 'Все категории' },
             { value: 'wedding', label: 'Свадебный' },
             { value: 'portrait', label: 'Портрет' },
             { value: 'advertising', label: 'Реклама' },
             { value: 'commercial', label: 'Коммерческая' },
-            { value: 'fashion', label: 'Fashion' },
+            { value: 'fashion', label: 'Фэшн' },
         ],
     },
     {
@@ -96,6 +97,7 @@ export const FILTER_FIELDS = [
         kind: 'select',
         label: 'Тип проекта',
         placeholder: 'Любой проект',
+        dict: 'project_types',
         options: [
             { value: '', label: 'Любой проект' },
             { value: 'photo', label: 'Фотосъёмка' },

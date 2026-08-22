@@ -82,6 +82,7 @@ export const FILTER_FIELDS = [
         kind: 'select',
         label: 'Категория',
         placeholder: 'Все категории',
+        dict: 'categories_videographer',
         options: [
             { value: '', label: 'Все категории' },
             { value: 'clips', label: 'Клипы' },
@@ -97,6 +98,7 @@ export const FILTER_FIELDS = [
         kind: 'select',
         label: 'Тип проекта',
         placeholder: 'Любой проект',
+        dict: 'project_types_videographer',
         options: [
             { value: '', label: 'Любой проект' },
             { value: 'video', label: 'Видеосъёмка' },

@@ -6,6 +6,7 @@ import Tabs from '@/components/ui/tabs'
 import EmptyState from '@/components/ui/empty-state'
 import Pagination from '@/components/ui/pagination'
 import { SkeletonGrid, SkeletonRows } from '@/components/ui/skeleton'
+import { toApiError } from '@/lib/api-error'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Kabinet ichidagi har qanday ro'yxat (проекты, площадки, исполнители,
@@ -55,7 +56,9 @@ export default function ResourceList({
             .catch((e) => {
                 if (cancelled) return
                 setItems([])
-                setError(e)
+                // Xom axios matni («Request failed with status code 403») emas,
+                // backendning ruscha xabari ko'rsatiladi.
+                setError(toApiError(e))
                 setLoading(false)
             })
 

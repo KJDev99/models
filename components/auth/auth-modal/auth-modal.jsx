@@ -240,7 +240,9 @@ function AuthFlow({ startStep, onClose: closeAuth }) {
                 ...common,
                 customer_type: 'company',
                 company_name: profile.company,
-                // Vakil ismi — backendda alohida maydon yo'q, `first_name`ga tushadi.
+                // Vakil ismi uchun alohida maydon (backend javobi, 9-band).
+                // `first_name` ham beriladi — eski mijozlar uchun moslik.
+                representative_name: profile.contactName,
                 first_name: profile.contactName,
             }
         } else {

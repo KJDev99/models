@@ -54,12 +54,16 @@ export function BookingModal({ open, onClose, onSent, venueId }) {
 
     const book = useAction(site.bookVenue)
 
-    // Backend hozir faqat `shoot_date` ni qabul qiladi (POST /site/venues/{id}/book).
-    // Loyiha nomi, vaqt oralig'i va izoh uchun maydon yo'q — backend-report.md ga
-    // kiritilgan; qiymatlar hozircha yuborilmaydi.
+    // Modalning to'rt maydoni ham backendga ketadi
+    // (POST /site/venues/{id}/book — backend javobi, 8-band).
     async function submit() {
         if (!project.trim() || !date) return
-        const res = await book.run(venueId, { shootDate: date })
+        const res = await book.run(venueId, {
+            shootDate: date,
+            projectName: project.trim(),
+            timeSlot: time,
+            comment: comment.trim(),
+        })
         if (!res.success) {
             toast.error(res.error.message)
             return

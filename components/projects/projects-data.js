@@ -132,12 +132,15 @@ export const FILTER_FIELDS = [
         kind: 'select',
         label: 'Категория',
         placeholder: 'Все категории',
+        dict: 'categories',
         options: [
             { value: '', label: 'Все категории' },
-            { value: 'fashion', label: 'Fashion' },
-            { value: 'commercial', label: 'Коммерческая' },
+            { value: 'fashion', label: 'Фэшн' },
+            { value: 'beauty', label: 'Бьюти' },
             { value: 'catalog', label: 'Каталог' },
-            { value: 'advertising', label: 'Реклама' },
+            { value: 'sport', label: 'Спорт' },
+            { value: 'video', label: 'Видео' },
+            { value: 'wedding', label: 'Свадьба' },
         ],
     },
     {

@@ -32,7 +32,7 @@ export const SORT_OPTIONS = [
     { value: 'popular', label: 'Сначала популярные' },
     { value: 'new', label: 'Сначала новые' },
     { value: 'name-asc', label: 'По названию: А–Я' },
-    { value: 'executors-desc', label: 'Больше исполнителей' },
+    { value: 'performers-desc', label: 'Больше исполнителей' },
 ]
 
 // ── «Частые вопросы» (Figma 320:12172) ──────────────────────────────────────

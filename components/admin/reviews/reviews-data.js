@@ -29,7 +29,14 @@ export const ADMIN_REVIEWS = Array.from({ length: 30 }, (_, i) => {
 
 export const REVIEW_STATUS = {
     published: { label: 'Опубликован', tone: 'success' },
+    pending_review: { label: 'На модерации', tone: 'pending' },
+    rejected: { label: 'Отклонён', tone: 'danger' },
     hidden: { label: 'Скрыт', tone: 'archive' },
+}
+
+// Backend yangi holat qo'shsa, kartochka yiqilmasligi kerak.
+export function reviewStatus(status) {
+    return REVIEW_STATUS[status] || { label: status || '—', tone: 'archive' }
 }
 
 export const RATING_FILTER = [

@@ -19,7 +19,7 @@ import AdminProfileModal, {
 } from '@/components/admin/ui/admin-profile-modal'
 import { profileMenu, rowMenu } from '@/components/admin/ui/admin-menu-items'
 import { RowActionModals } from '@/components/admin/ui/admin-modals'
-import { USER_STATUS } from '@/components/admin/ui/admin-statuses'
+import { USER_STATUS, userStatus } from '@/components/admin/ui/admin-statuses'
 // `profile` — `adminAgencyProfile()` adapteri natijasi (lib/adapters.js).
 import Button from '@/components/ui/button'
 
@@ -417,7 +417,7 @@ function AgencyExecutors({ profile, onAction, onEdit }) {
 }
 
 function ExecutorCard({ item, view, onEdit, onAction }) {
-    const state = USER_STATUS[item.status]
+    const state = userStatus(item.status)
     const menu = rowMenu({
         status: item.status,
         onEdit,

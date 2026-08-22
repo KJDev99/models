@@ -1,7 +1,7 @@
 import React from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { formatDate, formatPrice } from '@/lib/format'
+import { formatDate } from '@/lib/format'
 import { FAVORITE_TYPES } from '@/lib/favorites'
 import FavoriteButton from '@/components/shared/favorite-button'
 import StatusBadge from '@/components/ui/status-badge'
@@ -10,7 +10,7 @@ import StatusBadge from '@/components/ui/status-badge'
 export default function ProjectCard({ project, basePath = '/projects', showStatus = false }) {
     if (!project) return null
 
-    const { id, slug, title, city, fee, startDate, cover, company, status, responsesCount } = project
+    const { id, slug, title, city, price, startDate, cover, company, status, responsesCount } = project
 
     return (
         <article className="group relative overflow-hidden rounded-[16px] border border-black/8 bg-white transition-shadow duration-200 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
@@ -42,11 +42,13 @@ export default function ProjectCard({ project, basePath = '/projects', showStatu
                     )}
 
                     <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-sm text-grey">
-                        {/* Sana bo'lmasa `formatDate` «—» qaytaradi — taklif
-                            ro'yxatida (`GET /performer/invites`) sana kelmaydi,
-                            shunda shahar yonida yolg'iz chiziqcha turmasin. */}
+                        {/* Sana bo'lmasa `formatDate` «—» qaytaradi, shuning uchun
+                            avval mavjudligi tekshiriladi — shahar yonida yolg'iz
+                            chiziqcha turmasin. */}
                         <span>{[city, startDate && formatDate(startDate)].filter(Boolean).join(' • ')}</span>
-                        {fee != null && <span className="text-base text-black">{formatPrice(fee)}</span>}
+                        {/* Narx backenddan tayyor satr bo'lib keladi
+                            (`fee_from_label` → «от 45 000 ₽») — Figma 145:11618. */}
+                        {price && <span className="text-base text-black">{price}</span>}
                     </div>
                 </div>
             </Link>

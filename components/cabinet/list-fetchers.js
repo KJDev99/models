@@ -111,20 +111,40 @@ export function performerInvites(p) {
 
 // ── Kartochkalarga moslashtirish ────────────────────────────────────────────
 
-// Eski `ProjectCard` maydonlari: { title, city, fee, startDate, cover, company }
+// Loyiha egasining nomi ro'yxat javoblarida tekis maydonlar bilan keladi
+// (`company_name` / `agency_name` / `first_name` + `last_name`), ichma-ich
+// `owner` obyekti yo'q — kartochkaga esa `{ name }` kerak.
+function ownerName(p) {
+    const name =
+        p.company_name ||
+        p.agency_name ||
+        [p.first_name, p.last_name].filter(Boolean).join(' ')
+    return name ? { name } : null
+}
+
+// `ProjectCard` maydonlari: { title, city, price, startDate, cover, company }.
+//
+// Bitta moslashtiruvchi ikki xil javobga tushadi:
+//   loyiha  — `/customer/projects`, `/agency/projects` (title, city, slug…)
+//   ariza   — `/customer/applications`, `/performer/applications`
+//             (`project_title`, `project_city`, `performer_city`)
+// Shuning uchun har maydon uchun ikkala nom ham tekshiriladi.
+//
+// Narxni backend tayyor satr qilib beradi (`fee_from_label` → «от 45 000 ₽»),
+// raqamli `price_from` esa hamma ruchkada ham yo'q — shuning uchun satr asosiy.
 export function toProjectCard(item) {
     if (!item) return null
-    // `/performer/applications` arizani beradi, ichida loyiha bo'lishi mumkin.
     const p = item.project || item
     return {
+        // Arizada `id` — arizaning o'zi, havola esa loyihaga olib borishi kerak.
         id: p.id,
-        slug: p.id,
-        title: p.title || '',
-        city: p.city || '',
-        fee: p.fee_from ?? p.budget ?? null,
+        slug: p.slug || p.project_slug || p.project_id || p.id,
+        title: p.title || p.project_title || '',
+        city: p.city || p.project_city || p.performer_city || '',
+        price: p.fee_from_label || p.budget_label || '',
         startDate: p.shoot_date || null,
-        cover: p.cover_url || null,
-        company: p.owner ? { name: fullName(p.owner) } : null,
+        cover: p.cover_url || p.performer_logo || null,
+        company: ownerName(p),
         status: mapStatus(item.status || p.status),
         responsesCount: p.responses_count ?? null,
     }
@@ -142,8 +162,9 @@ export function toInviteCard(item) {
         title: item.title || '',
         city: item.city || '',
         cover: item.cover_url || null,
-        fee: null,
-        startDate: null,
+        // Sana va narx taklif elementiga qo'shildi (backend javobi, 22.08).
+        price: item.fee_from_label || item.budget_label || '',
+        startDate: item.shoot_date || null,
         company: item.first_name || item.last_name
             ? { name: [item.first_name, item.last_name].filter(Boolean).join(' ') }
             : null,

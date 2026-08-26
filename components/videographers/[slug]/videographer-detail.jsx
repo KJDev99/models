@@ -6,6 +6,7 @@ import Container from '@/components/ui/container'
 import Breadcrumb from '@/components/ui/breadcrumb'
 import VideographerCard from '@/components/videographers/videographer-card'
 import VideographerSummary from '@/components/videographers/[slug]/videographer-summary'
+import AgencyBadge from '@/components/shared/detail/agency-badge'
 import DetailPortfolio from '@/components/shared/detail/detail-portfolio'
 import DetailReviews from '@/components/shared/detail/detail-reviews'
 import {
@@ -102,6 +103,7 @@ export default function VideographerDetail({ slug }) {
                     <VideographerSummary
                         videographer={videographer}
                         onInvite={guard(setInviteModal)}
+                        footer={<AgencyBadge agency={videographer.agency} />}
                     />
                 </div>
             </Container>

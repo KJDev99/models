@@ -70,13 +70,22 @@ export default function VenueCard({ venue, className = '' }) {
                 <p className="text-[14px] leading-[24px] font-medium text-white lg:text-[18px]">
                     {venue.name}
                 </p>
+                {/* Chiplar bir qatorda turishi kerak (Figma 138:8262).
+                    Narx kiritilmagan maydonda «Цена не указана» satri
+                    qatorni kengaytirib, ikkinchi chipni pastga tushirardi —
+                    shuning uchun bo'sh qiymatda chip umuman chizilmaydi.
+                    To'liq izoh anketa sahifasida qoladi. */}
                 <div className="flex flex-wrap gap-[8px]">
-                    <span className="flex items-center justify-center rounded-[6px] bg-black/20 px-[12px] py-[8px] text-[12px] font-medium text-white backdrop-blur-[2.5px] lg:text-[14px]">
-                        {venue.area} м²
-                    </span>
-                    <span className="flex items-center justify-center rounded-[6px] bg-black/20 px-[12px] py-[8px] text-[12px] font-medium text-white backdrop-blur-[2.5px] lg:text-[14px]">
-                        {pricePerHour(venue.pricePerHour)}
-                    </span>
+                    {venue.area != null && (
+                        <span className="flex items-center justify-center rounded-[6px] bg-black/20 px-[12px] py-[8px] text-[12px] font-medium text-white backdrop-blur-[2.5px] lg:text-[14px]">
+                            {venue.area} м²
+                        </span>
+                    )}
+                    {venue.pricePerHour != null && (
+                        <span className="flex items-center justify-center rounded-[6px] bg-black/20 px-[12px] py-[8px] text-[12px] font-medium text-white backdrop-blur-[2.5px] lg:text-[14px]">
+                            {pricePerHour(venue.pricePerHour)}
+                        </span>
+                    )}
                 </div>
             </div>
         </Link>

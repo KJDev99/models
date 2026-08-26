@@ -23,8 +23,8 @@ import { customerProfile, publicationsFrom } from '@/lib/adapters'
 // Chapda 554px rasm, o'ngda oq kartochka (nomi, shahri, tavsifi, kontaktlari,
 // 4 ta hisoblagich va ikkita tugma). Ostida «Мои публикации».
 // ─────────────────────────────────────────────────────────────────────────────
-export default function ClientDashboard() {
-    const [editing, setEditing] = useState(false)
+export default function ClientDashboard({ openSettings = false }) {
+    const [editing, setEditing] = useState(openSettings)
 
     // GET /customer/cabinet — profil, hisoblagichlar va publikatsiyalar
     // bitta so'rovda keladi (backend/customer.md).

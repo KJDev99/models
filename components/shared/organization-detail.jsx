@@ -16,6 +16,7 @@ import ComplaintModal from '@/components/shared/complaint-modal'
 import AuthRequiredModal from '@/components/shared/auth-required-modal'
 import { useAuth } from '@/lib/use-auth'
 import { useApiStore } from '@/store/useApiStore'
+import { personDetail } from '@/lib/adapters'
 
 // Bitta komponent uch xil ochiq profil uchun:
 //   agency  — Агентство (Figma: LUMEN AGENCY 164:13583)
@@ -23,8 +24,24 @@ import { useApiStore } from '@/store/useApiStore'
 //   person  — Профиль частное лицо (173:3550)
 const CONFIG = {
     agency: { endpoint: '/agencies/', crumb: 'Агентства', crumbHref: '/agencies', showExecutors: true },
-    company: { endpoint: '/companies/', crumb: 'Компании', crumbHref: '/projects', showVenues: true },
-    person: { endpoint: '/persons/', crumb: 'Заказчики', crumbHref: '/projects' },
+    // Kompaniya ham zakazchik — o'sha ruchka, o'sha shakl.
+    company: {
+        endpoint: '/site/customers/',
+        crumb: 'Компании',
+        crumbHref: '/projects',
+        showVenues: true,
+        adapt: personDetail,
+    },
+    // Zakazchik profili haqiqiy ruchkadan keladi; javob shakli boshqacha
+    // ({ user, stats, projects, venues }), shuning uchun `adapt` bilan
+    // sahifaning tekis shakliga o'giriladi.
+    person: {
+        endpoint: '/site/customers/',
+        crumb: 'Заказчики',
+        crumbHref: '/projects',
+        showVenues: true,
+        adapt: personDetail,
+    },
 }
 
 export default function OrganizationDetail({ slug, kind = 'agency' }) {
@@ -40,15 +57,16 @@ export default function OrganizationDetail({ slug, kind = 'agency' }) {
     useEffect(() => {
         if (!slug) return
         let alive = true
-        getData(`${cfg.endpoint}${slug}/`).then((res) => {
+        getData(`${cfg.endpoint}${slug}`).then((res) => {
             if (!alive) return
-            setOrg(res.success ? res.data : null)
+            const raw = res.success ? res.data : null
+            setOrg(raw && cfg.adapt ? cfg.adapt(raw) : raw)
             setLoading(false)
         })
         return () => {
             alive = false
         }
-    }, [slug, cfg.endpoint, getData])
+    }, [slug, cfg, getData])
 
     if (loading) {
         return (

@@ -101,9 +101,13 @@ export default function VenueRowCard({ venue }) {
                     </Link>
 
                     <div className="flex flex-wrap items-center gap-x-[16px] gap-y-[8px]">
-                        <Meta icon={Expand}>{venue.area} м²</Meta>
-                        <Meta icon={Users}>до {venue.capacity} чел.</Meta>
-                        <Meta icon={MapPin}>{venue.city}</Meta>
+                        {/* To'ldirilmagan maydon uchun « м²» yoki «до  чел.»
+                            kabi boshsiz yozuv chiqmasin. */}
+                        {venue.area != null && <Meta icon={Expand}>{venue.area} м²</Meta>}
+                        {venue.capacity != null && (
+                            <Meta icon={Users}>до {venue.capacity} чел.</Meta>
+                        )}
+                        {venue.city && <Meta icon={MapPin}>{venue.city}</Meta>}
                         <Meta icon={Banknote}>{price}</Meta>
                     </div>
 

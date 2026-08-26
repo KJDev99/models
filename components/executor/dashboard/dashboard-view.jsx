@@ -130,7 +130,10 @@ export default function ExecutorDashboard({ openSettings = false }) {
                     <DetailInfoCards>
                         <DetailInfoCard
                             title="Параметры"
-                            columns={[EXECUTOR.params.slice(0, 6), EXECUTOR.params.slice(6)]}
+                            columns={[
+                                EXECUTOR.params.slice(0, Math.ceil(EXECUTOR.params.length / 2)),
+                                EXECUTOR.params.slice(Math.ceil(EXECUTOR.params.length / 2)),
+                            ]}
                         />
                         <DetailInfoCard title="Стоимость" columns={[EXECUTOR.prices]} />
                     </DetailInfoCards>

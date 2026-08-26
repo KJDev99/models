@@ -6,6 +6,7 @@ import Container from '@/components/ui/container'
 import Breadcrumb from '@/components/ui/breadcrumb'
 import PhotographerCard from '@/components/photographers/photographer-card'
 import PhotographerSummary from '@/components/photographers/[slug]/photographer-summary'
+import AgencyBadge from '@/components/shared/detail/agency-badge'
 import DetailPortfolio from '@/components/shared/detail/detail-portfolio'
 import DetailReviews from '@/components/shared/detail/detail-reviews'
 import {
@@ -103,6 +104,7 @@ export default function PhotographerDetail({ slug }) {
                     <PhotographerSummary
                         photographer={photographer}
                         onInvite={guard(setInviteModal)}
+                        footer={<AgencyBadge agency={photographer.agency} />}
                     />
                 </div>
             </Container>

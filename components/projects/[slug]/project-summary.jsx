@@ -41,12 +41,12 @@ function SectionTitle({ children }) {
 export default function ProjectSummary({ project, onApply }) {
     const toggle = useFavoritesStore((s) => s.toggle)
     const items = useFavoritesStore((s) => s.items)
-    const liked = items.some((i) => i.type === FAVORITE_TYPES.PROJECT && i.id === project.slug)
+    const liked = items.some((i) => i.type === FAVORITE_TYPES.PROJECT && i.id === project.id)
 
     function onLike() {
         toggle({
             type: FAVORITE_TYPES.PROJECT,
-            id: project.slug,
+            id: project.id,
             slug: project.slug,
             title: project.title,
             image: project.image,

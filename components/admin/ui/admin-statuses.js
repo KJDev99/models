@@ -6,6 +6,12 @@ export const USER_STATUS = {
     paused: { label: 'На паузе', tone: 'warning' },
     blocked: { label: 'Заблокирован', tone: 'danger' },
     moderation: { label: 'На модерации', tone: 'pending' },
+    // Backend ro'yxatlarda shu holatlarni ham qaytaradi (422 javobidagi
+    // ruxsat etilganlar ro'yxati: active · blocked · draft · paused ·
+    // pending_review · rejected). Nomsiz qolsa katakda «—» turadi.
+    rejected: { label: 'Отклонён', tone: 'danger' },
+    draft: { label: 'Черновик', tone: 'draft' },
+    archive: { label: 'Архив', tone: 'archive' },
 }
 
 // Loyiha/e'lon holatlari — Figma «Профиль компании» 338:16570…338:16768.

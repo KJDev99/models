@@ -5,11 +5,10 @@ import Image from 'next/image'
 import { MapPin } from 'lucide-react'
 import Container from '@/components/ui/container'
 import Breadcrumb from '@/components/ui/breadcrumb'
-import CatalogFaq from '@/components/shared/catalog/catalog-faq'
 import { SOCIAL_ICONS, SOCIALS, normalizeSocial } from '@/components/contacts/contacts-data'
 import { useApi } from '@/lib/use-api'
 import * as site from '@/lib/api/site'
-import { contactsInfo, faqItem } from '@/lib/adapters'
+import { contactsInfo } from '@/lib/adapters'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Контакты sahifasi. Figma: desktop 164:14294, mobil 377:16389.
@@ -47,13 +46,10 @@ function ContactValue({ href, children }) {
 export default function ContactsView() {
     // Kontaktlar adminkadan boshqariladi (GET /site/contacts, backend/site.md).
     const fetchContacts = useCallback(() => site.contacts(), [])
-    const fetchFaq = useCallback(() => site.faqs('contacts'), [])
 
     const { data: raw } = useApi(fetchContacts)
-    const { data: faqData } = useApi(fetchFaq)
 
     const contacts = useMemo(() => contactsInfo(raw), [raw])
-    const faq = useMemo(() => (faqData || []).map(faqItem), [faqData])
 
     // Backend ijtimoiy tarmoqlarni `{ url, title }` ko'rinishida beradi;
     // ikonka esa lokal fayllardan sarlavha bo'yicha tanlanadi.
@@ -129,9 +125,6 @@ export default function ContactsView() {
                     </span>
                 </div>
             </Container>
-
-            {/* «Частые вопросы» — GET /site/faqs?type=contacts */}
-            <CatalogFaq items={faq} />
         </div>
     )
 }

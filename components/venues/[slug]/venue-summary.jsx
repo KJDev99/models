@@ -43,14 +43,14 @@ function SectionTitle({ children }) {
 export default function VenueSummary({ venue, onBook }) {
     const toggle = useFavoritesStore((s) => s.toggle)
     const items = useFavoritesStore((s) => s.items)
-    const liked = items.some((i) => i.type === FAVORITE_TYPES.VENUE && i.id === venue.slug)
+    const liked = items.some((i) => i.type === FAVORITE_TYPES.VENUE && i.id === venue.id)
 
     const price = pricePerHour(venue.pricePerHour)
 
     function onLike() {
         toggle({
             type: FAVORITE_TYPES.VENUE,
-            id: venue.slug,
+            id: venue.id,
             slug: venue.slug,
             title: venue.name,
             image: venue.photos[0],

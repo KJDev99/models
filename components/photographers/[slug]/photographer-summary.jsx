@@ -41,17 +41,17 @@ function SectionTitle({ children }) {
     )
 }
 
-export default function PhotographerSummary({ photographer, onInvite }) {
+export default function PhotographerSummary({ photographer, onInvite, footer }) {
     const toggle = useFavoritesStore((s) => s.toggle)
     const items = useFavoritesStore((s) => s.items)
     const liked = items.some(
-        (i) => i.type === FAVORITE_TYPES.EXECUTOR && i.id === photographer.slug,
+        (i) => i.type === FAVORITE_TYPES.EXECUTOR && i.id === photographer.id,
     )
 
     function onLike() {
         toggle({
             type: FAVORITE_TYPES.EXECUTOR,
-            id: photographer.slug,
+            id: photographer.id,
             slug: photographer.slug,
             title: photographer.name,
             image: photographer.photo,
@@ -141,6 +141,9 @@ export default function PhotographerSummary({ photographer, onInvite }) {
             >
                 Пригласить в проект
             </button>
+
+            {/* Agentlik yorlig'i — backend `agency` bloki bersa chiqadi. */}
+            {footer}
         </div>
     )
 }

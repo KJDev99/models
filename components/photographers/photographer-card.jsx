@@ -84,12 +84,16 @@ export default function PhotographerCard({ photographer, className = '' }) {
                     {photographer.name}
                 </p>
                 <div className="flex flex-wrap gap-[8px]">
-                    <span className="flex items-center justify-center rounded-[6px] bg-black/20 px-[12px] py-[8px] text-[12px] font-medium text-white backdrop-blur-[2.5px]">
-                        {photographer.experienceYears} лет опыта
-                    </span>
-                    <span className="flex items-center justify-center rounded-[6px] bg-black/20 px-[12px] py-[8px] text-[12px] font-medium text-white backdrop-blur-[2.5px]">
-                        {photographer.shoots} съёмок
-                    </span>
+                    {photographer.experienceYears != null && (
+                        <span className="flex items-center justify-center rounded-[6px] bg-black/20 px-[12px] py-[8px] text-[12px] font-medium text-white backdrop-blur-[2.5px]">
+                            {photographer.experienceYears} лет опыта
+                        </span>
+                    )}
+                    {photographer.shoots != null && (
+                        <span className="flex items-center justify-center rounded-[6px] bg-black/20 px-[12px] py-[8px] text-[12px] font-medium text-white backdrop-blur-[2.5px]">
+                            {photographer.shoots} съёмок
+                        </span>
+                    )}
                 </div>
             </div>
         </Link>

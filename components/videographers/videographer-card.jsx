@@ -81,12 +81,16 @@ export default function VideographerCard({ videographer, className = '' }) {
                     {videographer.name}
                 </p>
                 <div className="flex flex-wrap gap-[8px]">
-                    <span className="flex items-center justify-center rounded-[6px] bg-black/20 px-[12px] py-[8px] text-[12px] font-medium text-white backdrop-blur-[2.5px]">
-                        {videographer.experienceYears} года опыта
-                    </span>
-                    <span className="flex items-center justify-center rounded-[6px] bg-black/20 px-[12px] py-[8px] text-[12px] font-medium text-white backdrop-blur-[2.5px]">
-                        {videographer.cases} кейсов
-                    </span>
+                    {videographer.experienceYears != null && (
+                        <span className="flex items-center justify-center rounded-[6px] bg-black/20 px-[12px] py-[8px] text-[12px] font-medium text-white backdrop-blur-[2.5px]">
+                            {videographer.experienceYears} года опыта
+                        </span>
+                    )}
+                    {videographer.cases != null && (
+                        <span className="flex items-center justify-center rounded-[6px] bg-black/20 px-[12px] py-[8px] text-[12px] font-medium text-white backdrop-blur-[2.5px]">
+                            {videographer.cases} кейсов
+                        </span>
+                    )}
                 </div>
             </div>
         </Link>

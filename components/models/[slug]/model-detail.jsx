@@ -6,6 +6,7 @@ import Breadcrumb from '@/components/ui/breadcrumb'
 import ModelCard from '@/components/models/model-card'
 import DetailGallery from '@/components/shared/detail/detail-gallery'
 import ModelSummary from '@/components/models/[slug]/model-summary'
+import AgencyBadge from '@/components/shared/detail/agency-badge'
 import DetailPortfolio from '@/components/shared/detail/detail-portfolio'
 import DetailReviews from '@/components/shared/detail/detail-reviews'
 import DetailState from '@/components/shared/detail/detail-state'
@@ -84,18 +85,29 @@ export default function ModelDetail({ slug }) {
                 {/* Hero: galereya + asosiy kartochka */}
                 <div className="flex flex-col gap-[16px] lg:flex-row lg:gap-[16px]">
                     <DetailGallery photos={model.photos} alt={model.name} />
-                    <ModelSummary model={model} onInvite={guard(setInviteModal)} />
+                    <ModelSummary
+                        model={model}
+                        onInvite={guard(setInviteModal)}
+                        footer={<AgencyBadge agency={model.agency} />}
+                    />
                 </div>
             </Container>
 
             {(model.params.length > 0 || model.prices.length > 0) && (
                 <Container>
                     <DetailInfoCards>
-                        {/* Figma'da «Параметры» ikki ustunga bo'lingan: 6 + 5 */}
+                        {/* Figma'da «Параметры» ikki ustunga teng bo'lingan
+                            (129:6246 — 11 qatorda 6 + 5). Qatorlar soni
+                            anketaning to'ldirilishiga qarab o'zgaradi, shuning
+                            uchun chegara qat'iy emas — har safar yarmidan
+                            bo'linadi, aks holda o'ng ustun cho'zilib ketadi. */}
                         {model.params.length > 0 && (
                             <DetailInfoCard
                                 title="Параметры"
-                                columns={[model.params.slice(0, 6), model.params.slice(6)]}
+                                columns={[
+                                    model.params.slice(0, Math.ceil(model.params.length / 2)),
+                                    model.params.slice(Math.ceil(model.params.length / 2)),
+                                ]}
                             />
                         )}
                         {model.prices.length > 0 && (

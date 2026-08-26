@@ -60,6 +60,10 @@ export default function CatalogView({
     const dict = useDictionaries()
     const fields = useMemo(() => withDictionary(staticFields, dict), [staticFields, dict])
 
+    // Filtrlar ikki nusxada: `draft` — panelda ko'rinib turgani, `filters` —
+    // so'rovga ketgani. Ular «Найти» bosilganda tenglashadi, shunda maydonni
+    // tanlash bilanoq ro'yxat sakramaydi (mijoz izohi, 24/08 №1).
+    const [draft, setDraft] = useState(emptyFilters)
     const [filters, setFilters] = useState(emptyFilters)
     const [searchInput, setSearchInput] = useState('')
     const [search, setSearch] = useState('')
@@ -89,30 +93,41 @@ export default function CatalogView({
     const totalPages = data?.meta?.pages || 1
     const faq = useMemo(() => (faqData || []).map(faqItem), [faqData])
 
+    // Panel maydoni o'zgardi — faqat qoralamaga yoziladi, so'rov ketmaydi.
     function patchFilters(patch) {
-        setFilters((v) => ({ ...v, ...patch }))
-        setPage(1)
+        setDraft((v) => ({ ...v, ...patch }))
     }
 
     function resetFilters() {
+        setDraft(emptyFilters)
         setFilters(emptyFilters)
         setSearchInput('')
         setSearch('')
         setPage(1)
     }
 
-    function submitSearch() {
-        setSearch(searchInput)
+    // Qoralamani so'rovga o'tkazadi.
+    function applyFilters() {
+        setFilters(draft)
         setPage(1)
     }
 
-    // Chipdagi ✕ — maydonni tozalaydi.
+    // «Найти» — qoralama va qidiruv matni birga qo'llanadi.
+    function submitSearch() {
+        applyFilters()
+        setSearch(searchInput)
+    }
+
+    // Chipdagi ✕ — chip allaqachon qo'llangan filtrni ko'rsatadi, shuning
+    // uchun darhol ikkala nusxadan ham olib tashlanadi.
     function clearField(field) {
-        if (field.from && field.to) {
-            patchFilters({ [field.from.key]: '', [field.to.key]: '' })
-        } else {
-            patchFilters({ [field.key]: '' })
-        }
+        const patch =
+            field.from && field.to
+                ? { [field.from.key]: '', [field.to.key]: '' }
+                : { [field.key]: '' }
+        setDraft((v) => ({ ...v, ...patch }))
+        setFilters((v) => ({ ...v, ...patch }))
+        setPage(1)
     }
 
     function changeView(next) {
@@ -133,7 +148,7 @@ export default function CatalogView({
                 <Container className="flex items-start gap-[16px]">
                     <CatalogFilters
                         fields={fields}
-                        values={filters}
+                        values={draft}
                         onChange={patchFilters}
                         onSubmit={submitSearch}
                         onReset={resetFilters}
@@ -196,7 +211,7 @@ export default function CatalogView({
             {sheet === 'all' && (
                 <AllFiltersSheet
                     fields={fields}
-                    values={filters}
+                    values={draft}
                     onChange={patchFilters}
                     onSubmit={submitSearch}
                     onReset={resetFilters}
@@ -207,9 +222,12 @@ export default function CatalogView({
             {sheet && sheet !== 'all' && (
                 <FieldSheet
                     field={sheet}
-                    values={filters}
+                    values={draft}
                     onChange={patchFilters}
-                    onClose={() => setSheet(null)}
+                    onClose={() => {
+                        setSheet(null)
+                        applyFilters()
+                    }}
                 />
             )}
         </div>

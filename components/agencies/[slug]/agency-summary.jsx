@@ -40,12 +40,12 @@ function Contact({ icon: Icon, href, children }) {
 export default function AgencySummary({ agency }) {
     const toggle = useFavoritesStore((s) => s.toggle)
     const items = useFavoritesStore((s) => s.items)
-    const liked = items.some((i) => i.type === FAVORITE_TYPES.AGENCY && i.id === agency.slug)
+    const liked = items.some((i) => i.type === FAVORITE_TYPES.AGENCY && i.id === agency.id)
 
     function onLike() {
         toggle({
             type: FAVORITE_TYPES.AGENCY,
-            id: agency.slug,
+            id: agency.id,
             slug: agency.slug,
             title: agency.name,
             image: agency.logo,

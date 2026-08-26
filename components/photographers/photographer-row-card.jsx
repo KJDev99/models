@@ -113,8 +113,12 @@ export default function PhotographerRowCard({ photographer }) {
 
                     <div className="flex flex-wrap items-center gap-x-[16px] gap-y-[8px]">
                         <Meta icon={Calendar}>{photographer.age} лет</Meta>
-                        <Meta icon={Briefcase}>{photographer.experienceYears} лет опыта</Meta>
-                        <Meta icon={Camera}>{photographer.shoots} съёмок</Meta>
+                        {photographer.experienceYears != null && (
+                            <Meta icon={Briefcase}>{photographer.experienceYears} лет опыта</Meta>
+                        )}
+                        {photographer.shoots != null && (
+                            <Meta icon={Camera}>{photographer.shoots} съёмок</Meta>
+                        )}
                         <Meta icon={MapPin}>{photographer.city}</Meta>
                     </div>
 

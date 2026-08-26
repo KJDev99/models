@@ -50,12 +50,12 @@ function SectionTitle({ children }) {
 export default function ModelSummary({ model, onInvite, actions, footer }) {
     const toggle = useFavoritesStore((s) => s.toggle)
     const items = useFavoritesStore((s) => s.items)
-    const liked = items.some((i) => i.type === FAVORITE_TYPES.EXECUTOR && i.id === model.slug)
+    const liked = items.some((i) => i.type === FAVORITE_TYPES.EXECUTOR && i.id === model.id)
 
     function onLike() {
         toggle({
             type: FAVORITE_TYPES.EXECUTOR,
-            id: model.slug,
+            id: model.id,
             slug: model.slug,
             title: model.name,
             image: model.photos[0],

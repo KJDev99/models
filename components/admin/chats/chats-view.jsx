@@ -28,6 +28,13 @@ export default function AdminChats() {
     const listFetcher = useCallback(() => adminApi.chats(), [])
     const { data: listData, loading: listLoading } = useApi(listFetcher)
 
+    // Adminning javoblari texnik yordam foydalanuvchisi nomidan ketadi
+    // (`sender_id` = `/site/support` dagi `user_id`). Suhbatning ikkinchi
+    // tomoni — shu id emas bo'lgan qatnashchi.
+    const supportFetcher = useCallback(() => site.support(), [])
+    const { data: support } = useApi(supportFetcher)
+    const supportId = support?.user_id || support?.id || null
+
     const chats = useMemo(
         () =>
             (Array.isArray(listData) ? listData : listData?.items || [])
@@ -41,9 +48,16 @@ export default function AdminChats() {
                     preview: c.lastMessage?.text || '',
                     time: shortTime(c.lastAt),
                     unread: c.unreadCount > 0,
-                    peerId: c.peerId,
+                    // `/admin/chats` `peer_id` bermaydi — suhbatdosh sifatida
+                    // yordam foydalanuvchisi bo'lmagan tomonni olamiz.
+                    peerId:
+                        c.peerId ||
+                        (c.userAId && c.userAId !== supportId ? c.userAId : c.userBId) ||
+                        null,
+                    peerRole: c.peerRole,
+                    isSupport: c.kind === 'support',
                 })),
-        [listData],
+        [listData, supportId],
     )
 
     const current = activeId || chats[0]?.id || null
@@ -54,15 +68,16 @@ export default function AdminChats() {
         enabled: Boolean(current),
     })
 
-    // Adminning o'z xabarlari o'ng tomonda: `own` uchun suhbatdosh emas,
-    // administrator identifikatori kerak — backend uni `admin_id` bilan beradi.
+    // Adminning o'z xabarlari o'ng tomonda. `GET /admin/chats/{id}` javobida
+    // administrator identifikatori yo'q, lekin javoblar yordam foydalanuvchisi
+    // nomidan ketadi — shuning uchun tenglashtirish o'sha id bo'yicha.
     const messages = useMemo(
         () =>
             (historyData?.messages || [])
-                .map((m) => chatMessage(m, historyData?.admin_id))
+                .map((m) => chatMessage(m, historyData?.admin_id || supportId))
                 .filter(Boolean)
                 .map((m) => ({ ...m, time: shortTime(m.createdAt) })),
-        [historyData],
+        [historyData, supportId],
     )
 
     const sendMessage = useAction(adminApi.sendMessage)
@@ -145,7 +160,11 @@ export default function AdminChats() {
                                             {chat.time}
                                         </span>
                                     </span>
-                                    <span className="text-[12px] text-grey">{chat.role}</span>
+                                    <span className="text-[12px] text-grey">
+                                        {chat.isSupport
+                                            ? [chat.role, 'Поддержка'].filter(Boolean).join(' · ')
+                                            : chat.role}
+                                    </span>
                                     <span className="flex items-center justify-between gap-[8px]">
                                         <span className="truncate text-[12px] text-grey">
                                             {chat.preview}
@@ -203,7 +222,7 @@ export default function AdminChats() {
                         </span>
 
                         <Link
-                            href={active.peerId ? `/admin/executors/${active.peerId}` : '/admin/executors'}
+                            href={adminProfileHref(active)}
                             className="hidden items-center justify-center rounded-[6px] border border-gold px-[16px] py-[8px] text-[14px] font-medium whitespace-nowrap text-gold transition-colors hover:bg-gold hover:text-white sm:flex lg:px-[24px] lg:py-[12px]"
                         >
                             Посмотреть профиль
@@ -327,6 +346,14 @@ export default function AdminChats() {
 }
 
 // «12:46» — xabar va suhbat vaqti (Figma 344:16231).
+// Suhbatdosh profili adminkaning qaysi bo'limida turishi — roliga bog'liq.
+function adminProfileHref(chat) {
+    if (!chat?.peerId) return '/admin/chats'
+    if (chat.peerRole === 'agency') return `/admin/agencies/${chat.peerId}`
+    if (chat.peerRole === 'customer') return `/admin/clients/${chat.peerId}`
+    return `/admin/executors/${chat.peerId}`
+}
+
 function shortTime(value) {
     if (!value) return ''
     const d = new Date(value)

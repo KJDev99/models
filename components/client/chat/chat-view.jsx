@@ -3,6 +3,7 @@
 import React, { useEffect } from 'react'
 import Card from '@/components/ui/card'
 import ChatList from '@/components/shared/chat-list'
+import SupportButton from '@/components/shared/support-button'
 import { useChatStore } from '@/store/useChatStore'
 
 export default function ClientChat() {
@@ -15,7 +16,12 @@ export default function ClientChat() {
     }, [fetchChats])
 
     return (
-        <Card title="Сообщения" padded={false} className="border-0 bg-transparent">
+        <Card
+            title="Сообщения"
+            padded={false}
+            className="border-0 bg-transparent"
+            action={<SupportButton basePath="/client/chat" />}
+        >
             <ChatList chats={chats} loading={loading} basePath="/client/chat" />
         </Card>
     )

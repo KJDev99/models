@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Heart } from 'lucide-react'
 import { FAVORITE_TYPES } from '@/lib/favorites'
 import { useFavoritesStore } from '@/store/useFavoritesStore'
+import { casesLabel, experienceLabel } from '@/lib/format'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Setka ko'rinishidagi videograf kartochkasi.
@@ -83,12 +84,12 @@ export default function VideographerCard({ videographer, className = '' }) {
                 <div className="flex flex-wrap gap-[8px]">
                     {videographer.experienceYears != null && (
                         <span className="flex items-center justify-center rounded-[6px] bg-black/20 px-[12px] py-[8px] text-[12px] font-medium text-white backdrop-blur-[2.5px]">
-                            {videographer.experienceYears} года опыта
+                            {experienceLabel(videographer.experienceYears)}
                         </span>
                     )}
                     {videographer.cases != null && (
                         <span className="flex items-center justify-center rounded-[6px] bg-black/20 px-[12px] py-[8px] text-[12px] font-medium text-white backdrop-blur-[2.5px]">
-                            {videographer.cases} кейсов
+                            {casesLabel(videographer.cases)}
                         </span>
                     )}
                 </div>

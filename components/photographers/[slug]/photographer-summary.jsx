@@ -4,6 +4,7 @@ import React from 'react'
 import { Briefcase, Calendar, Camera, Heart, MapPin } from 'lucide-react'
 import { FAVORITE_TYPES } from '@/lib/favorites'
 import { useFavoritesStore } from '@/store/useFavoritesStore'
+import { experienceLabel, shootsLabel } from '@/lib/format'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Fotograf anketasining asosiy kartochkasi — Figma 129:7076 (770×600, oq,
@@ -85,10 +86,10 @@ export default function PhotographerSummary({ photographer, onInvite, footer }) 
                     <div className="flex flex-wrap items-center gap-x-[16px] gap-y-[8px]">
                         {photographer.age != null && <Meta icon={Calendar}>{photographer.age} лет</Meta>}
                         {photographer.experienceYears != null && (
-                            <Meta icon={Briefcase}>{photographer.experienceYears} лет опыта</Meta>
+                            <Meta icon={Briefcase}>{experienceLabel(photographer.experienceYears)}</Meta>
                         )}
                         {photographer.shoots != null && (
-                            <Meta icon={Camera}>{photographer.shoots} съёмок</Meta>
+                            <Meta icon={Camera}>{shootsLabel(photographer.shoots)}</Meta>
                         )}
                         <Meta icon={MapPin}>{photographer.city}</Meta>
                     </div>

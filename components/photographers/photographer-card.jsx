@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Heart } from 'lucide-react'
 import { FAVORITE_TYPES } from '@/lib/favorites'
 import { useFavoritesStore } from '@/store/useFavoritesStore'
+import { experienceLabel, shootsLabel } from '@/lib/format'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Setka ko'rinishidagi fotograf kartochkasi.
@@ -86,12 +87,12 @@ export default function PhotographerCard({ photographer, className = '' }) {
                 <div className="flex flex-wrap gap-[8px]">
                     {photographer.experienceYears != null && (
                         <span className="flex items-center justify-center rounded-[6px] bg-black/20 px-[12px] py-[8px] text-[12px] font-medium text-white backdrop-blur-[2.5px]">
-                            {photographer.experienceYears} лет опыта
+                            {experienceLabel(photographer.experienceYears)}
                         </span>
                     )}
                     {photographer.shoots != null && (
                         <span className="flex items-center justify-center rounded-[6px] bg-black/20 px-[12px] py-[8px] text-[12px] font-medium text-white backdrop-blur-[2.5px]">
-                            {photographer.shoots} съёмок
+                            {shootsLabel(photographer.shoots)}
                         </span>
                     )}
                 </div>

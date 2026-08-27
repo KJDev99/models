@@ -3,6 +3,7 @@
 import React from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { plural } from '@/lib/format'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // «Исполнитель состоит в агентстве» yorlig'i — Figma 345:19391.
@@ -14,6 +15,15 @@ import Link from 'next/link'
 // ─────────────────────────────────────────────────────────────────────────────
 export default function AgencyBadge({ agency }) {
     if (!agency) return null
+
+    // Figma'da ikkinchi qator — «Еще 11 исполнителей». Son agentlikdagi
+    // barcha ijrochilarni sanaydi, joriy anketa ham shu yerda — shuning uchun
+    // bittasi ayriladi. Son kelmasa oddiy «Агентство» qoladi.
+    const rest = agency.performersCount != null ? agency.performersCount - 1 : 0
+    const note =
+        rest > 0
+            ? `Ещё ${rest} ${plural(rest, 'исполнитель', 'исполнителя', 'исполнителей')}`
+            : 'Агентство'
 
     return (
         <Link
@@ -33,7 +43,7 @@ export default function AgencyBadge({ agency }) {
                 <span className="truncate text-[14px] font-medium text-black lg:text-[16px]">
                     {agency.name}
                 </span>
-                <span className="truncate text-[12px] text-grey">Агентство</span>
+                <span className="truncate text-[12px] text-grey">{note}</span>
             </span>
         </Link>
     )

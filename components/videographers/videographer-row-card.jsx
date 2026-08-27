@@ -11,6 +11,7 @@ import { useFavoritesStore } from '@/store/useFavoritesStore'
 
 import 'swiper/css'
 import 'swiper/css/free-mode'
+import { casesLabel, experienceLabel } from '@/lib/format'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Ro'yxat («список») ko'rinishidagi videograf qatori.
@@ -115,10 +116,10 @@ export default function VideographerRowCard({ videographer }) {
                     <div className="flex flex-wrap items-center gap-x-[16px] gap-y-[8px]">
                         <Meta icon={Calendar}>{videographer.age} лет</Meta>
                         {videographer.experienceYears != null && (
-                            <Meta icon={Briefcase}>{videographer.experienceYears} года опыта</Meta>
+                            <Meta icon={Briefcase}>{experienceLabel(videographer.experienceYears)}</Meta>
                         )}
                         {videographer.cases != null && (
-                            <Meta icon={Aperture}>{videographer.cases} кейсов</Meta>
+                            <Meta icon={Aperture}>{casesLabel(videographer.cases)}</Meta>
                         )}
                         <Meta icon={MapPin}>{videographer.city}</Meta>
                     </div>

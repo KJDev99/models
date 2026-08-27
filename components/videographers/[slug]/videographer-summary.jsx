@@ -4,6 +4,7 @@ import React from 'react'
 import { Aperture, Briefcase, Calendar, Heart, MapPin } from 'lucide-react'
 import { FAVORITE_TYPES } from '@/lib/favorites'
 import { useFavoritesStore } from '@/store/useFavoritesStore'
+import { casesLabel, experienceLabel } from '@/lib/format'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Videograf anketasining asosiy kartochkasi — Figma 136:7685 (770×600, oq,
@@ -80,10 +81,10 @@ export default function VideographerSummary({ videographer, onInvite, footer }) 
                     <div className="flex flex-wrap items-center gap-x-[16px] gap-y-[8px]">
                         {videographer.age != null && <Meta icon={Calendar}>{videographer.age} лет</Meta>}
                         {videographer.experienceYears != null && (
-                            <Meta icon={Briefcase}>{videographer.experienceYears} года опыта</Meta>
+                            <Meta icon={Briefcase}>{experienceLabel(videographer.experienceYears)}</Meta>
                         )}
                         {videographer.cases != null && (
-                            <Meta icon={Aperture}>{videographer.cases} кейсов</Meta>
+                            <Meta icon={Aperture}>{casesLabel(videographer.cases)}</Meta>
                         )}
                         <Meta icon={MapPin}>{videographer.city}</Meta>
                     </div>

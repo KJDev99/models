@@ -3,7 +3,7 @@
 // Backendning haqiqiy manzili. Brauzer so'rovlari `/api/v1/...` ga ketadi va
 // Next server ularni shu manzilga uzatadi — shunda CORS umuman kerak emas
 // (backend hozir `localhost` origin'ini rad etadi, qarang backend-report.md).
-const API_ORIGIN = process.env.API_ORIGIN || 'https://admin.agunastroy.ru'
+const API_ORIGIN = process.env.API_ORIGIN || 'https://admin.modelworkrf.ru'
 
 const nextConfig = {
     images: {

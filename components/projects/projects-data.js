@@ -148,11 +148,16 @@ export const FILTER_FIELDS = [
         kind: 'select',
         label: 'Количество исполнителей',
         placeholder: '1 человек',
+        // Qiymat — diapazon `min-max` («Опыт» filtri bilan bir xil).
+        // `performers_count` backendda quyi chegara (`model_count >= value`),
+        // yuqorisi hali yo'q — `performers_count_max` qo'shilganda o'zi
+        // ishlaydi (frontend-report, 4-band). Ilgari «Более 5 человек» da 10
+        // ketardi va hech narsa qaytmasdi (loyihalarda ko'pi bilan 5 kishi).
         options: [
             { value: '', label: '1 человек' },
-            { value: '2', label: '2 человека' },
-            { value: '5', label: 'От 3 до 5 человек' },
-            { value: '10', label: 'Более 5 человек' },
+            { value: '2-2', label: '2 человека' },
+            { value: '3-5', label: 'От 3 до 5 человек' },
+            { value: '6-', label: 'Более 5 человек' },
         ],
     },
     {

@@ -28,6 +28,7 @@ export default function AllInOne() {
                         alt="Съёмочная площадка"
                         fill
                         sizes="(max-width: 1024px) 100vw, 888px"
+                        quality={90}
                         className="object-cover"
                     />
                 </div>

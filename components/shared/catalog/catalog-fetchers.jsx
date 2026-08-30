@@ -13,6 +13,7 @@ import { agencyCard, meta, projectCard, venueCard } from '@/lib/adapters'
 //              venue_type · capacity_max · project_type · sort
 //   projects — q · city · age_min · age_max · height_min · gender · category
 //              looking_for · performers_count · price_min · price_max
+//              (`performers_count_max` hali yo'q — frontend-report, 4-band)
 //              date_from · date_to · sort
 //   agencies — q · city · sort
 // ─────────────────────────────────────────────────────────────────────────────
@@ -63,7 +64,16 @@ const LOOKING_FOR = {
     videographers: 'videographer',
 }
 
+// «Количество исполнителей» — ro'yxatdagi qiymat `min-max` ko'rinishida
+// ('2-2', '3-5', '6-'). Backendda hozircha faqat quyi chegara bor.
+function countRange(value) {
+    if (!value) return [undefined, undefined]
+    const [min, max] = String(value).split('-')
+    return [min || undefined, max || undefined]
+}
+
 export function projectParams({ search, sort, page, pageSize, filters }) {
+    const [performersMin, performersMax] = countRange(filters.performers)
     return {
         q: search || undefined,
         city: filters.city || undefined,
@@ -73,7 +83,8 @@ export function projectParams({ search, sort, page, pageSize, filters }) {
         gender: filters.gender || undefined,
         category: filters.category || undefined,
         looking_for: LOOKING_FOR[filters.lookingFor] || undefined,
-        performers_count: filters.performers || undefined,
+        performers_count: performersMin,
+        performers_count_max: performersMax,
         price_min: filters.priceFrom || undefined,
         price_max: filters.priceTo || undefined,
         date_from: filters.dateFrom || undefined,

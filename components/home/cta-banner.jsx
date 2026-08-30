@@ -29,6 +29,7 @@ export default function CtaBanner({
                         alt=""
                         fill
                         sizes="100vw"
+                        quality={90}
                         className="object-cover object-center lg:hidden"
                     />
                 )}
@@ -37,6 +38,7 @@ export default function CtaBanner({
                     alt=""
                     fill
                     sizes="(max-width: 1024px) 100vw, 1340px"
+                    quality={90}
                     className={`object-cover object-center ${imageMobile ? 'hidden lg:block' : ''}`}
                 />
 

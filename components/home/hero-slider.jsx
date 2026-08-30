@@ -97,6 +97,7 @@ export default function HeroSlider() {
                                 fill
                                 priority={i === 0}
                                 sizes="100vw"
+                                quality={95}
                                 className="hero-kenburns object-cover object-center lg:hidden"
                             />
                             {/* Desktop kompozitsiya — aynan 1920×1080 */}
@@ -106,6 +107,7 @@ export default function HeroSlider() {
                                 fill
                                 priority={i === 0}
                                 sizes="100vw"
+                                quality={95}
                                 className="hero-kenburns hidden object-cover object-center lg:block"
                             />
                         </div>

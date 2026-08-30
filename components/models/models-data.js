@@ -96,11 +96,16 @@ export const FILTER_FIELDS = [
         kind: 'select',
         label: 'Опыт',
         placeholder: 'Без опыта',
+        // Qiymat — diapazon: `min-max` (chegara yo'q bo'lsa bo'sh qoladi).
+        // `performerParams` uni `experience_min` / `experience_max` ga ajratadi.
+        // Ilgari bu yerda bitta son turardi va u `experience_min` ga tushardi —
+        // «До 1 года» tanlansa `min=1` ketib, 9 yillik tajribalilar ham
+        // chiqardi (mijoz izohi 28.08 №1).
         options: [
             { value: '', label: 'Без опыта' },
-            { value: '1', label: 'До 1 года' },
-            { value: '3', label: 'От 1 до 3 лет' },
-            { value: '5', label: 'Более 3 лет' },
+            { value: '-1', label: 'До 1 года' },
+            { value: '1-3', label: 'От 1 до 3 лет' },
+            { value: '3-', label: 'Более 3 лет' },
         ],
     },
     {

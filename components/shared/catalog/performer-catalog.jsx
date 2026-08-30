@@ -11,6 +11,7 @@ import { meta, performerCard } from '@/lib/adapters'
 // backend javobi 21.08.2026):
 //   specialty · q · city · age_min · age_max · height_min · height_max
 //   weight_min · weight_max · gender · experience_min · category
+//   (`experience_max` hali yo'q — frontend-report, 4-band)
 //   project_type · can_travel · price_min · price_max · sort · page · page_size
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -37,7 +38,17 @@ function travelParam(value) {
     return undefined
 }
 
+// «Опыт» — ro'yxatdagi qiymat `min-max` ko'rinishida ('-1', '1-3', '3-').
+// Backendda hozircha faqat `experience_min` bor; `experience_max` qo'shilganda
+// yuqori chegara ham o'z-o'zidan ishlay boshlaydi (frontend-report, 4-band).
+function experienceRange(value) {
+    if (!value) return [undefined, undefined]
+    const [min, max] = String(value).split('-')
+    return [min || undefined, max || undefined]
+}
+
 export function performerParams({ search, sort, page, pageSize, filters }) {
+    const [experienceMin, experienceMax] = experienceRange(filters.experience)
     return {
         q: search || undefined,
         city: filters.city || undefined,
@@ -48,7 +59,8 @@ export function performerParams({ search, sort, page, pageSize, filters }) {
         weight_min: filters.weightFrom || undefined,
         weight_max: filters.weightTo || undefined,
         gender: filters.gender || undefined,
-        experience_min: filters.experience || undefined,
+        experience_min: experienceMin,
+        experience_max: experienceMax,
         category: filters.category || undefined,
         project_type: filters.projectType || undefined,
         can_travel: travelParam(filters.travel),

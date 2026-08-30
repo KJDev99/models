@@ -88,9 +88,15 @@ export const FILTER_FIELDS = [
         key: 'capacity',
         kind: 'select',
         label: 'Вместимость',
-        placeholder: 'до 5 человек',
+        // Boshqa filtrlar bilan bir xil («Любой город», «Все площадки») —
+        // ochiluvchi ro'yxatning birinchi bandi endi haqiqiy filtr bo'lgani
+        // uchun bo'sh holat alohida so'z bilan ko'rsatiladi.
+        placeholder: 'Любая вместимость',
+        // Har bir variant haqiqiy filtr: `capacity_max` ga tushadi. Ilgari
+        // birinchisining qiymati bo'sh edi va «до 5 человек» tanlansa filtr
+        // umuman yuborilmasdi — ro'yxat o'zgarmay qolardi.
         options: [
-            { value: '', label: 'до 5 человек' },
+            { value: '5', label: 'до 5 человек' },
             { value: '10', label: 'до 10 человек' },
             { value: '20', label: 'до 20 человек' },
             { value: '50', label: 'до 50 человек' },

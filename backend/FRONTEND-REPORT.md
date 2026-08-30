@@ -97,6 +97,87 @@ GET /site/performers?specialty=videographer
 
 ---
 
+## 4. Фильтр «Опыт» — нужен `experience_max`
+
+В каталоге исполнителей три диапазона: **«До 1 года» · «От 1 до 3 лет» · «Более 3 лет»**.
+В API есть только нижняя граница:
+
+```
+GET /site/performers?specialty=photographer&experience_min=8   → 200, 2 анкеты (8 и 9 лет)   ✔ работает
+GET /site/performers?specialty=photographer&experience_max=1    → 200, 10 анкет (3…9 лет)     ✘ параметр игнорируется
+```
+
+Поэтому «До 1 года» и «От 1 до 3 лет» выразить нечем — на любом из них
+возвращаются все, включая стаж 9 лет. Это правка заказчика от 28.08 №1.
+
+### Что добавить
+
+Один параметр, рядом с `experience_min`:
+
+```
+GET /site/performers?experience_min=1&experience_max=3
+```
+
+| Параметр | Как читаем |
+|---|---|
+| `experience_min` | включительно: `years_experience >= min` |
+| `experience_max` | включительно: `years_experience <= max` |
+
+Мы уже отправляем обе границы:
+
+| Пункт списка | Уходит в запрос |
+|---|---|
+| «До 1 года» | `experience_max=1` |
+| «От 1 до 3 лет» | `experience_min=1&experience_max=3` |
+| «Более 3 лет» | `experience_min=3` |
+
+### То же самое в проектах
+
+`performers_count` — тоже только нижняя граница (`model_count >= value`).
+Пункт «От 3 до 5 человек» без верхней границы не выразить: сейчас на нём
+уходит `performers_count=3` и в выдачу попадают проекты на 4 и 5 человек.
+
+Нужен `performers_count_max`:
+
+```
+GET /site/projects?performers_count=3&performers_count_max=5
+```
+
+---
+
+## 5. `venue_type` отдаёт чужие типы
+
+```
+GET /site/venues?venue_type=loft
+  → 6 площадок: loft, loft, loft, industrial, grunge, photo
+
+GET /site/venues?venue_type=studio
+  → 6 площадок: studio, studio, loft, daylight, interior, Хroma
+```
+
+Ожидаем только те, у кого `venue_type` равен запрошенному слагу.
+Фильтр «Тип площадки» сейчас показывает не то, что выбрали.
+
+Заодно в данных есть значения не из словаря `venue_types`:
+`"Хroma"` (латинская X) вместо `cyclorama` и `"photo"` — это значение из
+`suitable_for`, не тип площадки. И `suitable_for: ["test", "test1"]`,
+`["Портретная съёмка"]` вместо слагов.
+
+---
+
+## 6. Обложки проектов — 1.9 МБ PNG
+
+```
+GET https://admin.agunastroy.ru/uploads/projects/cover-1.png → 1 934 085 байт, 1413×1113
+GET https://admin.agunastroy.ru/uploads/projects/cover-2.png → 1 777 079 байт, 1536×1024
+```
+
+Демо-картинки вы уже пересохранили в JPEG по ~150 КБ — эти две остались
+в PNG. На карточке они показываются в 384px, оптимизатор на первой загрузке
+успевает отвалиться по таймауту. Достаточно пересохранить как JPEG.
+
+---
+
 ## Что делать не нужно
 
 - Формат ответа, словари, фильтры, приглашения, модерация — всё сходится,

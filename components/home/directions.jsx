@@ -23,6 +23,7 @@ function DirectionCard({ item, className = '', sizes }) {
                 alt={item.label}
                 fill
                 sizes={sizes}
+                quality={90}
                 className="object-cover transition-transform duration-500 group-hover:scale-105"
             />
 
@@ -54,6 +55,7 @@ export default function Directions() {
                     item={DIRECTIONS.models}
                     className="h-[200px] w-full lg:h-[616px] lg:w-[662px] lg:shrink-0"
                     sizes="(max-width: 1024px) 100vw, 662px"
+                    quality={90}
                 />
 
                 <div className="flex min-w-0 flex-1 flex-col gap-[12px] lg:gap-[16px]">
@@ -62,11 +64,13 @@ export default function Directions() {
                             item={DIRECTIONS.photographers}
                             className="h-[200px] min-w-0 flex-1 lg:h-[300px]"
                             sizes="(max-width: 1024px) 50vw, 323px"
+                            quality={90}
                         />
                         <DirectionCard
                             item={DIRECTIONS.videographers}
                             className="h-[200px] min-w-0 flex-1 lg:h-[300px]"
                             sizes="(max-width: 1024px) 50vw, 323px"
+                            quality={90}
                         />
                     </div>
 
@@ -74,6 +78,7 @@ export default function Directions() {
                         item={DIRECTIONS.venues}
                         className="h-[200px] w-full lg:h-[300px]"
                         sizes="(max-width: 1024px) 100vw, 662px"
+                        quality={90}
                     />
                 </div>
             </div>

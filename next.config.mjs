@@ -18,8 +18,10 @@ const nextConfig = {
         qualities: [75, 90, 95],
         // Backend media va test ma'lumotlaridagi tashqi rasmlar.
         remotePatterns: [
+            // Doimiy backend (30.08 dan). Media shu yerdan keladi.
+            { protocol: 'https', hostname: 'admin.modelworkrf.ru' },
+            // Eski stend — hali ba'zi yozuvlarda mutlaq manzil qolgan.
             { protocol: 'https', hostname: 'admin.agunastroy.ru' },
-            { protocol: 'https', hostname: 'admin.basemodels.ru' },
             { protocol: 'https', hostname: 'picsum.photos' },
             { protocol: 'https', hostname: 'fastly.picsum.photos' },
             { protocol: 'https', hostname: 'images.unsplash.com' },

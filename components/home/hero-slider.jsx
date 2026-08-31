@@ -21,12 +21,19 @@ import 'swiper/css/effect-fade'
 // studiya foni, qora 20% qatlam va kesib olingan odam allaqachon bitta faylga
 // singdirilgan. Shu sababli bu yerda blur ham, qoraytiruvchi qatlam ham YO'Q.
 //
-// Desktop koordinatalari (1920 kanvas, kontent 1340px, chetlari 290px):
-//   sarlavha bloki  top 136
-//   «10 000+»       top 359, o'ng chekka, en 176
-//   slayder boshq.  markazi top 895
-//   «2 000+»        top 853, chap chekka, en 176
-// Mobil (320 kanvas, p-12): kontent 77px dan boshlanadi, boshqaruv bottom 13.
+// Blok balandligi — aynan bitta ekran (`100svh`). Figma 1920×1080 uchun
+// chizilgan, lekin noutbukda (1366×768, 1440×900) qat'iy 1080px pastga
+// tushib ketardi va slayder boshqaruvi ekrandan chiqib qolardi.
+//
+// Shuning uchun qat'iy `top` koordinatalari o'rniga tik oqim ishlatiladi:
+//   sarlavha → bo'sh joy (1) → «10 000+» → bo'sh joy (6) → pastki qator.
+// Nisbat 1:6 Figma'dagi masofalardan olingan (55px va 327px).
+//
+// Shrift o'lchamlari `clamp(min, Nvh, max)` — 1080px balandlikda Figma
+// qiymatiga teng, past ekranda mutanosib kichrayadi va matn rasm ustidagi
+// odam bilan ustma-ust tushmaydi.
+//
+// Mobil (320 kanvas, p-12): kontent 77px dan boshlanadi, pastda 13px.
 //
 // Animatsiyalar globals.css'da: `hero-kenburns`, `hero-rise`, `hero-swap`.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -54,10 +61,14 @@ function Stat({ value, label, className = '' }) {
     return (
         <div
             style={{ '--rise-delay': '500ms' }}
-            className={`hero-rise hidden w-[176px] flex-col gap-[16px] text-white lg:flex ${className}`}
+            className={`hero-rise hidden w-[176px] shrink-0 flex-col gap-[clamp(8px,1.5vh,16px)] text-white lg:flex ${className}`}
         >
-            <p className="font-display text-[48px] leading-none uppercase">{value}</p>
-            <p className="text-[20px] leading-normal whitespace-pre-line">{label}</p>
+            <p className="font-display text-[clamp(30px,4.45vh,48px)] leading-none uppercase">
+                {value}
+            </p>
+            <p className="text-[clamp(15px,1.86vh,20px)] leading-normal whitespace-pre-line">
+                {label}
+            </p>
         </div>
     )
 }
@@ -72,7 +83,7 @@ export default function HeroSlider() {
     const next = useCallback(() => swiper?.slideNext(), [swiper])
 
     return (
-        <section className="relative isolate h-[824px] w-full overflow-hidden bg-[#2f2f2f] lg:h-[1080px]">
+        <section className="relative isolate flex h-[100svh] max-h-[1080px] min-h-[560px] w-full flex-col overflow-hidden bg-[#2f2f2f] lg:min-h-[620px]">
             {/* ── Slayd rasmlari ───────────────────────────────────────────── */}
             <Swiper
                 modules={[EffectFade, Autoplay, Keyboard]}
@@ -85,7 +96,11 @@ export default function HeroSlider() {
                 keyboard={{ enabled: true }}
                 onSwiper={setSwiper}
                 onSlideChange={(s) => setIndex(s.realIndex)}
-                className="absolute inset-0 !h-full w-full"
+                // `swiper/css` `.swiper { position: relative }` beradi va u
+                // Tailwind'ning `absolute` klassidan keyin yuklanadi — shuning
+                // uchun `!absolute` kerak, aks holda slayder oqimda qolib
+                // kontentni pastga surib yuboradi.
+                className="!absolute inset-0 !h-full w-full"
             >
                 {HERO_SLIDES.map((slide, i) => (
                     <SwiperSlide key={slide.key}>
@@ -115,12 +130,17 @@ export default function HeroSlider() {
                 ))}
             </Swiper>
 
-            {/* ── Sarlavha bloki: mobil 77px, desktop 136px ────────────────── */}
-            <div className="pointer-events-none absolute inset-x-0 top-[77px] z-10 lg:top-[136px]">
+            {/* ── Kontent ustuni: yuqorida sarlavha, pastda slayder boshqaruvi ──
+                Oraliqdagi bo'sh joy `flex-1` bilan taqsimlanadi, shuning uchun
+                blok istalgan ekran balandligiga moslashadi. */}
+            {/* Yuqoridagi bo'shliq — heder balandligi (mobil 77px, desktop
+                112px) ustiga Figma'dagi zaxira. Past ekranda zaxira qisqaradi,
+                lekin matn hech qachon heder ostiga kirmaydi. */}
+            <div className="pointer-events-none relative z-10 flex min-h-0 flex-1 flex-col pt-[77px] pb-[13px] lg:pt-[clamp(120px,12.6vh,136px)] lg:pb-[clamp(20px,3vh,32px)]">
                 <Container className="flex flex-col gap-[16px] lg:flex-row lg:items-center lg:justify-between lg:gap-0">
                     <h1
                         style={{ '--rise-delay': '100ms' }}
-                        className="hero-rise pointer-events-auto font-display text-[30px] leading-[34px] tracking-[0.6px] text-white uppercase lg:text-[80px] lg:leading-[84px] lg:tracking-[1.6px]"
+                        className="hero-rise pointer-events-auto font-display text-[30px] leading-[34px] tracking-[0.6px] text-white uppercase lg:text-[clamp(40px,min(7.4vh,4.3vw),80px)] lg:leading-[1.05] lg:tracking-[1.6px]"
                     >
                         Профессионалы
                         <br />
@@ -128,10 +148,10 @@ export default function HeroSlider() {
                     </h1>
 
                     {/* Figma'da o'ng ustun eni 512px — matn aynan 2 qatorga bo'linadi */}
-                    <div className="flex flex-col gap-[12px] lg:w-[512px] lg:gap-[24px]">
+                    <div className="flex flex-col gap-[12px] lg:w-[clamp(320px,34vw,512px)] lg:gap-[clamp(12px,2.2vh,24px)]">
                         <p
                             style={{ '--rise-delay': '220ms' }}
-                            className="hero-rise pointer-events-auto text-[16px] leading-[22px] text-white lg:text-[20px] lg:leading-[26px]"
+                            className="hero-rise pointer-events-auto text-[16px] leading-[22px] text-white lg:text-[clamp(16px,1.86vh,20px)] lg:leading-[1.3]"
                         >
                             Модели. Фотографы. Видеографы. Площадки. Всё для создания крутого
                             контента.
@@ -139,53 +159,58 @@ export default function HeroSlider() {
 
                         <div
                             style={{ '--rise-delay': '340ms' }}
-                            className="hero-rise pointer-events-auto flex flex-col gap-[12px] lg:flex-row lg:gap-[16px]"
+                            // 1024–1280 da o'ng ustun tor bo'ladi va ikkita tugma
+                            // bir qatorga sig'masdi — shu oraliqda ular ustma-ust
+                            // turadi, 1280 dan boshlab Figma'dagidek yonma-yon.
+                            className="hero-rise pointer-events-auto flex flex-col gap-[12px] xl:flex-row xl:gap-[16px]"
                         >
                             <Button
                                 href="/models"
                                 variant="gold"
                                 iconRight={<ArrowUpRight size={22} strokeWidth={2} className="size-[15px] lg:size-[22px]" />}
-                                className="w-full lg:w-auto"
+                                className="w-full xl:w-auto"
                             >
                                 Найти исполнителя
                             </Button>
                             <Button
                                 href="/company/projects/new"
                                 variant="whiteStroke"
-                                className="w-full lg:w-auto"
+                                className="w-full xl:w-auto"
                             >
                                 Разместить проект
                             </Button>
                         </div>
                     </div>
                 </Container>
-            </div>
 
-            {/* ── «10 000+» — o'ng chekka, top 359 ─────────────────────────── */}
-            <div className="pointer-events-none absolute inset-x-0 top-[359px] z-10">
+                {/* Figma'da sarlavha ostidan «10 000+» gacha 55px, undan pastki
+                    qatorgacha 327px — shu nisbat 1:6 bo'lib saqlanadi. */}
+                <div className="min-h-[16px] flex-[1]" />
+
                 <Container className="flex justify-end">
                     <Stat
                         value={HERO_STATS.specialists.value}
                         label={HERO_STATS.specialists.label}
                     />
                 </Container>
-            </div>
 
-            {/* ── «2 000+» — chap chekka, top 853 ──────────────────────────── */}
-            <div className="pointer-events-none absolute inset-x-0 top-[853px] z-10">
-                <Container>
-                    <Stat value={HERO_STATS.projects.value} label={HERO_STATS.projects.label} />
-                </Container>
-            </div>
+                <div className="min-h-[24px] flex-[6]" />
 
-            {/* ── Slayder boshqaruvi ───────────────────────────────────────
-                Mobil: pastda, chetlaridan 12px, o'qlar chetga tayangan.
-                Desktop: markazda, blok markazi top 895. */}
-            <div className="absolute right-0 bottom-[13px] left-0 z-10 flex items-center justify-between px-[12px] lg:top-[895px] lg:right-auto lg:bottom-auto lg:left-1/2 lg:w-auto lg:-translate-x-1/2 lg:-translate-y-1/2 lg:justify-center lg:gap-[24px] lg:px-0">
-                <NavArrow direction="prev" onClick={prev} label="Предыдущее направление" />
+            {/* ── Slayder boshqaruvi + «2 000+» ────────────────────────────
+                Mobil: o'qlar ekran chetlarida, o'rtada yozuv.
+                Desktop: boshqaruv aynan markazda, «2 000+» esa chap chekkada
+                oqimdan tashqarida — shunda u markazni surib yubormaydi. */}
+                <Container className="relative flex items-center justify-between px-[12px] lg:justify-center lg:gap-[24px]">
+                    <Stat
+                        value={HERO_STATS.projects.value}
+                        label={HERO_STATS.projects.label}
+                        className="absolute bottom-0 left-6"
+                    />
 
-                <div className="flex flex-col items-center justify-center gap-[12px] lg:w-[464px] lg:gap-[16px]">
-                    <p className="text-[14px] tracking-[0.28px] text-[#c8c8c8] lg:text-[20px] lg:tracking-[0.4px]">
+                    <NavArrow direction="prev" onClick={prev} label="Предыдущее направление" />
+
+                    <div className="flex flex-col items-center justify-center gap-[12px] lg:w-[464px] lg:gap-[clamp(8px,1.5vh,16px)]">
+                    <p className="text-[14px] tracking-[0.28px] text-[#c8c8c8] lg:text-[clamp(15px,1.86vh,20px)] lg:tracking-[0.4px]">
                         Выберите направление
                     </p>
 
@@ -195,7 +220,7 @@ export default function HeroSlider() {
                     <p
                         key={`${active.key}-label`}
                         style={{ '--swap-delay': '150ms' }}
-                        className="hero-swap font-display text-[30px] leading-none tracking-[0.6px] whitespace-nowrap text-white uppercase lg:text-[60px] lg:tracking-[1.2px]"
+                        className="hero-swap font-display text-[30px] leading-none tracking-[0.6px] whitespace-nowrap text-white uppercase lg:text-[clamp(34px,5.55vh,60px)] lg:tracking-[1.2px]"
                     >
                         {active.label}
                     </p>
@@ -204,7 +229,7 @@ export default function HeroSlider() {
                         key={`${active.key}-link`}
                         href={active.href}
                         style={{ '--swap-delay': '230ms' }}
-                        className="hero-swap group flex items-center justify-center gap-[12px] border-b border-white p-[12px] text-[14px] font-medium whitespace-nowrap text-white transition-opacity hover:opacity-80 lg:p-[16px] lg:text-[18px]"
+                        className="hero-swap group flex items-center justify-center gap-[12px] border-b border-white p-[12px] text-[14px] font-medium whitespace-nowrap text-white transition-opacity hover:opacity-80 lg:p-[clamp(8px,1.5vh,16px)] lg:text-[clamp(15px,1.67vh,18px)]"
                     >
                         {active.linkText}
                         {/* Figma: mobil 17px (353:20690), desktop 22px (75:222) */}
@@ -213,10 +238,11 @@ export default function HeroSlider() {
                             strokeWidth={2}
                             className="size-[17px] transition-transform duration-300 group-hover:translate-x-[3px] group-hover:-translate-y-[3px] lg:size-[22px]"
                         />
-                    </Link>
-                </div>
+                        </Link>
+                    </div>
 
-                <NavArrow direction="next" onClick={next} label="Следующее направление" />
+                    <NavArrow direction="next" onClick={next} label="Следующее направление" />
+                </Container>
             </div>
         </section>
     )

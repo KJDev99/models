@@ -17,7 +17,8 @@ import { LOGO } from '@/lib/assets'
 // ─────────────────────────────────────────────────────────────────────────────
 // Figma: футер — desktop 247:4966, mobil 373:17216.
 // Desktop: bitta qatorda logo + menyu + tugmalar, ostida huquqiy matnlar.
-// Mobil: hammasi ustma-ust, tugmalar to'liq kenglikda.
+// Mobil: hammasi ustma-ust va markazda (mijoz izohi 30.08), tugmalar to'liq
+// kenglikda. Desktopda joylashuv o'zgarmaydi — markazlash faqat `lg:` gacha.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const LEGAL_LEFT = ['@ Все права защищены 2026', 'Разработано в Usertech']
@@ -49,9 +50,9 @@ export default function Footer() {
 
     return (
         <footer className="w-full bg-black">
-            <Container className="flex flex-col gap-[16px] py-[20px] lg:gap-[24px] lg:py-[50px]">
-                <div className="flex flex-col gap-[16px] lg:flex-row lg:items-center lg:justify-between lg:gap-0">
-                    <div className="flex flex-col gap-[16px] lg:flex-row lg:items-center lg:gap-[50px]">
+            <Container className="flex flex-col items-center gap-[16px] py-[20px] text-center lg:items-stretch lg:gap-[24px] lg:py-[50px] lg:text-left">
+                <div className="flex w-full flex-col items-center gap-[16px] lg:flex-row lg:items-center lg:justify-between lg:gap-0">
+                    <div className="flex flex-col items-center gap-[16px] lg:flex-row lg:items-center lg:gap-[50px]">
                         <Link
                             href="/"
                             className="relative block h-[60px] w-[54px] shrink-0 lg:h-[64px] lg:w-[58px]"
@@ -65,7 +66,7 @@ export default function Footer() {
                             />
                         </Link>
 
-                        <nav className="flex flex-col justify-center gap-[16px] lg:flex-row lg:items-center lg:gap-[24px]">
+                        <nav className="flex flex-col items-center justify-center gap-[16px] lg:flex-row lg:items-center lg:gap-[24px]">
                             {PUBLIC_NAV.map((item) => (
                                 <Link
                                     key={item.href}
@@ -78,7 +79,7 @@ export default function Footer() {
                         </nav>
                     </div>
 
-                    <div className="flex flex-col gap-[12px] lg:flex-row lg:items-center lg:gap-[16px]">
+                    <div className="flex w-full flex-col gap-[12px] lg:w-auto lg:flex-row lg:items-center lg:gap-[16px]">
                         {/* Figma 270:21696: kirgan foydalanuvchida futerda faqat bitta
                             tugma qoladi — «Войти» ko'rsatilmaydi. */}
                         {!authed && (
@@ -100,14 +101,14 @@ export default function Footer() {
                     </div>
                 </div>
 
-                <div className="flex flex-col gap-[12px] text-[12px] text-[#b3b3b3] lg:flex-row lg:items-center lg:justify-between lg:gap-0 lg:text-[14px]">
-                    <div className="flex flex-col gap-[12px] lg:flex-row lg:items-center lg:gap-[24px]">
+                <div className="flex w-full flex-col items-center gap-[12px] text-[12px] text-[#b3b3b3] lg:flex-row lg:items-center lg:justify-between lg:gap-0 lg:text-[14px]">
+                    <div className="flex flex-col items-center gap-[12px] lg:flex-row lg:items-center lg:gap-[24px]">
                         {LEGAL_LEFT.map((text) => (
                             <span key={text}>{text}</span>
                         ))}
                     </div>
 
-                    <div className="flex flex-col gap-[12px] lg:flex-row lg:items-center lg:gap-[24px]">
+                    <div className="flex flex-col items-center gap-[12px] lg:flex-row lg:items-center lg:gap-[24px]">
                         {LEGAL_RIGHT.map((item) => (
                             <Link
                                 key={item.href}

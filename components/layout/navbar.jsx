@@ -123,15 +123,18 @@ export default function Navbar() {
                     />
                 </Link>
 
-                {/* Desktop menyu */}
-                <nav className="hidden items-center gap-[24px] lg:flex">
+                {/* Desktop menyu. Yettita punkt + «Войти» + «Разместить проект»
+                    1280px dan tor ekranga sig'masdi (harflar ustma-ust tushardi),
+                    shuning uchun bu chegaradan pastda burger menyu ishlaydi.
+                    1280–1440 oralig'ida oraliq va shrift bir oz kichik. */}
+                <nav className="hidden items-center gap-[16px] xl:flex 2xl:gap-[24px]">
                     {PUBLIC_NAV.map((item) => {
                         const active = pathname.startsWith(item.href)
                         return (
                             <Link
                                 key={item.href}
                                 href={item.href}
-                                className={`text-[18px] transition-opacity hover:opacity-70 ${
+                                className={`text-[16px] whitespace-nowrap transition-opacity hover:opacity-70 2xl:text-[18px] ${
                                     overlay ? 'text-white' : 'text-black'
                                 } ${active ? 'opacity-100' : 'opacity-90'}`}
                             >
@@ -145,7 +148,7 @@ export default function Navbar() {
                     Kirmagan holat (Figma 164:16136): «Войти» + «Разместить проект».
                     Kirgan holat (Figma 260:12525): xat / sevimlilar / bildirishnoma
                     ikonkalari, gold konturli «Разместить проект» va 54px avatar. */}
-                <div className="flex items-center gap-[16px]">
+                <div className="flex items-center gap-[10px] xl:gap-[16px]">
                     {/* Mobilda ham xuddi shu ikonkalar turadi
                         (Figma 415:17509 / 434:17271 — ✉ ♡ 🔔 avatar ☰). */}
                     {authed ? (
@@ -183,7 +186,7 @@ export default function Navbar() {
                         keyin turadi va uni yengib qo'yadi, shuning uchun ko'rinishni
                         tashqi o'ram boshqaradi (Figma mobil 353:20611 — bu tugma yo'q). */}
                     {cta && (
-                        <span className="hidden lg:inline-flex">
+                        <span className="hidden xl:inline-flex">
                             <Button
                                 href={cta.href}
                                 variant={
@@ -208,7 +211,7 @@ export default function Navbar() {
                         aria-label="Меню"
                         // `p-4 -m-4` — ikonka Figma'dagidek 24px joyda turadi,
                         // ammo bosish/hover maydoni 32×32 bo'ladi (373:17034).
-                        className={`-m-[4px] flex cursor-pointer items-center rounded-[6px] p-[4px] transition-colors lg:hidden ${
+                        className={`-m-[4px] flex cursor-pointer items-center rounded-[6px] p-[4px] transition-colors xl:hidden ${
                             overlay
                                 ? 'text-white hover:bg-white/20'
                                 : 'text-black hover:bg-black/10'
@@ -225,7 +228,7 @@ export default function Navbar() {
                 `inert` — fokus va skrinriderlar uchun mavjud emas. */}
             <div
                 inert={!open}
-                className={`fixed inset-0 z-50 lg:hidden ${
+                className={`fixed inset-0 z-50 xl:hidden ${
                     open ? '' : 'pointer-events-none'
                 }`}
             >

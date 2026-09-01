@@ -103,7 +103,12 @@ export default function AdminVenueForm({ mode = 'create', initialValues = null }
     }
 
     // Formani `POST/PUT /admin/venues` tanasiga o'giradi.
-    function body() {
+    //
+    // `extra` — muqova kabi keyin ma'lum bo'ladigan maydonlar uchun.
+    // Backendda PUT to'liq almashtirish: faqat `{ cover_url }` yuborilsa
+    // `owner_id` va `name` yo'qligi uchun 422 qaytadi, shuning uchun
+    // muqova ham har doim to'liq tana bilan ketadi (mijoz izohi 31.08).
+    function body(extra = {}) {
         const price = (label, value) =>
             value?.trim() ? { rental_type: label, price_label: value.trim() } : null
 
@@ -129,11 +134,14 @@ export default function AdminVenueForm({ mode = 'create', initialValues = null }
                 price('Съёмочный день', form.day),
                 price('Дополнительный час', form.extra),
             ].filter(Boolean),
+            ...extra,
         }
     }
 
-    async function persist() {
-        const res = savedId ? await update.run(savedId, body()) : await create.run(body())
+    async function persist(extra = {}) {
+        const res = savedId
+            ? await update.run(savedId, body(extra))
+            : await create.run(body(extra))
         if (!res.success) {
             toast.error(res.error.message)
             return null
@@ -164,7 +172,10 @@ export default function AdminVenueForm({ mode = 'create', initialValues = null }
             const url = res.data?.url
             if (!url) continue
             // Birinchi surat — muqova (agar hali qo'yilmagan bo'lsa).
-            if (i === 0 && !photos.length) await update.run(venueId, { cover_url: url })
+            if (i === 0 && !photos.length) {
+                const cov = await update.run(venueId, body({ cover_url: url }))
+                if (!cov.success) toast.error(cov.error.message)
+            }
             await addPhoto.run(venueId, { url, album: 'Общие' })
             added.push(url)
         }

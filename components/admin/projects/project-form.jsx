@@ -115,6 +115,11 @@ export default function AdminProjectForm({ mode = 'create', initialValues = null
     }
 
     // Formani `POST/PUT /admin/projects` tanasiga o'giradi.
+    //
+    // Muqova ham shu tanada ketadi. Ilgari u alohida `PUT { cover_url }`
+    // bilan yuborilardi, lekin backendda PUT — to'liq almashtirish:
+    // `owner_id` va `title` bo'lmasa 422 qaytardi va muqova hech qachon
+    // saqlanmasdi (mijoz izohi 31.08).
     function body() {
         return {
             owner_id: form.client || undefined,
@@ -131,8 +136,14 @@ export default function AdminProjectForm({ mode = 'create', initialValues = null
             shoot_date: form.date || undefined,
             time_from: form.from || undefined,
             time_to: form.to || undefined,
-            duration_label: DURATIONS.find((d) => d.value === form.duration)?.label || undefined,
+            // Bo'sh qiymatda ro'yxatning birinchi bandi («Выберите...»)
+            // topilib, o'sha yozuv backendga davomiylik sifatida ketardi.
+            duration_label: form.duration
+                ? DURATIONS.find((d) => d.value === form.duration)?.label
+                : undefined,
             hourly_rate_label: form.rate || undefined,
+            // Bo'sh qiymat `null` — shunda muqovani olib tashlash ham saqlanadi.
+            cover_url: form.cover || null,
         }
     }
 
@@ -158,7 +169,8 @@ export default function AdminProjectForm({ mode = 'create', initialValues = null
         setDone(true)
     }
 
-    // Muqova: avval fayl yuklanadi, so'ng loyihaga bog'lanadi.
+    // Muqova: fayl yuklanadi va manzil formada saqlanadi. Backendga u
+    // «Далее» / «Сохранить» bosilganda qolgan maydonlar bilan birga ketadi.
     async function pickCover(file) {
         if (!file) return
         const res = await upload.run(file)
@@ -166,10 +178,7 @@ export default function AdminProjectForm({ mode = 'create', initialValues = null
             toast.error(res.error.message)
             return
         }
-        const url = res.data?.url
-        set('cover', url)
-        const projectId = savedId || (await persist())
-        if (projectId) await update.run(projectId, { cover_url: url })
+        set('cover', res.data?.url || '')
     }
 
     return (

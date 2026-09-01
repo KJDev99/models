@@ -29,6 +29,24 @@ export default function AdminAgencyProfileLoader({ id }) {
     const unblockPerformer = useAction(adminApi.unblockPerformer)
     const removePerformer = useAction(adminApi.deletePerformer)
 
+    // `PUT /admin/agencies/{id}` — to'liq almashtirish: `agency_name`,
+    // `representative_name` va `city` har safar kerak. Logotipni alohida
+    // `{ logo_url }` bilan yuborish 422 berardi va rasm saqlanmasdi
+    // (mijoz izohi 31.08), shuning uchun tana shu yerda bir joydan yig'iladi.
+    function writeBody(extra = {}) {
+        const user = data?.user || {}
+        return {
+            agency_name: user.agency_name || undefined,
+            representative_name: user.representative_name ?? null,
+            sphere_of_activity: user.sphere_of_activity ?? data?.sphere_of_activity ?? null,
+            city: user.city ?? null,
+            about: data?.about ?? null,
+            phone: data?.contact_phone ?? user.phone ?? null,
+            email: user.email || undefined,
+            ...extra,
+        }
+    }
+
     async function finish(res, message) {
         if (!res.success) {
             toast.error(res.error.message)
@@ -56,15 +74,18 @@ export default function AdminAgencyProfileLoader({ id }) {
         <AdminAgencyProfile
             profile={profile}
             onSave={async (form) => {
-                const res = await update.run(id, {
-                    agency_name: form.name || undefined,
-                    representative_name: form.manager || null,
-                    sphere_of_activity: form.field || null,
-                    city: form.city || null,
-                    about: form.about || null,
-                    phone: form.phone || null,
-                    email: form.email || undefined,
-                })
+                const res = await update.run(
+                    id,
+                    writeBody({
+                        agency_name: form.name || undefined,
+                        representative_name: form.manager || null,
+                        sphere_of_activity: form.field || null,
+                        city: form.city || null,
+                        about: form.about || null,
+                        phone: form.phone || null,
+                        email: form.email || undefined,
+                    }),
+                )
                 await finish(res, 'Профиль сохранён')
             }}
             onPickPhoto={async (file) => {
@@ -74,7 +95,10 @@ export default function AdminAgencyProfileLoader({ id }) {
                     toast.error(up.error.message)
                     return
                 }
-                await finish(await update.run(id, { logo_url: up.data?.url }), 'Логотип обновлён')
+                await finish(
+                    await update.run(id, writeBody({ logo_url: up.data?.url })),
+                    'Логотип обновлён',
+                )
             }}
             onBlock={async (row, form) => {
                 const payload = blockPayload(form)

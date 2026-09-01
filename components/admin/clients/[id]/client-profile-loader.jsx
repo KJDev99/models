@@ -29,6 +29,26 @@ export default function AdminClientProfileLoader({ id }) {
     const updateVenue = useAction(adminApi.updateVenue)
     const deleteVenue = useAction(adminApi.deleteVenue)
 
+    // `PUT /admin/customers/{id}` — to'liq almashtirish: `customer_type` va
+    // `city` har safar kerak. Fotoni alohida `{ logo_url }` bilan yuborish
+    // 422 berardi va rasm saqlanmasdi (mijoz izohi 31.08).
+    function writeBody(extra = {}) {
+        const user = data?.user || {}
+        return {
+            customer_type: user.customer_type || 'individual',
+            company_name: user.company_name ?? null,
+            first_name: user.first_name || undefined,
+            last_name: user.last_name || undefined,
+            sphere_of_activity: user.sphere_of_activity ?? null,
+            city: user.city ?? null,
+            about: data?.about ?? null,
+            phone: data?.contact_phone ?? user.phone ?? null,
+            email: user.email || undefined,
+            website: data?.website ?? null,
+            ...extra,
+        }
+    }
+
     async function finish(res, message) {
         if (!res.success) {
             toast.error(res.error.message)
@@ -55,18 +75,21 @@ export default function AdminClientProfileLoader({ id }) {
             onSave={async (form) => {
                 const isCompany = form.type === 'company'
                 const [first, ...rest] = (form.name || '').split(' ')
-                const res = await update.run(id, {
-                    customer_type: isCompany ? 'company' : 'individual',
-                    company_name: isCompany ? form.name : null,
-                    first_name: isCompany ? undefined : first || undefined,
-                    last_name: isCompany ? undefined : rest.join(' ') || undefined,
-                    sphere_of_activity: form.field || null,
-                    city: form.city || null,
-                    about: form.about || null,
-                    phone: form.phone || null,
-                    email: form.email || undefined,
-                    website: form.site || null,
-                })
+                const res = await update.run(
+                    id,
+                    writeBody({
+                        customer_type: isCompany ? 'company' : 'individual',
+                        company_name: isCompany ? form.name : null,
+                        first_name: isCompany ? undefined : first || undefined,
+                        last_name: isCompany ? undefined : rest.join(' ') || undefined,
+                        sphere_of_activity: form.field || null,
+                        city: form.city || null,
+                        about: form.about || null,
+                        phone: form.phone || null,
+                        email: form.email || undefined,
+                        website: form.site || null,
+                    }),
+                )
                 await finish(res, 'Профиль сохранён')
             }}
             onPickPhoto={async (file) => {
@@ -77,7 +100,10 @@ export default function AdminClientProfileLoader({ id }) {
                     toast.error(up.error.message)
                     return
                 }
-                await finish(await update.run(id, { logo_url: up.data?.url }), 'Фото обновлено')
+                await finish(
+                    await update.run(id, writeBody({ logo_url: up.data?.url })),
+                    'Фото обновлено',
+                )
             }}
             onBlock={async (_row, form) => {
                 await finish(await block.run(id, blockPayload(form)), 'Заказчик заблокирован')

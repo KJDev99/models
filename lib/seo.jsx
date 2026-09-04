@@ -11,7 +11,7 @@
 
 export const SITE = {
     name: 'База моделей',
-    url: process.env.NEXT_PUBLIC_SITE_URL || 'https://basemodels.ru',
+    url: process.env.NEXT_PUBLIC_SITE_URL || 'https://modelworkrf.ru',
     locale: 'ru_RU',
 }
 

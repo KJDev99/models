@@ -27,6 +27,13 @@ export const metadata = {
         shortcut: '/favicon.svg',
         apple: '/favicon.svg',
     },
+    // Qidiruv tizimlariga saytni tasdiqlash.
+    // Yandex.Webmaster — meta teg orqali.
+    // Google Search Console — public/google4867574b5fb1f973.html fayli orqali
+    // (/google4867574b5fb1f973.html manzilida ochiladi).
+    verification: {
+        yandex: '4d9420b919c0149d',
+    },
 }
 
 export default function RootLayout({ children }) {

@@ -20,8 +20,11 @@ npm run lint
 `.env.local`:
 
 ```
-NEXT_PUBLIC_API_URL=https://admin.basemodels.ru/api
-NEXT_PUBLIC_SITE_URL=https://basemodels.ru
+NEXT_PUBLIC_API_URL=/api/v1
+NEXT_PUBLIC_API_ORIGIN=https://admin.modelworkrf.ru
+API_ORIGIN=https://admin.modelworkrf.ru
+NEXT_PUBLIC_WS_URL=wss://admin.modelworkrf.ru
+NEXT_PUBLIC_SITE_URL=https://modelworkrf.ru
 ```
 
 ---
